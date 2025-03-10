@@ -1,9 +1,7 @@
 use anyhow::{Context, bail};
 use serde::{Serialize, Serializer};
 
-/// `PositionAxis` represents a coordinate axis in the [Grid](crate::grid::Grid).
-///
-/// A combination of two `PositionAxis` makes a [`Position`]
+/// `PositionAxis` represents a coordinate axis in the [Grid](crate::grid::Grid). A combination of two `PositionAxis` makes a [`Position`]
 ///
 /// # Representation
 /// A `PositionAxis` have two representation :
@@ -72,6 +70,7 @@ impl PositionAxis {
     ///
     /// Error :
     /// Returns an error if the given numeric representation is invalid
+    /// See [`PositionAxis`](PositionAxis#representation).
     ///
     /// # Example
     /// ```
@@ -102,6 +101,7 @@ impl PositionAxis {
     ///
     /// Error :
     /// Returns an error if the given textual representation is invalid
+    /// See [`PositionAxis`](PositionAxis#representation).
     ///
     /// # Example
     /// ```
@@ -127,12 +127,12 @@ impl PositionAxis {
     /// Get a [`PositionAxis`] given a valid numeric representation
     ///
     /// # Error
-    /// Returns an error if the given numeric representation is invalid. See [`PositionAxis`](PositionAxis#representation).
+    /// Returns an error if the given numeric representation is invalid.
+    /// See [`PositionAxis`](PositionAxis#representation).
     ///
     /// # Example
     /// ```
     /// # use graliffer::grid::PositionAxis;
-    ///
     /// let pos = PositionAxis::from_numeric(0).unwrap();
     /// assert_eq!(pos.as_numeric(), 0);
     ///
@@ -155,10 +155,9 @@ impl PositionAxis {
     /// # Errors
     /// Returns an error if the given textual representation is invalid. See [`PositionAxis`](PositionAxis#representation).
     ///
-    /// # Example
+    /// # Examples
     /// ```
     /// # use graliffer::grid::PositionAxis;
-    ///
     /// let pos = PositionAxis::from_textual('A').unwrap();
     /// assert_eq!(pos.as_numeric(), 0);
     ///
@@ -177,72 +176,123 @@ impl PositionAxis {
         self.0.into()
     }
 
+    /// Returns the textual representation of a `PositionAxis`
     pub fn as_textual(self) -> char {
         Self::numeric_to_textual(self.0 as u32).unwrap()
     }
 
-    /// Performs an addition on two [`PostionAxis`]
+    /// Performs an addition on two [`PositionAxis`]
     ///
-    /// Errors:
+    /// Errors
     /// Returns an error if the addition could not be performed (overflowing the [`Grid`] limits).
     ///
-    /// Examples:
+    /// Examples
     /// ```
     /// # use graliffer::grid::PositionAxis;
+    /// let zero = PositionAxis::ZERO;
     /// let five = PositionAxis::from_numeric(5).unwrap();
     /// let ten = PositionAxis::from_numeric(10).unwrap();
     /// let fifteen = PositionAxis::from_numeric(15).unwrap();
-    /// let too_big = PositionAxis::from_numeric(PositionAxis::MAX).unwrap();
+    /// let too_big = PositionAxis::from_numeric(PositionAxis::MAX_NUMERIC).unwrap();
     ///
     /// assert_eq!(ten.checked_add(five).unwrap(), fifteen);
-    /// assert_eq!(five.checked_add(ten).unwrap(), fifteen);
+    /// assert_eq!(five.checked_add(five).unwrap(), ten);
+    /// assert_eq!(fifteen.checked_add(zero).unwrap(), fifteen);
     /// assert!(ten.checked_add(too_big).is_err());
     /// ```
+    #[must_use = "this returns the result of the operation, without modifying the original"]
     pub fn checked_add(&self, other: Self) -> Result<Self, anyhow::Error> {
-        const ERR_MESSAGE: &str = "could not add these two `PositionAxis`s";
-        let sum = self.0.checked_add(other.0).ok_or(anyhow::anyhow!(ERR_MESSAGE))?;
-
-        Self::from_numeric(sum.into()).context(ERR_MESSAGE)
+        {
+            let sum = self.0.checked_add(other.0)
+                .ok_or(anyhow::anyhow!("adding these would overflow"))?;
+            Self::from_numeric(sum.into())
+        }.context("could not add these two `PositionAxis`s")
     }
 
     /// Performs a substraction between two [`PostionAxis`]
     ///
-    /// Errors:
+    /// Errors
     /// Returns an error if the substraction could not be performed (underflowing the [`Grid`] limits).
     ///
-    /// Examples:
+    /// Examples
+    /// ```
+    /// # use graliffer::grid::PositionAxis;
+    /// let zero = PositionAxis::ZERO;
+    /// let five = PositionAxis::from_numeric(5).unwrap();
+    /// let ten = PositionAxis::from_numeric(10).unwrap();
+    /// let fifteen = PositionAxis::from_numeric(15).unwrap();
+    /// let too_big = PositionAxis::from_numeric(PositionAxis::MAX_NUMERIC).unwrap();
+    ///
+    /// assert_eq!(ten.checked_sub(five).unwrap(), five);
+    /// assert_eq!(fifteen.checked_sub(ten).unwrap(), five);
+    /// assert_eq!(ten.checked_sub(zero).unwrap(), ten);
+    /// assert!(ten.checked_sub(fifteen).is_err());
+    /// assert!(ten.checked_sub(too_big).is_err());
+    /// ```
+    #[must_use = "this returns the result of the operation, without modifying the original"]
+    pub fn checked_sub(&self, other: Self) -> Result<Self, anyhow::Error> {
+        {
+            let diff = self.0.checked_sub(other.0)
+                .ok_or(anyhow::anyhow!("subtracting these would underflow"))?;
+            Self::from_numeric(diff.into())
+        }.context("could not add these two `PositionAxis`s")
+    }
+
+    /// Perform an addition between a [`PositionAxis`] and a `u32`
+    ///
+    /// # Errors
+    /// Returns an error if the addition could not be performed (overflowing the [`Grid`] limits).
+    ///
+    /// # Examples
     /// ```
     /// # use graliffer::grid::PositionAxis;
     /// let five = PositionAxis::from_numeric(5).unwrap();
     /// let ten = PositionAxis::from_numeric(10).unwrap();
     /// let fifteen = PositionAxis::from_numeric(15).unwrap();
-    /// let too_big = PositionAxis::from_numeric(PositionAxis::MAX).unwrap();
+    /// let too_big = PositionAxis::from_numeric(PositionAxis::MAX_NUMERIC).unwrap();
     ///
-    /// assert_eq!(ten.checked_sub(five).unwrap(), five);
-    /// assert_eq!(fifteen.checked_sub(ten).unwrap(), five);
-    /// assert!(ten.checked_sub(fifteen).is_err());
-    /// assert!(ten.checked_sub(too_big).is_err());
+    /// assert_eq!(five.checked_increment(10).unwrap(), fifteen);
+    /// assert_eq!(ten.checked_increment(5).unwrap(), fifteen);
+    /// assert_eq!(ten.checked_increment(0).unwrap(), ten);
+    /// assert!(too_big.checked_increment(1).is_err());
     /// ```
-    pub fn checked_sub(&self, other: Self) -> Result<Self, anyhow::Error> {
-        const ERR_MESSAGE: &str = "could not substract these two `PositionAxis`s";
-
-        let diff = self.0.checked_sub(other.0).ok_or(anyhow::anyhow!(ERR_MESSAGE))?;
-
-        Self::from_numeric(diff.into()).context(ERR_MESSAGE)
-
+    #[must_use = "this returns the result of the operation, without modifying the original"]
+    pub fn checked_increment(&self, value: u32) -> Result<Self, anyhow::Error> {
+        {
+            let sum = (self.0 as u32).checked_add(value)
+                .ok_or(anyhow::anyhow!("adding these would overflow"))?;
+            Self::from_numeric(sum.into())
+        }.context(format!("could not increment further, attempted to increment {:?} by {}, but result must be in range [0-63]", self, value))
     }
 
-    // pub fn checked_increment(self, value: u32) -> Result<Self, anyhow::Error> {
-    //     let sum = Self::from_numeric((self.0 as u32) + value)
-    //         .context(format!("could not increment further, attempted to increment {:?} by {}, but result must be in range [0-63]", self, value))?;
-    //     Ok(sum)
-    // }
-
-    // pub fn checked_decrement(self, value: u32) -> Result<Self, anyhow::Error> {
-    //     let sum = Self::from_numeric((self.0 as u32) - value)
-    //         .context(format!("could not decrement further, attempted to decrement {:?} by {}, but result must be in range [0-63]", self, value))?;
-    //     Ok(sum)
-    // }
+    /// Perform a substraction between a [`PositionAxis`] and a `u32`
+    ///
+    /// # Errors
+    /// Returns an error if the substraction could not be performed (underflowing the [`Grid`] limits).
+    ///
+    /// # Examples
+    /// ```
+    /// # use graliffer::grid::PositionAxis;
+    /// let zero = PositionAxis::ZERO;
+    /// let five = PositionAxis::from_numeric(5).unwrap();
+    /// let ten = PositionAxis::from_numeric(10).unwrap();
+    /// let fifteen = PositionAxis::from_numeric(15).unwrap();
+    /// let too_big = PositionAxis::from_numeric(PositionAxis::MAX_NUMERIC).unwrap();
+    ///
+    /// assert_eq!(ten.checked_decrement(5).unwrap(), five);
+    /// assert_eq!(fifteen.checked_decrement(10).unwrap(), five);
+    /// assert_eq!(five.checked_decrement(5).unwrap(), zero);
+    /// assert_eq!(too_big.checked_decrement(PositionAxis::MAX_NUMERIC).unwrap(), zero);
+    /// assert!(zero.checked_decrement(1).is_err());
+    /// ```
+    #[must_use = "this returns the result of the operation, without modifying the original"]
+    pub fn checked_decrement(&self, value: u32) -> Result<Self, anyhow::Error> {
+        {
+            let diff = (self.0 as u32).checked_sub(value)
+                .ok_or(anyhow::anyhow!("adding these would underflow"))?;
+            Self::from_numeric(diff.into())
+        }.context(format!("could not decrement further, attempted to decrement {:?} by {}, but result must be in range [0-63]", self, value))
+    }
 }
 
 impl From<PositionAxis> for u32 {
@@ -303,8 +353,8 @@ impl Serialize for PositionAxis {
 /// - Numeric : any two number in range `[0-63]`
 /// - Textual : two chars using the same character to number correspondence as [base64](https://fr.wikipedia.org/wiki/Base64)
 ///
-/// As a convention, any two unlabeled parameters (numeric or textual) are ordered like `xy`, `x` being the horizontal axis of a `Grid`, `y` being vertical :
-///
+/// As a convention, any two unlabeled parameters (numeric or textual) are ordered like `xy`, `x` being the horizontal axis of a `Grid`, `y` being vertical
+/// As a convention, when refering to a position (either in `Address` or `Pointer` operands)
 /// # Examples
 ///
 /// ```
@@ -322,13 +372,27 @@ pub struct Position {
 }
 
 impl Position {
-    /// PositionAxis placed at origin (0)
+    /// A Position placed at the origin (0)
     pub const ZERO: Position = Position {
         x: PositionAxis::ZERO,
         y: PositionAxis::ZERO,
     };
 
     /// Returns a `Position` given two [`PositionAxis`]
+    ///
+    /// # Example
+    /// ```
+    /// # use graliffer::grid::{Position, PositionAxis};
+    /// let x = PositionAxis::from_numeric(0).unwrap();
+    /// let y = PositionAxis::from_numeric(0).unwrap();
+    /// let pos = Position::from_position_axis(x, y);
+    /// assert_eq!(pos.as_numeric(), (0, 0));
+    ///
+    /// let x = PositionAxis::from_numeric(5).unwrap();
+    /// let y = PositionAxis::from_numeric(10).unwrap();
+    /// let pos = Position::from_position_axis(x, y);
+    /// assert_eq!(pos.as_numeric(), (5, 10));
+    /// ```
     pub fn from_position_axis(x: PositionAxis, y: PositionAxis) -> Self {
         Self {
             x,
@@ -337,6 +401,23 @@ impl Position {
     }
 
     /// Returns a `Position` given two valid numeric representations
+    ///
+    /// # Errors
+    /// Returns an error if one or more the given numeric representation are invalid.
+    /// See [`PositionAxis`](PositionAxis#representation).
+    ///
+    /// # Examples
+    /// ```
+    /// # use graliffer::grid::Position;
+    /// let pos = Position::from_numeric(0, 0).unwrap();
+    /// assert_eq!(pos.as_numeric(), (0, 0));
+    ///
+    /// let pos = Position::from_numeric(16, 32).unwrap();
+    /// assert_eq!(pos.as_numeric(), (16, 32));
+    ///
+    /// assert!(Position::from_numeric(63, 0).is_ok());
+    /// assert!(Position::from_numeric(64, 0).is_err());
+    /// ```
     pub fn from_numeric(x: u32, y: u32) -> Result<Self, anyhow::Error> {
         let x = PositionAxis::from_numeric(x).context("`x` coordinate is invalid")?;
         let y = PositionAxis::from_numeric(y).context("`y` coordinate is invalid")?;
@@ -344,6 +425,24 @@ impl Position {
         Ok(Self::from_position_axis(x, y))
     }
 
+    /// Returns a `Position` given two valid textual representations
+    ///
+    /// # Errors
+    /// Returns an error if one or more the given textual representation are invalid.
+    /// See [`PositionAxis`](PositionAxis#representation).
+    ///
+    /// # Examples
+    /// ```
+    /// # use graliffer::grid::Position;
+    /// let pos = Position::from_textual('A', 'A').unwrap();
+    /// assert_eq!(pos.as_numeric(), (0, 0));
+    ///
+    /// let pos = Position::from_textual('a', '5').unwrap();
+    /// assert_eq!(pos.as_numeric(), (26, 57));
+    ///
+    /// assert!(Position::from_textual('+', 'A').is_ok());
+    /// assert!(Position::from_textual('-', 'A').is_err());
+    /// ```
     pub fn from_textual(x: char, y: char) -> Result<Self, anyhow::Error> {
         let x = PositionAxis::from_textual(x).context("`x` coordinate is invalid")?;
         let y = PositionAxis::from_textual(y).context("`y` coordinate is invalid")?;
@@ -351,6 +450,7 @@ impl Position {
         Ok(Self::from_position_axis(x, y))
     }
 
+    /// Returns the textual representation of a `Position` as tuple in form `(x, y)`
     pub fn as_textual(self) -> (char, char) {
         (
             self.x.as_textual(),
@@ -358,6 +458,7 @@ impl Position {
         )
     }
 
+    /// Returns the numeric representation of a `Position` as tuple in form `(x, y)`
     pub fn as_numeric(self) -> (u32, u32) {
         (
             self.x.as_numeric(),
@@ -365,6 +466,22 @@ impl Position {
         )
     }
 
+    /// Performs an addition on two [`Position`]
+    ///
+    /// Errors
+    /// Returns an error if the addition could not be performed (overflowing the [`Grid`] limits).
+    ///
+    /// Examples
+    /// ```
+    /// # use graliffer::grid::{PositionAxis, Position};
+    /// let zero = Position::ZERO;
+    /// let five_ten = Position::from_numeric(5, 10).unwrap();
+    /// let ten_twenty = Position::from_numeric(10, 20).unwrap();
+    /// let too_big = Position::from_numeric(PositionAxis::MAX_NUMERIC, PositionAxis::MAX_NUMERIC).unwrap();
+    ///
+    /// assert_eq!(five_ten.checked_add(five_ten).unwrap(), ten_twenty);
+    /// assert_eq!(zero.checked_add(five_ten).unwrap(), five_ten);
+    /// assert!(ten_twenty.checked_add(too_big).is_err());
     pub fn checked_add(&self, other: Self) -> Result<Self, anyhow::Error> {
         let x = self.x.checked_add(other.x).context("`x` coordinate is invalid")?;
         let y = self.y.checked_add(other.y).context("`y` coordinate is invalid")?;
@@ -372,11 +489,57 @@ impl Position {
         Ok(Self::from_position_axis(x, y))
     }
 
+    /// Performs a substraction on two [`Position`]
+    ///
+    /// Errors
+    /// Returns an error if the substracton could not be performed (underflowing the [`Grid`] limits).
+    ///
+    /// Examples
+    /// ```
+    /// # use graliffer::grid::{PositionAxis, Position};
+    /// let zero = Position::ZERO;
+    /// let five_ten = Position::from_numeric(5, 10).unwrap();
+    /// let ten_twenty = Position::from_numeric(10, 20).unwrap();
+    /// let too_big = Position::from_numeric(PositionAxis::MAX_NUMERIC, PositionAxis::MAX_NUMERIC).unwrap();
+    ///
+    /// assert_eq!(five_ten.checked_sub(five_ten).unwrap(), zero);
+    /// assert_eq!(ten_twenty.checked_sub(zero).unwrap(), ten_twenty);
+    /// assert_eq!(ten_twenty.checked_sub(five_ten).unwrap(), five_ten);
+    /// assert!(five_ten.checked_sub(ten_twenty).is_err());
+    /// assert!(ten_twenty.checked_sub(too_big).is_err());
     pub fn checked_sub(&self, other: Self) -> Result<Self, anyhow::Error> {
         let x = self.x.checked_sub(other.x).context("`x` coordinate is invalid")?;
         let y = self.y.checked_sub(other.y).context("`y` coordinate is invalid")?;
 
         Ok(Self::from_position_axis(x, y))
+    }
+
+    pub fn checked_increment_x(&self, value: u32) -> Result<Self, anyhow::Error> {
+        Ok(Self::from_position_axis(
+            self.x.checked_increment(value)?,
+            self.y,
+        ))
+    }
+
+    pub fn checked_increment_y(&self, value: u32) -> Result<Self, anyhow::Error> {
+        Ok(Self::from_position_axis(
+            self.x,
+            self.y.checked_increment(value)?,
+        ))
+    }
+
+    pub fn checked_decrement_x(&self, value: u32) -> Result<Self, anyhow::Error> {
+        Ok(Self::from_position_axis(
+            self.x.checked_decrement(value)?,
+            self.y,
+        ))
+    }
+
+    pub fn checked_decrement_y(&self, value: u32) -> Result<Self, anyhow::Error> {
+        Ok(Self::from_position_axis(
+            self.x,
+            self.y.checked_decrement(value)?,
+        ))
     }
 }
 
