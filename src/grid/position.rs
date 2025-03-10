@@ -1,0 +1,414 @@
+use anyhow::{Context, bail};
+use serde::{Serialize, Serializer};
+
+/// `PositionAxis` represents a coordinate axis in the [Grid](crate::grid::Grid).
+///
+/// A combination of two `PositionAxis` makes a [`Position`]
+///
+/// # Representation
+/// A `PositionAxis` have two representation :
+/// - Numeric : any number in range `[0-63]`
+/// - Textual : using the same character to number correspondence as [base64](https://en.wikipedia.org/wiki/Base64)
+///
+/// # Examples
+///
+/// ```
+/// # use graliffer::grid::PositionAxis;
+/// let pos = PositionAxis::from_textual('A').unwrap();
+/// assert_eq!(pos.as_numeric(), 0);
+///
+/// let pos = PositionAxis::from_numeric(51).unwrap();
+/// assert_eq!(pos.as_textual(), 'z');
+/// ```
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PositionAxis(u8);
+
+impl PositionAxis {
+    /// Minimum numeric value that can take a `PositionAxis`
+    pub const MIN_NUMERIC: u32 = 0;
+    /// Maximum numeric value that can take a `PositionAxis`. Anything higher is invalid
+    pub const MAX_NUMERIC: u32 = 63;
+
+    /// PositionAxis placed at origin (0)
+    pub const ZERO: PositionAxis = PositionAxis(0);
+
+    /// Return `true` if the given `u32` is considered a valid numeric representation of [`PositionAxis`]
+    ///
+    /// Any number within the inclusive range `[0-63]` is valid
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use graliffer::grid::PositionAxis;
+    /// assert!( PositionAxis::is_valid_numeric(0));
+    /// assert!( PositionAxis::is_valid_numeric(63));
+    /// assert!( PositionAxis::is_valid_numeric(42));
+    /// assert!(!PositionAxis::is_valid_numeric(64));
+    /// ```
+    pub fn is_valid_numeric(value: u32) -> bool {
+        (Self::MIN_NUMERIC..=Self::MAX_NUMERIC).contains(&value)
+    }
+
+    /// Return `true` if the given `char` is considered a valid textual representation of [`PositionAxis`]
+    ///
+    /// Any char in set `[A-Za-z0-9+/]` is valid. See [base64](https://en.wikipedia.org/wiki/Base64) for more infos
+    ///
+    /// # Example
+    /// ```
+    /// # use graliffer::grid::PositionAxis;
+    /// assert!( PositionAxis::is_valid_textual('A'));
+    /// assert!( PositionAxis::is_valid_textual('/'));
+    /// assert!( PositionAxis::is_valid_textual('q'));
+    /// assert!(!PositionAxis::is_valid_textual('-'));
+    /// ```
+    pub fn is_valid_textual(value: char) -> bool {
+        match value {
+            'A'..='Z' | 'a'..='z' | '0'..='9' | '+' | '/' => true,
+            _ => false,
+        }
+    }
+
+    /// Return a textual representation from a given numeric representation
+    ///
+    /// Error :
+    /// Returns an error if the given numeric representation is invalid
+    ///
+    /// # Example
+    /// ```
+    /// # use graliffer::grid::PositionAxis;
+    /// assert_eq!(PositionAxis::numeric_to_textual(5).unwrap(), 'F');
+    /// assert_eq!(PositionAxis::numeric_to_textual(52).unwrap(), '0');
+    /// assert_eq!(PositionAxis::numeric_to_textual(26).unwrap(), 'a');
+    /// assert_ne!(PositionAxis::numeric_to_textual(0).unwrap(), 'a');
+    /// ```
+    pub fn numeric_to_textual(coordinate: u32) -> Result<char, anyhow::Error> {
+        if !PositionAxis::is_valid_numeric(coordinate) {
+            bail!(format!("The given coordinate is out of bound, expected to be in range [0-63], found `{}`", coordinate));
+        }
+
+        let coordinate = u8::try_from(coordinate).unwrap();
+
+        match coordinate {
+            0..=25 => Ok((coordinate + 65) as char),       // A-Z
+            26..=51 => Ok((coordinate - 26 + 97) as char), // a-z
+            52..=61 => Ok((coordinate - 52 + 48) as char), // 0-9
+            62 => Ok(43 as char),                          // +
+            63 => Ok(47 as char),                          // /
+            _ => bail!(format!("The given coordinate is out of bound, expected to be in range [0-63], found `{}`", coordinate)),
+        }
+    }
+
+    /// Return a numeric representation from a given textual representation
+    ///
+    /// Error :
+    /// Returns an error if the given textual representation is invalid
+    ///
+    /// # Example
+    /// ```
+    /// # use graliffer::grid::PositionAxis;
+    /// assert_eq!(PositionAxis::textual_to_numeric('Y').unwrap(), 24);
+    /// assert_eq!(PositionAxis::textual_to_numeric('5').unwrap(), 57);
+    /// assert_eq!(PositionAxis::textual_to_numeric('+').unwrap(), 62);
+    /// assert_ne!(PositionAxis::textual_to_numeric('R').unwrap(), 34);
+    /// ```
+    pub fn textual_to_numeric(coordinate: char) -> Result<u32, anyhow::Error> {
+        let coordinate_u32 = coordinate as u32;
+
+        match coordinate_u32 {
+            65..=90 => Ok(coordinate_u32 - 65),         // A-Z
+            97..=122 => Ok(coordinate_u32 - 97 + 26),   // a-z
+            48..=57 => Ok(coordinate_u32 - 48 + 52),    // 0-9
+            43 => Ok(62),                               // +
+            47 => Ok(63),                               // /
+            _ => bail!(format!("The given coordinate is out of bound, expected to be in character set [A-Za-z0-9/+], found `{}`", coordinate)),
+        }
+    }
+
+    /// Get a [`PositionAxis`] given a valid numeric representation
+    ///
+    /// # Error
+    /// Returns an error if the given numeric representation is invalid. See [`PositionAxis`](PositionAxis#representation).
+    ///
+    /// # Example
+    /// ```
+    /// # use graliffer::grid::PositionAxis;
+    ///
+    /// let pos = PositionAxis::from_numeric(0).unwrap();
+    /// assert_eq!(pos.as_numeric(), 0);
+    ///
+    /// let pos = PositionAxis::from_numeric(26).unwrap();
+    /// assert_eq!(pos.as_numeric(), 26);
+    ///
+    /// assert!(PositionAxis::from_numeric(63).is_ok());
+    /// assert!(PositionAxis::from_numeric(64).is_err());
+    /// ```
+    pub fn from_numeric(coordinate: u32) -> Result<Self, anyhow::Error> {
+        if !PositionAxis::is_valid_numeric(coordinate) {
+            bail!(format!("The given coordinate is out of bound, expected to be in range [0-63], found `{}`", coordinate))
+        } else {
+            Ok(Self(u8::try_from(coordinate).unwrap()))
+        }
+    }
+
+    /// Returns a [`PositionAxis`] given a valid textual representation
+    ///
+    /// # Errors
+    /// Returns an error if the given textual representation is invalid. See [`PositionAxis`](PositionAxis#representation).
+    ///
+    /// # Example
+    /// ```
+    /// # use graliffer::grid::PositionAxis;
+    ///
+    /// let pos = PositionAxis::from_textual('A').unwrap();
+    /// assert_eq!(pos.as_numeric(), 0);
+    ///
+    /// let pos = PositionAxis::from_textual('a').unwrap();
+    /// assert_eq!(pos.as_numeric(), 26);
+    ///
+    /// assert!(PositionAxis::from_textual('+').is_ok());
+    /// assert!(PositionAxis::from_textual('-').is_err());
+    /// ```
+    pub fn from_textual(coordinate: char) -> Result<Self, anyhow::Error> {
+        Self::from_numeric(Self::textual_to_numeric(coordinate)?)
+    }
+
+    /// Returns the numeric representation of a `PositionAxis`
+    pub fn as_numeric(self) -> u32 {
+        self.0.into()
+    }
+
+    pub fn as_textual(self) -> char {
+        Self::numeric_to_textual(self.0 as u32).unwrap()
+    }
+
+    /// Performs an addition on two [`PostionAxis`]
+    ///
+    /// Errors:
+    /// Returns an error if the addition could not be performed (overflowing the [`Grid`] limits).
+    ///
+    /// Examples:
+    /// ```
+    /// # use graliffer::grid::PositionAxis;
+    /// let five = PositionAxis::from_numeric(5).unwrap();
+    /// let ten = PositionAxis::from_numeric(10).unwrap();
+    /// let fifteen = PositionAxis::from_numeric(15).unwrap();
+    /// let too_big = PositionAxis::from_numeric(PositionAxis::MAX).unwrap();
+    ///
+    /// assert_eq!(ten.checked_add(five).unwrap(), fifteen);
+    /// assert_eq!(five.checked_add(ten).unwrap(), fifteen);
+    /// assert!(ten.checked_add(too_big).is_err());
+    /// ```
+    pub fn checked_add(&self, other: Self) -> Result<Self, anyhow::Error> {
+        const ERR_MESSAGE: &str = "could not add these two `PositionAxis`s";
+        let sum = self.0.checked_add(other.0).ok_or(anyhow::anyhow!(ERR_MESSAGE))?;
+
+        Self::from_numeric(sum.into()).context(ERR_MESSAGE)
+    }
+
+    /// Performs a substraction between two [`PostionAxis`]
+    ///
+    /// Errors:
+    /// Returns an error if the substraction could not be performed (underflowing the [`Grid`] limits).
+    ///
+    /// Examples:
+    /// ```
+    /// # use graliffer::grid::PositionAxis;
+    /// let five = PositionAxis::from_numeric(5).unwrap();
+    /// let ten = PositionAxis::from_numeric(10).unwrap();
+    /// let fifteen = PositionAxis::from_numeric(15).unwrap();
+    /// let too_big = PositionAxis::from_numeric(PositionAxis::MAX).unwrap();
+    ///
+    /// assert_eq!(ten.checked_sub(five).unwrap(), five);
+    /// assert_eq!(fifteen.checked_sub(ten).unwrap(), five);
+    /// assert!(ten.checked_sub(fifteen).is_err());
+    /// assert!(ten.checked_sub(too_big).is_err());
+    /// ```
+    pub fn checked_sub(&self, other: Self) -> Result<Self, anyhow::Error> {
+        const ERR_MESSAGE: &str = "could not substract these two `PositionAxis`s";
+
+        let diff = self.0.checked_sub(other.0).ok_or(anyhow::anyhow!(ERR_MESSAGE))?;
+
+        Self::from_numeric(diff.into()).context(ERR_MESSAGE)
+
+    }
+
+    // pub fn checked_increment(self, value: u32) -> Result<Self, anyhow::Error> {
+    //     let sum = Self::from_numeric((self.0 as u32) + value)
+    //         .context(format!("could not increment further, attempted to increment {:?} by {}, but result must be in range [0-63]", self, value))?;
+    //     Ok(sum)
+    // }
+
+    // pub fn checked_decrement(self, value: u32) -> Result<Self, anyhow::Error> {
+    //     let sum = Self::from_numeric((self.0 as u32) - value)
+    //         .context(format!("could not decrement further, attempted to decrement {:?} by {}, but result must be in range [0-63]", self, value))?;
+    //     Ok(sum)
+    // }
+}
+
+impl From<PositionAxis> for u32 {
+    fn from(coordinate: PositionAxis) -> Self {
+        coordinate.as_numeric()
+    }
+}
+
+impl From<PositionAxis> for u8 {
+    fn from(coordinate: PositionAxis) -> Self {
+        coordinate.0
+    }
+}
+
+impl From<PositionAxis> for char {
+    fn from(coordinate: PositionAxis) -> Self {
+        coordinate.as_textual()
+    }
+}
+
+impl TryFrom<u8> for PositionAxis {
+    type Error = anyhow::Error;
+
+    fn try_from(coordinate: u8) -> Result<Self, Self::Error> {
+        PositionAxis::from_numeric(coordinate.into())
+    }
+}
+
+impl TryFrom<u32> for PositionAxis {
+    type Error = anyhow::Error;
+
+    fn try_from(coordinate: u32) -> Result<Self, Self::Error> {
+        PositionAxis::from_numeric(coordinate)
+    }
+}
+
+impl TryFrom<char> for PositionAxis {
+    type Error = anyhow::Error;
+
+    fn try_from(coordinate: char) -> Result<Self, Self::Error> {
+        PositionAxis::from_textual(coordinate)
+    }
+}
+
+impl Serialize for PositionAxis {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_char(self.as_textual())
+    }
+}
+
+/// A `Position` represents a 2d coordinate in the [Grid](crate::grid::Grid). A `Position` is made of two [`PositionAxis`]
+///
+/// # Representation
+/// A `Position` have two representation :
+/// - Numeric : any two number in range `[0-63]`
+/// - Textual : two chars using the same character to number correspondence as [base64](https://fr.wikipedia.org/wiki/Base64)
+///
+/// As a convention, any two unlabeled parameters (numeric or textual) are ordered like `xy`, `x` being the horizontal axis of a `Grid`, `y` being vertical :
+///
+/// # Examples
+///
+/// ```
+/// # use graliffer::grid::Position;
+/// let pos = Position::from_numeric(0, 0).unwrap();
+/// assert_eq!(pos.as_textual(), ('A', 'A'));
+///
+/// let pos = Position::from_textual('a', '/').unwrap();
+/// assert_eq!(pos.as_numeric(), (26, 63));
+/// ```
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Position {
+    x: PositionAxis,
+    y: PositionAxis,
+}
+
+impl Position {
+    /// PositionAxis placed at origin (0)
+    pub const ZERO: Position = Position {
+        x: PositionAxis::ZERO,
+        y: PositionAxis::ZERO,
+    };
+
+    /// Returns a `Position` given two [`PositionAxis`]
+    pub fn from_position_axis(x: PositionAxis, y: PositionAxis) -> Self {
+        Self {
+            x,
+            y,
+        }
+    }
+
+    /// Returns a `Position` given two valid numeric representations
+    pub fn from_numeric(x: u32, y: u32) -> Result<Self, anyhow::Error> {
+        let x = PositionAxis::from_numeric(x).context("`x` coordinate is invalid")?;
+        let y = PositionAxis::from_numeric(y).context("`y` coordinate is invalid")?;
+
+        Ok(Self::from_position_axis(x, y))
+    }
+
+    pub fn from_textual(x: char, y: char) -> Result<Self, anyhow::Error> {
+        let x = PositionAxis::from_textual(x).context("`x` coordinate is invalid")?;
+        let y = PositionAxis::from_textual(y).context("`y` coordinate is invalid")?;
+
+        Ok(Self::from_position_axis(x, y))
+    }
+
+    pub fn as_textual(self) -> (char, char) {
+        (
+            self.x.as_textual(),
+            self.y.as_textual(),
+        )
+    }
+
+    pub fn as_numeric(self) -> (u32, u32) {
+        (
+            self.x.as_numeric(),
+            self.y.as_numeric(),
+        )
+    }
+
+    pub fn checked_add(&self, other: Self) -> Result<Self, anyhow::Error> {
+        let x = self.x.checked_add(other.x).context("`x` coordinate is invalid")?;
+        let y = self.y.checked_add(other.y).context("`y` coordinate is invalid")?;
+
+        Ok(Self::from_position_axis(x, y))
+    }
+
+    pub fn checked_sub(&self, other: Self) -> Result<Self, anyhow::Error> {
+        let x = self.x.checked_sub(other.x).context("`x` coordinate is invalid")?;
+        let y = self.y.checked_sub(other.y).context("`y` coordinate is invalid")?;
+
+        Ok(Self::from_position_axis(x, y))
+    }
+}
+
+impl TryFrom<&str> for Position {
+    type Error = anyhow::Error;
+
+    fn try_from(string: &str) -> Result<Self, Self::Error> {
+        let mut chars = string.chars();
+        let x = chars.next();
+        let y = chars.next();
+
+        if let (Some(x), Some(y)) = (x, y) {
+            Position::from_textual(x, y)
+        } else {
+            bail!(format!("The string given does not respect the format, expected to be in format 'XX' with 'X' being a base64 character, found `{}`", string))
+        }
+    }
+}
+
+
+impl Serialize for Position {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let pos = self.as_textual();
+        serializer.serialize_str(format!("{}{}", pos.0, pos.1).as_str())
+    }
+}
+
+// pub trait Deserialize<'de>: Sized {
+//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+//     where
+//         D: Deserializer<'de>;
+// }
