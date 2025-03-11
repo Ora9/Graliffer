@@ -1,3 +1,4 @@
+use anyhow::Context;
 use crate::{
 	grid::{Grid, Cell, Position},
 	Frame,
@@ -21,13 +22,15 @@ impl Cursor {
             position
         }
     }
+
+    pub fn move_to(&mut self, position: Position) {
+        self.position = position;
+    }
 }
 
 pub struct GralifferApp {
     frame: Frame,
-
     cursor: Cursor,
-
     transform: TSTransform,
 }
 
@@ -70,8 +73,6 @@ impl GralifferApp {
 impl eframe::App for GralifferApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            // The top panel is often a good place for a menu bar:
-
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Quit").clicked() {
@@ -92,18 +93,9 @@ impl eframe::App for GralifferApp {
             egui::Window::new("Memory ouais").show(ctx, |ui| {
                 ctx.memory_ui(ui);
             });
-        });
+        // });
 
-        egui::Window::new("Grid ouais").show(ctx, |ui| {
-            //     ctx.inspection_ui(ui);
-
-            // });
-
-            // egui::Window::new("Memory ouais").show(ctx, |ui| {
-            //     ctx.memory_ui(ui);
-
-            // });
-
+        // egui::Window::new("Grid ouais").show(ctx, |ui| {
             let (container_id, container_rect) = ui.allocate_space(ui.available_size());
             let container_layer = ui.layer_id();
 
@@ -124,7 +116,7 @@ impl eframe::App for GralifferApp {
                 if response.contains_pointer() {
                     let pointer_in_layer = transform.inverse() * pointer;
                     let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
-                    let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta);
+                    let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta * 1.5);
                     // let multi_touch_info = ui.ctx().input(|i| i.multi_touch());
 
                     // Zoom in on pointer:
@@ -138,14 +130,48 @@ impl eframe::App for GralifferApp {
                 }
             }
 
+            let event_filter = egui::EventFilter {
+                horizontal_arrows: true,
+                vertical_arrows: true,
+                ..Default::default()
+            };
+
+            ui.memory_mut(|mem| mem.set_focus_lock_filter(container_id, event_filter));
+            let events = ui.input(|i| i.filtered_events(&event_filter));
+
+            if response.has_focus() {
+                for event in &events {
+                    use {egui::Event, egui::Key};
+                    match event {
+                        Event::Key {
+                            key: key @ (Key::ArrowRight | Key::ArrowDown | Key::ArrowLeft | Key::ArrowUp),
+                            pressed: true,
+                            ..
+                        } => {
+                            let pos_result = match key {
+                                Key::ArrowRight => self.cursor.position.checked_increment_x(1),
+                                Key::ArrowDown => self.cursor.position.checked_increment_y(1),
+                                Key::ArrowLeft => self.cursor.position.checked_decrement_x(1),
+                                Key::ArrowUp => self.cursor.position.checked_decrement_y(1),
+                                _ => unreachable!(),
+                            }.context("could not step into darkness, the position is invalid");
+
+                            if let Ok(pos) = pos_result {
+                                self.cursor.position = pos
+                            }
+                        },
+                        Event::Text(text) => {
+                            dbg!(text);
+                        }
+                        _ => {}
+                    }
+
+                }
+            }
+
             let size = ui.spacing().interact_size.y * egui::vec2(2.0, 2.0);
             let padding = 2.5;
             let full_size = size.x + padding;
-
-            let grid_space_rect = self.transform.inverse().mul_rect(container_rect);
-
-            dbg!(container_rect, grid_space_rect);
-
 
             let (min_x, max_x, min_y, max_y) = {
                 use crate::grid::PositionAxis;
@@ -161,8 +187,6 @@ impl eframe::App for GralifferApp {
                 (min_x, max_x, min_y, max_y)
             };
 
-            dbg!((min_x, max_x, min_y, max_y));
-
             let painter = ui.painter_at(container_rect);
 
             for y in min_y..max_y {
@@ -176,17 +200,15 @@ impl eframe::App for GralifferApp {
                         min: cell_pos,
                         max: cell_pos + Vec2::splat(full_size),
                     };
-
                     let grid_pos = Position::from_numeric(x, y).unwrap();
 
-                    // let cell_mut = self.frame.grid.get_mut(grid_pos);
+                    // Focus on click
+                    if ui.rect_contains_pointer(transform.mul_rect(cell_rect)) && response.clicked_by(egui::PointerButton::Primary) {
+                        response.request_focus();
+                        self.cursor.position = grid_pos;
+                    }
 
                     let cell = self.frame.grid.get(grid_pos);
-
-                    // let cell_widget = CellWidget {
-                    //     cell: cell_mut,
-                    //     focused: self.cursor.position == grid_pos,
-                    // };
 
                     let bg_color = if self.cursor.position == grid_pos {
                         egui::Color32::from_gray(45)
@@ -194,8 +216,8 @@ impl eframe::App for GralifferApp {
                         egui::Color32::from_gray(27)
                     };
 
-                    let corner_radius = 0.3;
-                    ui.painter().rect(
+                    let corner_radius = 3.0;
+                    painter.rect(
                         transform.mul_rect(cell_rect),
                         corner_radius,
                         bg_color,
@@ -203,28 +225,24 @@ impl eframe::App for GralifferApp {
                         egui::StrokeKind::Inside,
                     );
 
-                    // if !cell.is_empty() {
-                    //     ui.put(transform.mul_rect(cell_rect), Label::new(cell.content()));
-                    // }
+                    // dbg!(container_rect);
 
+                    if !cell.is_empty() {
+                        let subarea = egui::Area::new(container_id.with(("cell", x, y)))
+                            .fixed_pos(cell_pos)
+                            .constrain(false)
+                            .order(container_layer.order)
+                            .show(ui.ctx(), |ui| {
+                                ui.set_clip_rect(transform.inverse().mul_rect(container_rect));
+                                let label = Label::new(cell.content())
+                                    .selectable(false);
 
-                    // let response = egui::Area::new(id.with(("subarea", x, y)))
-                    //     .fixed_pos(widget_pos)
-                    //     .constrain(false)
-                    //     .order(egui::Order::Background)
-                    //     .show(ui.ctx(), |ui| {
-                    //         ui.set_clip_rect(transform.inverse() * rect);
-                    //         ui.add(cell_widget);
-                    //     })
-                    //     .response;
-                    // let id = response.layer_id;
-
-                    // if response.clicked() {
-                    //     self.cursor.position = grid_pos;
-                    // }
-
-                    // ui.ctx().set_transform_layer(id, transform);
-                    // ui.ctx().set_sublayer(window_layer, id);
+                                ui.put(cell_rect, label);
+                            })
+                            .response;
+                        ui.ctx().set_transform_layer(subarea.layer_id, transform);
+                        ui.ctx().set_sublayer(container_layer, subarea.layer_id);
+                    }
                 }
             }
         });
