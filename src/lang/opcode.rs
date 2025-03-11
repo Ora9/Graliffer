@@ -1,4 +1,3 @@
-use anyhow::{anyhow, Context};
 use std::str::FromStr;
 use strum_macros::EnumString;
 
@@ -65,7 +64,7 @@ pub enum Opcode {
 
 impl Opcode {
     pub fn from_cell(cell: Cell) -> Result<Opcode, anyhow::Error> {
-        Opcode::from_str(&cell.content()).map_err(|_| anyhow!(format!("not a valid opcode")))
+        Opcode::from_str(&cell.content()).map_err(|_| anyhow::anyhow!(format!("not a valid opcode")))
     }
 
     pub fn is_cell_valid(cell: &Cell) -> bool {
