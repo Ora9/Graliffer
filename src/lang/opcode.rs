@@ -19,15 +19,6 @@ macro_rules! lit {
     };
 }
 
-
-
-pub struct Syntax(u32);
-impl Syntax {
-    pub fn operand_amount(&self) -> u32 {
-        self.0
-    }
-}
-
 #[derive(Debug, Clone, Copy, EnumString)]
 #[strum(serialize_all = "lowercase")]
 pub enum Opcode {
