@@ -3,7 +3,8 @@ use std::str::FromStr;
 use strum_macros::EnumString;
 
 use crate::{grid::{
-    head::{Direction, Head},
+    Direction,
+    Head,
     Cell,
 }, Literal, Word};
 

@@ -1,5 +1,5 @@
 use crate::{
-    grid::{head::Head, Grid, Position},
+    grid::{Head, Grid, Position},
     stack::Stack,
     Address, Opcode, Operand, Word,
 };

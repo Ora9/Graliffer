@@ -10,8 +10,8 @@ pub use position::{
     Position,
 };
 
-pub mod head;
-use head::{
+mod head;
+pub use head::{
     Head,
     Direction,
 };
