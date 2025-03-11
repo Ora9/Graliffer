@@ -3,7 +3,6 @@
 use crate::{grid::Cell, Frame};
 
 mod opcode;
-use anyhow::{anyhow, bail};
 pub use opcode::Opcode;
 
 mod operand;
