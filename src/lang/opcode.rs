@@ -8,7 +8,7 @@ use crate::{grid::{
     Cell,
 }, Literal, Word};
 
-use super::{Frame, Operation, Operand};
+use super::{Frame, Operand};
 
 /// Returns a [`Operand::Literal`] given a string
 ///
@@ -126,16 +126,6 @@ impl Opcode {
 
                 Ok(())
             }
-        }
-    }
-
-    pub fn syntax(&self) -> Syntax {
-        use Opcode::*;
-        match self {
-            Gor | God | Gol | Gou => Syntax(0),
-            Hlt | Dbg => Syntax(0),
-            Add | Sub | Mul | Div => Syntax(2),
-            Set => Syntax(2)
         }
     }
 }

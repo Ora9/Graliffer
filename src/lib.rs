@@ -8,7 +8,6 @@ pub mod stack;
 
 mod lang;
 pub use lang::{
-    Operation,
     Word,
     Opcode,
     Operand,
