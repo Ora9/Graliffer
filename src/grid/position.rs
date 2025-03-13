@@ -514,6 +514,7 @@ impl Position {
         Ok(Self::from_position_axis(x, y))
     }
 
+    #[must_use = "this returns the result of the operation, without modifying the original"]
     pub fn checked_increment_x(&self, value: u32) -> Result<Self, anyhow::Error> {
         Ok(Self::from_position_axis(
             self.x.checked_increment(value)?,
@@ -521,6 +522,7 @@ impl Position {
         ))
     }
 
+    #[must_use = "this returns the result of the operation, without modifying the original"]
     pub fn checked_increment_y(&self, value: u32) -> Result<Self, anyhow::Error> {
         Ok(Self::from_position_axis(
             self.x,
@@ -528,6 +530,7 @@ impl Position {
         ))
     }
 
+    #[must_use = "this returns the result of the operation, without modifying the original"]
     pub fn checked_decrement_x(&self, value: u32) -> Result<Self, anyhow::Error> {
         Ok(Self::from_position_axis(
             self.x.checked_decrement(value)?,
@@ -535,6 +538,7 @@ impl Position {
         ))
     }
 
+    #[must_use = "this returns the result of the operation, without modifying the original"]
     pub fn checked_decrement_y(&self, value: u32) -> Result<Self, anyhow::Error> {
         Ok(Self::from_position_axis(
             self.x,
