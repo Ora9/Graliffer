@@ -33,24 +33,27 @@ impl Cursor {
     // }
 
     /// Move the cursor one cell in the given [`Direction`],
-    /// setting `self.char_position` to 0 in the process,
-    /// and returning the new [`Position`] on success
+    /// and move `self.char_position` after the last char of new cell.
     ///
-    /// # Errors
-    /// Returns an error if [`Head`] could not step further in that direction
+    /// # Return value
+    /// On success returns the new [`Position`], or None if the Cursors could not be moved
     /// because it could not go outside of the [`Grid`]'s limits
-    pub fn move_in_direction(&mut self, direction: Direction) -> Result<Position, anyhow::Error> {
+    pub fn move_in_direction(&mut self, direction: Direction, grid: &Grid) -> Option<Position> {
         use Direction::*;
-        self.grid_position = match direction {
+        let new_pos_result = match direction {
             Right => self.grid_position.checked_increment_x(1),
             Down => self.grid_position.checked_increment_y(1),
             Left => self.grid_position.checked_decrement_x(1),
             Up => self.grid_position.checked_decrement_y(1),
-        }.context("could not step into darkness, the position is invalid")?;
+        };
 
-        self.char_position = 0;
-
-        Ok(self.grid_position)
+        if let Ok(new_pos) = new_pos_result {
+            self.grid_position = new_pos;
+            self.char_position = grid.get(new_pos).len();
+            Some(new_pos)
+        } else {
+            None
+        }
     }
 
     // pub fn move_char_position(&mut self, char_position: usize) {
@@ -196,6 +199,7 @@ impl eframe::App for GralifferApp {
                                 Key::ArrowRight
                                 | Key::Tab
                                 | Key::Space
+                                | Key::Enter
                                 | Key::ArrowDown
                                 | Key::ArrowLeft
                                 | Key::ArrowUp),
@@ -213,41 +217,26 @@ impl eframe::App for GralifferApp {
 
                             match key {
                                 Key::ArrowUp => {
-                                    if let Ok(new_pos) = self.cursor.move_in_direction(Direction::Up) {
-                                        let new_pos_cell_length = self.frame.grid.get(new_pos).len();
-                                        self.cursor.char_position = new_pos_cell_length;
-                                    }
+                                    self.cursor.move_in_direction(Direction::Up, &self.frame.grid);
                                 },
-                                Key::ArrowDown => {
-                                    if let Ok(new_pos) = self.cursor.move_in_direction(Direction::Down) {
-                                        let new_pos_cell_length = self.frame.grid.get(new_pos).len();
-                                        self.cursor.char_position = new_pos_cell_length;
-                                    }
+                                Key::ArrowDown | Key::Enter => {
+                                    self.cursor.move_in_direction(Direction::Down, &self.frame.grid);
                                 }
                                 Key::Tab | Key::Space => {
-                                    if let Ok(new_pos) = self.cursor.move_in_direction(Direction::Right) {
-                                        let new_pos_cell_length = self.frame.grid.get(new_pos).len();
-                                        self.cursor.char_position = new_pos_cell_length;
-                                    }
+                                    self.cursor.move_in_direction(Direction::Right, &self.frame.grid);
                                 }
                                 Key::ArrowRight => {
                                     let current_cell_len = self.frame.grid.get(self.cursor.grid_position).len();
 
                                     if self.cursor.char_position == current_cell_len {
-                                        if let Ok(new_pos) = self.cursor.move_in_direction(Direction::Right) {
-                                            let new_pos_cell_length = self.frame.grid.get(new_pos).len();
-                                            self.cursor.char_position = new_pos_cell_length;
-                                        }
+                                        self.cursor.move_in_direction(Direction::Right, &self.frame.grid);
                                     } else {
                                         self.cursor.char_position += 1;
                                     }
                                 },
                                 Key::ArrowLeft => {
                                     if self.cursor.char_position == 0 {
-                                        if let Ok(new_pos) = self.cursor.move_in_direction(Direction::Left) {
-                                            let new_pos_cell_length = self.frame.grid.get(new_pos).len();
-                                            self.cursor.char_position = new_pos_cell_length;
-                                        }
+                                        self.cursor.move_in_direction(Direction::Left, &self.frame.grid);
                                     } else {
                                         self.cursor.char_position -= 1;
                                     }
@@ -268,15 +257,6 @@ impl eframe::App for GralifferApp {
                             //     self.cursor.char_position = new_pos_cell_length;
                             // }
                         },
-
-                        // Simple text input
-                        Event::Key {
-                            key: Key::Enter,
-                            pressed: true,
-                            ..
-                        } => {
-
-                        }
 
                         Event::Key {
                             key: Key::Backspace,
