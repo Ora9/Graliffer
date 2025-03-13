@@ -408,48 +408,36 @@ impl<'a> Widget for GridWidget<'a> {
                     // );
 
                     // Blocking
-                    let text_widths = ui.fonts(move |fonts| {
-                        // (total, before)
+                    // (total, before_cursor)
+                    let (content_total_width, content_pre_cursor_width) = ui.fonts(move |fonts| {
                         cell.content().chars().enumerate().map(|(index, char)| {
                             let width = fonts.glyph_width(
                                 &egui::FontId::monospace(self.transform.scaling * 12.0),
                                 char
                             );
 
-                            (
-                                width,
-                                if self.cursor.char_position > index {
-                                    width
-                                } else {
-                                    0.0
-                                }
-                            )
+                            if self.cursor.char_position > index {
+                                (width, width)
+                            } else {
+                                (width, 0.0)
+                            }
                         }).reduce(|acc, e| (acc.0 + e.0, acc.1 + e.1))
-                    });
-
-                    let (content_total_width, content_pre_cursor_width) = text_widths.unwrap_or((0.0, 0.0));
+                    }).unwrap_or((0.0, 0.0));
 
                     let center_offset = Vec2 {
                         x: (content_total_width * 0.5).neg() + content_pre_cursor_width,
                         y: 0.0
                     };
 
-                    let cursor_pos = screen_rect.center() + center_offset;
-
-                    dbg!(cursor_pos);
-
                     painter.rect_filled(
-                        Rect::from_center_size(cursor_pos, Vec2 {
+                        Rect::from_center_size(screen_rect.center() + center_offset, Vec2 {
                             x: self.transform.scaling * 1.0,
                             y: self.transform.scaling * 13.0
                         }),
                         2.0,
                         egui::Color32::WHITE,
                     );
-
-
                 }
-
             }
         }
         response
