@@ -294,6 +294,7 @@ impl eframe::App for GralifferApp {
 
             ui.put(container_rect, GridWidget {
                 transform,
+                has_focus: response.has_focus(),
                 cursor: self.cursor,
                 grid: &self.frame.grid
             });
@@ -304,6 +305,7 @@ impl eframe::App for GralifferApp {
 
 struct GridWidget<'a> {
     cursor: Cursor,
+    has_focus: bool,
     transform: TSTransform,
     grid: &'a Grid,
 }
@@ -353,10 +355,16 @@ impl<'a> Widget for GridWidget<'a> {
 
                 let cell = self.grid.get(grid_pos);
 
-                let bg_color = if self.cursor.grid_position == grid_pos {
+                let bg_color = if self.cursor.grid_position == grid_pos && self.has_focus {
                     egui::Color32::from_gray(45)
                 } else {
                     egui::Color32::from_gray(27)
+                };
+
+                let stroke = if self.cursor.grid_position == grid_pos {
+                    egui::Stroke::new(self.transform.scaling * 2.0, egui::Color32::from_gray(45))
+                } else {
+                    egui::Stroke::new(self.transform.scaling * 1.0, egui::Color32::from_gray(45))
                 };
 
                 let bg_corner_radius = self.transform.scaling * 3.0;
@@ -366,7 +374,7 @@ impl<'a> Widget for GridWidget<'a> {
                     screen_rect,
                     bg_corner_radius,
                     bg_color,
-                    egui::Stroke::new(self.transform.scaling * 1.0, egui::Color32::from_gray(50)),
+                    stroke,
                     egui::StrokeKind::Inside,
                 );
 
@@ -378,7 +386,7 @@ impl<'a> Widget for GridWidget<'a> {
                     egui::Color32::WHITE
                 );
 
-                if self.cursor.grid_position == grid_pos {
+                if self.cursor.grid_position == grid_pos && self.has_focus {
                     // painter.text(
                     //     screen_rect.left_top(),
                     //     egui::Align2::LEFT_TOP,
@@ -411,7 +419,7 @@ impl<'a> Widget for GridWidget<'a> {
 
                     painter.rect_filled(
                         Rect::from_center_size(screen_rect.center() + center_offset, Vec2 {
-                            x: self.transform.scaling * 1.0,
+                            x: self.transform.scaling * 0.8,
                             y: self.transform.scaling * 13.0
                         }),
                         2.0,
