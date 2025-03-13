@@ -1,36 +1,65 @@
 use anyhow::Context;
 use crate::{
-	grid::{Grid, Cell, Position},
+	grid::{Cell, Direction, Grid, Position},
 	Frame,
 	RunDescriptor,
 };
 
 use eframe::glow::ZERO;
-use egui::{emath::TSTransform, Label, Pos2, Rect, Scene, TextWrapMode, Vec2, Widget};
+use egui::{emath::TSTransform, Label, Pos2, Rect, Scene, TextBuffer, TextWrapMode, Vec2, Widget};
 
 /// A cursor wandering around a [`Grid`]
 /// For now the cursor has only one [`Position`], but will probably have two in the future to represent a selection
 #[derive(Debug, Clone, Copy)]
 struct Cursor {
-    pub position: Position,
+    pub grid_position: Position,
+    pub char_position: usize,
 }
 
 impl Cursor {
-    fn new(position: Position) -> Self {
+    fn new(grid_position: Position) -> Self {
         Self {
-            position
+            grid_position,
+            char_position: 0
         }
     }
 
-    pub fn move_to(&mut self, position: Position) {
-        self.position = position;
+    // pub fn move_to(&mut self, grid_position: Position, char_position: usize) {
+    //     self.grid_position = grid_position;
+    //     self.char_position = char_position
+    // }
+
+    /// Move the cursor one cell in the given [`Direction`],
+    /// setting `self.char_position` to 0 in the process,
+    /// and returning the new [`Position`] on success
+    ///
+    /// # Errors
+    /// Returns an error if [`Head`] could not step further in that direction
+    /// because it could not go outside of the [`Grid`]'s limits
+    pub fn move_in_direction(&mut self, direction: Direction) -> Result<Position, anyhow::Error> {
+        use Direction::*;
+        self.grid_position = match direction {
+            Right => self.grid_position.checked_increment_x(1),
+            Down => self.grid_position.checked_increment_y(1),
+            Left => self.grid_position.checked_decrement_x(1),
+            Up => self.grid_position.checked_decrement_y(1),
+        }.context("could not step into darkness, the position is invalid")?;
+
+        self.char_position = 0;
+
+        Ok(self.grid_position)
     }
+
+    // pub fn move_char_position(&mut self, char_position: usize) {
+    //     self.char_position = char_position;
+    // }
 }
 
 pub struct GralifferApp {
     frame: Frame,
     cursor: Cursor,
     transform: TSTransform,
+    first_frame: bool,
 }
 
 impl GralifferApp {
@@ -65,6 +94,7 @@ impl GralifferApp {
             frame: frame,
             transform: TSTransform::default(),
             cursor: Cursor::new(Position::ZERO),
+            first_frame: true,
         }
     }
 }
@@ -84,28 +114,22 @@ impl eframe::App for GralifferApp {
             });
         });
 
+        // egui::SidePanel::left("inspectors").show(ctx, |ui| {
+        //     ctx.inspection_ui(ui);
+        //     ui.separator();
+        //     ctx.memory_ui(ui);
+        // });
+
         egui::CentralPanel::default().show(ctx, |ui| {
-            egui::Window::new("Inspect ouais").show(ctx, |ui| {
-                ctx.inspection_ui(ui);
-            });
-
-            egui::Window::new("Memory ouais").show(ctx, |ui| {
-                ctx.memory_ui(ui);
-            });
-
-        });
-
-        egui::Window::new("graliffer ouais").show(ctx, |ui| {
-
+        // });
+        // egui::Window::new("graliffer ouais").show(ctx, |ui| {
             let (container_id, container_rect) = ui.allocate_space(ui.available_size());
-            let container_layer = ui.layer_id();
-
             let response = ui.interact(container_rect, container_id, egui::Sense::click_and_drag());
 
             let transform =
                 TSTransform::from_translation(ui.min_rect().left_top().to_vec2()) * self.transform;
 
-            if response.clicked() {
+            if response.clicked() || self.first_frame {
                 response.request_focus();
             }
 
@@ -147,49 +171,142 @@ impl eframe::App for GralifferApp {
                             pressed: true,
                             ..
                         } => {
-                            let pos_result = match key {
-                                Key::ArrowRight => self.cursor.position.checked_increment_x(1),
-                                Key::ArrowDown => self.cursor.position.checked_increment_y(1),
-                                Key::ArrowLeft => self.cursor.position.checked_decrement_x(1),
-                                Key::ArrowUp => self.cursor.position.checked_decrement_y(1),
-                                _ => unreachable!(),
-                            };
 
-                            if let Ok(pos) = pos_result {
-                                self.cursor.position = pos
+                            // If Up or Down, move grid_position
+                            // If Left
+                            // - and char_position == 0, move grid_position
+                            // - else, decrement char_position
+                            // If Right
+                            // - and char_position == current_cell.len, move grid_position
+                            // - else, increment char_position
+
+                            // let mut move_grid_position = |direction: Direction| {
+                            //     if let Ok(new_pos) = self.cursor.move_in_direction(direction) {
+                            //         let new_pos_cell_length = self.frame.grid.get(new_pos).len();
+                            //         self.cursor.char_position = new_pos_cell_length;
+                            //     }
+                            // };
+
+                            match key {
+                                Key::ArrowUp => {
+                                    if let Ok(new_pos) = self.cursor.move_in_direction(Direction::Up) {
+                                        let new_pos_cell_length = self.frame.grid.get(new_pos).len();
+                                        self.cursor.char_position = new_pos_cell_length;
+                                    }
+                                },
+                                Key::ArrowDown => {
+                                    if let Ok(new_pos) = self.cursor.move_in_direction(Direction::Down) {
+                                        let new_pos_cell_length = self.frame.grid.get(new_pos).len();
+                                        self.cursor.char_position = new_pos_cell_length;
+                                    }
+                                }
+                                Key::ArrowRight => {
+                                    let current_cell_len = self.frame.grid.get(self.cursor.grid_position).len();
+
+                                    if self.cursor.char_position == current_cell_len {
+                                        if let Ok(new_pos) = self.cursor.move_in_direction(Direction::Right) {
+                                            let new_pos_cell_length = self.frame.grid.get(new_pos).len();
+                                            self.cursor.char_position = new_pos_cell_length;
+                                        }
+                                    } else {
+                                        self.cursor.char_position += 1;
+                                    }
+                                },
+                                Key::ArrowLeft => {
+                                    let current_cell_len = self.frame.grid.get(self.cursor.grid_position).len();
+
+                                    if self.cursor.char_position == 0 {
+                                        if let Ok(new_pos) = self.cursor.move_in_direction(Direction::Left) {
+                                            let new_pos_cell_length = self.frame.grid.get(new_pos).len();
+                                            self.cursor.char_position = new_pos_cell_length;
+                                        }
+                                    } else {
+                                        self.cursor.char_position -= 1;
+                                    }
+                                },
+                                _ => unreachable!(),
                             }
+
+
+                            // let direction = match key {
+                            //     Key::ArrowRight => Direction::Right,
+                            //     Key::ArrowDown => Direction::Down,
+                            //     Key::ArrowLeft => Direction::Left,
+                            //     Key::ArrowUp => Direction::Up,
+                            // };
+
+                            // if let Ok(new_pos) = self.cursor.move_in_direction(direction) {
+                            //     let new_pos_cell_length = self.frame.grid.get(new_pos).len();
+                            //     self.cursor.char_position = new_pos_cell_length;
+                            // }
                         },
+
+                        // Simple text input
+                        Event::Key {
+                            key: Key::Enter,
+                            pressed: true,
+                            ..
+                        } => {
+
+                        }
+
+                        Event::Key {
+                            key: Key::Backspace,
+                            pressed: true,
+                            ..
+                        } => {
+
+                            dbg!("Backspace!");
+
+                            let cell_mut = self.frame.grid.get_mut(self.cursor.grid_position);
+
+                            let char_pos = self.cursor.char_position;
+
+                            if char_pos > 0 {
+                                let range_start = char_pos - 1;
+                                let range_end = char_pos;
+
+                                let char_deleted = cell_mut.delete_char_range(range_start..range_end).unwrap_or(0);
+                                self.cursor.char_position -= char_deleted;
+                            }
+                        }
+
                         Event::Text(text) => {
                             dbg!(text);
+
+                            let cell_mut = self.frame.grid.get_mut(self.cursor.grid_position);
+                            let char_inserted = cell_mut.insert_at(text, self.cursor.char_position).unwrap_or(0);
+                            dbg!(char_inserted);
+                            self.cursor.char_position += char_inserted;
                         }
                         _ => {}
                     }
                 }
             }
 
-            let grid_widget = GridWidget {
+            ui.put(container_rect, GridWidget {
                 transform,
                 cursor: self.cursor,
-            };
-
-            ui.put(container_rect, grid_widget);
+                grid: &self.frame.grid
+            });
         });
     }
 }
 
 
-struct GridWidget {
+struct GridWidget<'a> {
     cursor: Cursor,
     transform: TSTransform,
+    grid: &'a Grid,
 }
 
-impl GridWidget {
+impl<'a> GridWidget<'a> {
     const CELL_SIZE: f32 = 50.0;
     const CELL_PADDING: f32 = 1.5;
     const CELL_FULL_SIZE: f32 = Self::CELL_SIZE + Self::CELL_PADDING;
 }
 
-impl Widget for GridWidget {
+impl<'a> Widget for GridWidget<'a> {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
         let container_id = ui.id();
         let container_rect = ui.max_rect();
@@ -226,9 +343,9 @@ impl Widget for GridWidget {
 
                 let grid_pos = Position::from_numeric(grid_pos_x, grid_pos_y).unwrap();
 
-                // let cell = self.frame.grid.get(grid_pos);
+                let cell = self.grid.get(grid_pos);
 
-                let bg_color = if self.cursor.position == grid_pos {
+                let bg_color = if self.cursor.grid_position == grid_pos {
                     egui::Color32::from_gray(45)
                 } else {
                     egui::Color32::from_gray(27)
@@ -248,10 +365,19 @@ impl Widget for GridWidget {
                 painter.text(
                     screen_rect.center(),
                     egui::Align2::CENTER_CENTER,
-                    "oui",
+                    cell.content(),
                     egui::FontId::monospace(self.transform.scaling * 12.0),
                     egui::Color32::WHITE
                 );
+
+                painter.text(
+                    screen_rect.left_top(),
+                    egui::Align2::LEFT_TOP,
+                    self.cursor.char_position,
+                    egui::FontId::monospace(self.transform.scaling * 9.0),
+                    egui::Color32::WHITE
+                );
+
             }
         }
         response

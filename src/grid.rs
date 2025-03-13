@@ -1,6 +1,8 @@
 //! Grid represent the Graliffer grid, it hold the data
 
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Range};
+use anyhow::Context;
+use egui::TextBuffer;
 use serde::Serialize;
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -34,36 +36,55 @@ impl Cell {
         }
     }
 
-    // /// Try to insert `string` into the `Cell` at specified `char_index`
-    // ///
-    // /// # Notes
-    // /// `char_index` is a *character index*, not a byte index.
-    // ///
-    // /// # Returns
-    // /// Returns a result with `Ok` containing how many *characters* were successfully inserted
-    // ///
-    // /// # Errors
-    // /// Returns a result with `Err` if `string` could not be inserted into the `Cell`
-    // pub fn insert_at(&mut self, string: &str, char_index: usize) -> Result<usize, anyhow::Error> {
-    //     let mut self_owned = self.0.to_owned();
+    /// Try to insert `string` into the `Cell` at the specified `char_index`
+    ///
+    /// # Notes
+    /// `char_index` is a *character index*, not a byte index.
+    ///
+    /// # Returns
+    /// Returns a result with `Ok` containing how many *characters* were successfully inserted
+    ///
+    /// # Errors
+    /// Returns a result with `Err` if `string` could not be inserted into the `Cell`
+    pub fn insert_at(&mut self, string: &str, char_index: usize) -> Result<usize, anyhow::Error> {
+        let mut self_owned = self.0.to_owned();
 
-    //     let byte_index = byte_index_from_char_index(self_owned.as_str(), char_index);
+        let byte_index = byte_index_from_char_index(self_owned.as_str(), char_index);
 
-    //     self_owned.insert_str(byte_index, string);
+        self_owned.insert_str(byte_index, string);
 
-    //     if let Err(error) = Self::new(self_owned.as_str()) {
-    //         Err(error)
-    //     } else {
-    //         let count = self_owned.chars().count();
-    //         self.0 = self_owned;
-    //         Ok(count)
-    //     }
-    // }
+        if let Err(error) = Self::new(self_owned.as_str()) {
+            Err(error)
+        } else {
+            self.0 = self_owned;
+            Ok(string.chars().count())
+        }
+    }
 
-    // /// Remove all
-    // pub fn drain(&mut self, range: use::RangeB) -> std::string::Drain<'_> {
-    //     self.0.drain(range)
-    // }
+    /// Try to remove the specified `char_range` from the string
+    ///
+    /// # Notes
+    /// `char_range` is a *character index*, not a byte index.
+    ///
+    /// # Returns
+    /// Returns a result with `Ok` containing how many *characters* were successfully inserted
+    ///
+    /// # Errors
+    ///
+    // Code stolen from egui's TextBuffer implementation on string
+    pub fn delete_char_range(&mut self, char_range: Range<usize>) -> Result<usize, anyhow::Error> {
+        assert!(char_range.start <= char_range.end);
+
+        // Get both byte indices
+        let byte_start = byte_index_from_char_index(self.as_str(), char_range.start);
+        let byte_end = byte_index_from_char_index(self.as_str(), char_range.end);
+
+        Ok(self.0.drain(byte_start..byte_end).count() as usize)
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
 
     pub fn set(&mut self, content: &str) -> Result<&Self, anyhow::Error>{
         // TODO: just a test please code : be better
@@ -82,40 +103,40 @@ impl Cell {
     }
 }
 
-// impl egui::TextBuffer for Cell {
-//     fn is_mutable(&self) -> bool {
-//         true
-//     }
+impl egui::TextBuffer for Cell {
+    fn is_mutable(&self) -> bool {
+        true
+    }
 
-//     fn as_str(&self) -> &str {
-//         &self.0.as_str()
-//     }
+    fn as_str(&self) -> &str {
+        &self.0.as_str()
+    }
 
-//     fn insert_text(&mut self, text: &str, char_index: usize) -> usize {
-//         self.insert_at(text, char_index).unwrap_or(0)
-//     }
+    fn insert_text(&mut self, text: &str, char_index: usize) -> usize {
+        self.insert_at(text, char_index).unwrap_or(0)
+    }
 
-//     fn delete_char_range(&mut self, char_range: std::ops::Range<usize>) {
-//         assert!(char_range.start <= char_range.end);
+    fn delete_char_range(&mut self, char_range: std::ops::Range<usize>) {
+        assert!(char_range.start <= char_range.end);
 
-//         // Get both byte indices
-//         let byte_start = byte_index_from_char_index(self.as_str(), char_range.start);
-//         let byte_end = byte_index_from_char_index(self.as_str(), char_range.end);
+        // Get both byte indices
+        let byte_start = byte_index_from_char_index(self.as_str(), char_range.start);
+        let byte_end = byte_index_from_char_index(self.as_str(), char_range.end);
 
-//         // Then drain all characters within this range
-//         self.drain(byte_start..byte_end);
-//     }
-// }
+        // Then drain all characters within this range
+        self.delete_char_range(byte_start..byte_end);
+    }
+}
 
-// // Code from https://docs.rs/egui/0.31.1/src/egui/text_selection/text_cursor_state.rs.html#322
-// pub fn byte_index_from_char_index(s: &str, char_index: usize) -> usize {
-//     for (ci, (bi, _)) in s.char_indices().enumerate() {
-//         if ci == char_index {
-//             return bi;
-//         }
-//     }
-//     s.len()
-// }
+// Code from https://docs.rs/egui/0.31.1/src/egui/text_selection/text_cursor_state.rs.html#322
+pub fn byte_index_from_char_index(s: &str, char_index: usize) -> usize {
+    for (ci, (bi, _)) in s.char_indices().enumerate() {
+        if ci == char_index {
+            return bi;
+        }
+    }
+    s.len()
+}
 
 /// A `Grid` represents a 2d space filled with [`Cell`]s, theses cells are positioned by a [`Position`]
 ///
