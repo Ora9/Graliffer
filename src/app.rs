@@ -8,10 +8,9 @@ use crate::{
 use eframe::glow::ZERO;
 use egui::{emath::TSTransform, Label, Pos2, Rect, Scene, TextWrapMode, Vec2, Widget};
 
-
 /// A cursor wandering around a [`Grid`]
 /// For now the cursor has only one [`Position`], but will probably have two in the future to represent a selection
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 struct Cursor {
     pub position: Position,
 }
@@ -93,27 +92,22 @@ impl eframe::App for GralifferApp {
             egui::Window::new("Memory ouais").show(ctx, |ui| {
                 ctx.memory_ui(ui);
             });
+
         // });
 
-        // egui::Window::new("Grid ouais").show(ctx, |ui| {
+        // egui::Window::new("graliffer ouais").show(ctx, |ui| {
+
             let (container_id, container_rect) = ui.allocate_space(ui.available_size());
             let container_layer = ui.layer_id();
 
-            let response = ui.interact(container_rect, container_id, egui::Sense::click_and_drag());
-            // // if response.dragged() {
-            // //     self.transform.translation += response.drag_delta();
-            // // }
 
-            // if response.double_clicked() {
-            //     self.transform = TSTransform::default();
-            // }
-            //
+            let response = ui.interact(container_rect, container_id, egui::Sense::click_and_drag());
 
             let transform =
                 TSTransform::from_translation(ui.min_rect().left_top().to_vec2()) * self.transform;
 
             if let Some(pointer) = ui.ctx().input(|i| i.pointer.hover_pos()) {
-                if response.contains_pointer() {
+                if container_rect.contains(pointer) {
                     let pointer_in_layer = transform.inverse() * pointer;
                     let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
                     let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta * 1.5);
@@ -133,16 +127,21 @@ impl eframe::App for GralifferApp {
             let event_filter = egui::EventFilter {
                 horizontal_arrows: true,
                 vertical_arrows: true,
+                escape: true,
                 ..Default::default()
             };
 
             ui.memory_mut(|mem| mem.set_focus_lock_filter(container_id, event_filter));
             let events = ui.input(|i| i.filtered_events(&event_filter));
 
-            if response.has_focus() {
+            // if response.has_focus() {
                 for event in &events {
                     use {egui::Event, egui::Key};
                     match event {
+                        // Event::MouseMoved(pointer) => {
+                        //     dbg!("Pointer default!", pointer);
+                        // },
+
                         Event::Key {
                             key: key @ (Key::ArrowRight | Key::ArrowDown | Key::ArrowLeft | Key::ArrowUp),
                             pressed: true,
@@ -165,87 +164,216 @@ impl eframe::App for GralifferApp {
                         }
                         _ => {}
                     }
-
-                }
+                // }
             }
 
-            let size = ui.spacing().interact_size.y * egui::vec2(2.0, 2.0);
-            let padding = 2.5;
-            let full_size = size.x + padding;
-
-            let (min_x, max_x, min_y, max_y) = {
-                use crate::grid::PositionAxis;
-
-                let container_size = Rect { min: Pos2::ZERO, max: container_rect.size().to_pos2() };
-                let a = self.transform.inverse().mul_rect(container_size);
-
-                let min_x = ((a.min.x / full_size).floor() as u32).clamp(PositionAxis::MIN_NUMERIC, PositionAxis::MAX_NUMERIC);
-                let max_x = ((a.max.x / full_size).ceil() as u32).clamp(PositionAxis::MIN_NUMERIC, PositionAxis::MAX_NUMERIC);
-                let min_y = ((a.min.y / full_size).floor() as u32).clamp(PositionAxis::MIN_NUMERIC, PositionAxis::MAX_NUMERIC);
-                let max_y = ((a.max.y / full_size).ceil() as u32).clamp(PositionAxis::MIN_NUMERIC, PositionAxis::MAX_NUMERIC);
-
-                (min_x, max_x, min_y, max_y)
+            let grid_widget = GridWidget {
+                transform,
+                cursor: self.cursor,
             };
 
-            let painter = ui.painter_at(container_rect);
+            let grid_area = egui::Area::new(container_id.with("grid"))
+                .fixed_pos(container_rect.min)
+                .order(container_layer.order)
+                .show(ui.ctx(), |ui| {
+                    ui.put(container_rect, grid_widget);
+                })
+                .response;
+            // ui.ctx().set_transform_layer(grid_area.layer_id, transform);
+            ui.ctx().set_sublayer(container_layer, grid_area.layer_id);
 
-            for y in min_y..max_y {
-                for x in min_x..max_x {
-                    let cell_pos = Pos2 {
-                        x: (size.x + padding) * x as f32,
-                        y: (size.y + padding) * y as f32,
-                    };
 
-                    let cell_rect = Rect {
-                        min: cell_pos,
-                        max: cell_pos + Vec2::splat(full_size),
-                    };
-                    let grid_pos = Position::from_numeric(x, y).unwrap();
+        // egui::Window::new("Grid ouais").show(ctx, |ui| {
+            // let (container_id, container_rect) = ui.allocate_space(ui.available_size());
+            // let container_layer = ui.layer_id();
 
-                    // Focus on click
-                    if ui.rect_contains_pointer(transform.mul_rect(cell_rect)) && response.clicked_by(egui::PointerButton::Primary) {
-                        response.request_focus();
-                        self.cursor.position = grid_pos;
-                    }
+            // // // if response.dragged() {
+            // // //     self.transform.translation += response.drag_delta();
+            // // // }
 
-                    let cell = self.frame.grid.get(grid_pos);
+            // // if response.double_clicked() {
+            // //     self.transform = TSTransform::default();
+            // // }
+            // //
 
-                    let bg_color = if self.cursor.position == grid_pos {
-                        egui::Color32::from_gray(45)
-                    } else {
-                        egui::Color32::from_gray(27)
-                    };
+            // let transform =
+            //     TSTransform::from_translation(ui.min_rect().left_top().to_vec2()) * self.transform;
 
-                    let corner_radius = 3.0;
-                    painter.rect(
-                        transform.mul_rect(cell_rect),
-                        corner_radius,
-                        bg_color,
-                        egui::Stroke::new(1.0, egui::Color32::from_gray(50)),
-                        egui::StrokeKind::Inside,
-                    );
 
-                    // dbg!(container_rect);
+            // let event_filter = egui::EventFilter {
+            //     horizontal_arrows: true,
+            //     vertical_arrows: true,
+            //     escape: true,
+            //     ..Default::default()
+            // };
 
-                    if !cell.is_empty() {
-                        let subarea = egui::Area::new(container_id.with(("cell", x, y)))
-                            .fixed_pos(cell_pos)
-                            .constrain(false)
-                            .order(container_layer.order)
-                            .show(ui.ctx(), |ui| {
-                                ui.set_clip_rect(transform.inverse().mul_rect(container_rect));
-                                let label = Label::new(cell.content())
-                                    .selectable(false);
 
-                                ui.put(cell_rect, label);
-                            })
-                            .response;
-                        ui.ctx().set_transform_layer(subarea.layer_id, transform);
-                        ui.ctx().set_sublayer(container_layer, subarea.layer_id);
-                    }
-                }
-            }
+            // let size = ui.spacing().interact_size.y * egui::vec2(2.0, 2.0);
+            // let padding = 2.5;
+            // let full_size = size.x + padding;
+
+            // let (min_x, max_x, min_y, max_y) = {
+            //     use crate::grid::PositionAxis;
+
+            //     let container_size = Rect { min: Pos2::ZERO, max: container_rect.size().to_pos2() };
+            //     let a = self.transform.inverse().mul_rect(container_size);
+
+            //     let min_x = ((a.min.x / full_size).floor() as u32).clamp(PositionAxis::MIN_NUMERIC, PositionAxis::MAX_NUMERIC);
+            //     let max_x = ((a.max.x / full_size).ceil() as u32).clamp(PositionAxis::MIN_NUMERIC, PositionAxis::MAX_NUMERIC);
+            //     let min_y = ((a.min.y / full_size).floor() as u32).clamp(PositionAxis::MIN_NUMERIC, PositionAxis::MAX_NUMERIC);
+            //     let max_y = ((a.max.y / full_size).ceil() as u32).clamp(PositionAxis::MIN_NUMERIC, PositionAxis::MAX_NUMERIC);
+
+            //     (min_x, max_x, min_y, max_y)
+            // };
+
+            // let painter = ui.painter_at(container_rect);
+
+            // for y in min_y..max_y {
+            //     for x in min_x..max_x {
+            //         let cell_pos = Pos2 {
+            //             x: (size.x + padding) * x as f32,
+            //             y: (size.y + padding) * y as f32,
+            //         };
+
+            //         let cell_rect = Rect {
+            //             min: cell_pos,
+            //             max: cell_pos + Vec2::splat(full_size),
+            //         };
+            //         let grid_pos = Position::from_numeric(x, y).unwrap();
+
+            //         // Focus on click
+            //         if ui.rect_contains_pointer(transform.mul_rect(cell_rect)) && response.clicked_by(egui::PointerButton::Primary) {
+            //             response.request_focus();
+            //             self.cursor.position = grid_pos;
+            //         }
+
+            //         let cell = self.frame.grid.get(grid_pos);
+
+            //         let bg_color = if self.cursor.position == grid_pos {
+            //             egui::Color32::from_gray(45)
+            //         } else {
+            //             egui::Color32::from_gray(27)
+            //         };
+
+            //         let corner_radius = 0;
+            //         painter.rect(
+            //             transform.mul_rect(cell_rect),
+            //             corner_radius,
+            //             bg_color,
+            //             egui::Stroke::new(1.0, egui::Color32::from_gray(50)),
+            //             egui::StrokeKind::Inside,
+            //         );
+
+            //         // dbg!(container_rect);
+
+            //         if !cell.is_empty() {
+            //             let subarea = egui::Area::new(container_id.with(("cell", x, y)))
+            //                 .fixed_pos(cell_pos)
+            //                 .constrain(false)
+            //                 .order(container_layer.order)
+            //                 .show(ui.ctx(), |ui| {
+            //                     ui.set_clip_rect(transform.inverse().mul_rect(container_rect));
+            //                     let label = Label::new(cell.content())
+            //                         .selectable(false);
+
+            //                     ui.put(cell_rect, label);
+            //                 })
+            //                 .response;
+            //             ui.ctx().set_transform_layer(subarea.layer_id, transform);
+            //             ui.ctx().set_sublayer(container_layer, subarea.layer_id);
+            //         }
+            //     }
+            // }
         });
+    }
+}
+
+
+struct GridWidget {
+    cursor: Cursor,
+    transform: TSTransform,
+}
+
+impl GridWidget {
+    const CELL_SIZE: f32 = 50.0;
+    const CELL_PADDING: f32 = 2.5;
+    const CELL_FULL_SIZE: f32 = Self::CELL_SIZE + Self::CELL_PADDING;
+}
+
+impl Widget for GridWidget {
+    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+        // let (container_id, container_rect) = ui.allocate_space(ui.available_size());
+        let container_id = ui.id();
+        let container_rect = ui.max_rect();
+
+        let response = ui.interact(container_rect, container_id, egui::Sense::click_and_drag());
+
+        let (min_x, max_x, min_y, max_y) = {
+            use crate::grid::PositionAxis;
+
+            let container_size = Rect { min: Pos2::ZERO, max: container_rect.size().to_pos2() };
+            let a = self.transform.inverse().mul_rect(container_rect);
+            dbg!(container_size, self.transform);
+
+            let min_x = ((a.min.x / GridWidget::CELL_FULL_SIZE).floor() as u32).clamp(PositionAxis::MIN_NUMERIC, PositionAxis::MAX_NUMERIC);
+            let max_x = ((a.max.x / GridWidget::CELL_FULL_SIZE).ceil() as u32).clamp(PositionAxis::MIN_NUMERIC, PositionAxis::MAX_NUMERIC);
+            let min_y = ((a.min.y / GridWidget::CELL_FULL_SIZE).floor() as u32).clamp(PositionAxis::MIN_NUMERIC, PositionAxis::MAX_NUMERIC);
+            let max_y = ((a.max.y / GridWidget::CELL_FULL_SIZE).ceil() as u32).clamp(PositionAxis::MIN_NUMERIC, PositionAxis::MAX_NUMERIC);
+
+            (min_x, max_x, min_y, max_y)
+        };
+
+        dbg!((min_x, max_x, min_y, max_y));
+
+        let painter = ui.painter_at(container_rect);
+
+        for grid_pos_y in min_y..max_y {
+            for grid_pos_x in min_x..max_x {
+
+                let screen_pos = Pos2 {
+                    x: GridWidget::CELL_FULL_SIZE * (grid_pos_x as f32),
+                    y: GridWidget::CELL_FULL_SIZE * (grid_pos_y as f32),
+                };
+
+                let screen_rect = self.transform.mul_rect(Rect {
+                    min: screen_pos + Vec2::splat(GridWidget::CELL_PADDING),
+                    max: screen_pos + Vec2::splat(GridWidget::CELL_SIZE),
+                });
+
+                let grid_pos = Position::from_numeric(grid_pos_x, grid_pos_y).unwrap();
+
+                // let cell = self.frame.grid.get(grid_pos);
+
+                let bg_color = if self.cursor.position == grid_pos {
+                    egui::Color32::from_gray(45)
+                } else {
+                    egui::Color32::from_gray(27)
+                };
+
+                let bg_corner_radius = self.transform.scaling * 3.0;
+
+                // Draw background
+                painter.rect(
+                    screen_rect,
+                    bg_corner_radius,
+                    bg_color,
+                    egui::Stroke::new(self.transform.scaling * 1.0, egui::Color32::from_gray(50)),
+                    egui::StrokeKind::Inside,
+                );
+
+                painter.text(
+                    screen_rect.center(),
+                    egui::Align2::CENTER_CENTER,
+                    "oui",
+                    egui::FontId::monospace(self.transform.scaling * 12.0),
+                    egui::Color32::WHITE
+                );
+            }
+        }
+
+        // ui.ctx().set_transform_layer(ui.layer_id(), self.transform);
+
+        response
     }
 }
 
