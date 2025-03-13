@@ -86,6 +86,16 @@ impl Cell {
         self.0.len()
     }
 
+    pub fn get_content_range(&self, char_range: Range<usize>) -> String {
+        assert!(char_range.start <= char_range.end);
+
+        let byte_start = byte_index_from_char_index(self.as_str(), char_range.start);
+        let byte_end = byte_index_from_char_index(self.as_str(), char_range.end);
+
+        self.0[byte_start..byte_end].to_string()
+    }
+
+
     pub fn set(&mut self, content: &str) -> Result<&Self, anyhow::Error>{
         // TODO: just a test please code : be better
         let intern = Self::new(content)?;

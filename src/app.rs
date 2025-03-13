@@ -1,4 +1,7 @@
+use std::{fmt::format, ops::Neg};
+
 use anyhow::Context;
+use serde_json::map::Keys;
 use crate::{
 	grid::{Cell, Direction, Grid, Position},
 	Frame,
@@ -60,6 +63,8 @@ pub struct GralifferApp {
     cursor: Cursor,
     transform: TSTransform,
     first_frame: bool,
+
+    inspect: bool,
 }
 
 impl GralifferApp {
@@ -95,6 +100,8 @@ impl GralifferApp {
             transform: TSTransform::default(),
             cursor: Cursor::new(Position::ZERO),
             first_frame: true,
+
+            inspect: false,
         }
     }
 }
@@ -111,13 +118,30 @@ impl eframe::App for GralifferApp {
                 ui.add_space(16.0);
 
                 egui::widgets::global_theme_preference_buttons(ui);
+                ui.add_space(16.0);
+
+                ui.checkbox(&mut self.inspect, "Inspect");
+
+                if self.inspect {
+                    let since_last_frame = std::time::Duration::from_secs_f32(frame.info().cpu_usage.unwrap());
+                    dbg!(since_last_frame);
+                    ui.label(format!("{:?}", since_last_frame));
+                }
+
             });
         });
 
+        if self.inspect {
+            egui::Window::new("insection ouais").show(ctx, |ui| {
+                ctx.inspection_ui(ui);
+            });
+            egui::Window::new("memory ouais").show(ctx, |ui| {
+                ctx.memory_ui(ui);
+            });
+        }
+
         // egui::SidePanel::left("inspectors").show(ctx, |ui| {
-        //     ctx.inspection_ui(ui);
         //     ui.separator();
-        //     ctx.memory_ui(ui);
         // });
 
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -156,6 +180,7 @@ impl eframe::App for GralifferApp {
                 horizontal_arrows: true,
                 vertical_arrows: true,
                 escape: true,
+                tab: true,
                 ..Default::default()
             };
 
@@ -167,7 +192,13 @@ impl eframe::App for GralifferApp {
                     use {egui::Event, egui::Key};
                     match event {
                         Event::Key {
-                            key: key @ (Key::ArrowRight | Key::ArrowDown | Key::ArrowLeft | Key::ArrowUp),
+                            key: key @ (
+                                Key::ArrowRight
+                                | Key::Tab
+                                | Key::Space
+                                | Key::ArrowDown
+                                | Key::ArrowLeft
+                                | Key::ArrowUp),
                             pressed: true,
                             ..
                         } => {
@@ -180,13 +211,6 @@ impl eframe::App for GralifferApp {
                             // - and char_position == current_cell.len, move grid_position
                             // - else, increment char_position
 
-                            // let mut move_grid_position = |direction: Direction| {
-                            //     if let Ok(new_pos) = self.cursor.move_in_direction(direction) {
-                            //         let new_pos_cell_length = self.frame.grid.get(new_pos).len();
-                            //         self.cursor.char_position = new_pos_cell_length;
-                            //     }
-                            // };
-
                             match key {
                                 Key::ArrowUp => {
                                     if let Ok(new_pos) = self.cursor.move_in_direction(Direction::Up) {
@@ -196,6 +220,12 @@ impl eframe::App for GralifferApp {
                                 },
                                 Key::ArrowDown => {
                                     if let Ok(new_pos) = self.cursor.move_in_direction(Direction::Down) {
+                                        let new_pos_cell_length = self.frame.grid.get(new_pos).len();
+                                        self.cursor.char_position = new_pos_cell_length;
+                                    }
+                                }
+                                Key::Tab | Key::Space => {
+                                    if let Ok(new_pos) = self.cursor.move_in_direction(Direction::Right) {
                                         let new_pos_cell_length = self.frame.grid.get(new_pos).len();
                                         self.cursor.char_position = new_pos_cell_length;
                                     }
@@ -213,8 +243,6 @@ impl eframe::App for GralifferApp {
                                     }
                                 },
                                 Key::ArrowLeft => {
-                                    let current_cell_len = self.frame.grid.get(self.cursor.grid_position).len();
-
                                     if self.cursor.char_position == 0 {
                                         if let Ok(new_pos) = self.cursor.move_in_direction(Direction::Left) {
                                             let new_pos_cell_length = self.frame.grid.get(new_pos).len();
@@ -271,7 +299,7 @@ impl eframe::App for GralifferApp {
                             }
                         }
 
-                        Event::Text(text) => {
+                        Event::Text(text) if text != " " => {
                             dbg!(text);
 
                             let cell_mut = self.frame.grid.get_mut(self.cursor.grid_position);
@@ -370,13 +398,57 @@ impl<'a> Widget for GridWidget<'a> {
                     egui::Color32::WHITE
                 );
 
-                painter.text(
-                    screen_rect.left_top(),
-                    egui::Align2::LEFT_TOP,
-                    self.cursor.char_position,
-                    egui::FontId::monospace(self.transform.scaling * 9.0),
-                    egui::Color32::WHITE
-                );
+                if self.cursor.grid_position == grid_pos {
+                    // painter.text(
+                    //     screen_rect.left_top(),
+                    //     egui::Align2::LEFT_TOP,
+                    //     self.cursor.char_position,
+                    //     egui::FontId::monospace(self.transform.scaling * 9.0),
+                    //     egui::Color32::WHITE
+                    // );
+
+                    // Blocking
+                    let text_widths = ui.fonts(move |fonts| {
+                        // (total, before)
+                        cell.content().chars().enumerate().map(|(index, char)| {
+                            let width = fonts.glyph_width(
+                                &egui::FontId::monospace(self.transform.scaling * 12.0),
+                                char
+                            );
+
+                            (
+                                width,
+                                if self.cursor.char_position > index {
+                                    width
+                                } else {
+                                    0.0
+                                }
+                            )
+                        }).reduce(|acc, e| (acc.0 + e.0, acc.1 + e.1))
+                    });
+
+                    let (content_total_width, content_pre_cursor_width) = text_widths.unwrap_or((0.0, 0.0));
+
+                    let center_offset = Vec2 {
+                        x: (content_total_width * 0.5).neg() + content_pre_cursor_width,
+                        y: 0.0
+                    };
+
+                    let cursor_pos = screen_rect.center() + center_offset;
+
+                    dbg!(cursor_pos);
+
+                    painter.rect_filled(
+                        Rect::from_center_size(cursor_pos, Vec2 {
+                            x: self.transform.scaling * 1.0,
+                            y: self.transform.scaling * 13.0
+                        }),
+                        2.0,
+                        egui::Color32::WHITE,
+                    );
+
+
+                }
 
             }
         }
