@@ -1,7 +1,7 @@
 use std::ops::Neg;
 
 use crate::{
-	grid::{Cell, Direction, Grid, Position, PositionAxis},
+	grid::{Cell, Direction, Grid, Head, Position, PositionAxis},
 	Frame,
 	RunDescriptor,
 };
@@ -66,11 +66,9 @@ pub struct GralifferApp {
     frame: Frame,
     cursor: Cursor,
 
-    editing: bool,
-
     grid_transform: TSTransform,
-    first_frame: bool,
 
+    first_frame: bool,
     inspect: bool,
 }
 
@@ -105,8 +103,10 @@ impl GralifferApp {
         Self {
             frame: frame,
             cursor: Cursor::new(Position::ZERO),
-            first_frame: true,
 
+            grid_transform: TSTransform::default(),
+
+            first_frame: true,
             inspect: false,
         }
     }
@@ -133,6 +133,12 @@ impl eframe::App for GralifferApp {
                     dbg!(since_last_frame);
                     ui.label(format!("{:?}", since_last_frame));
                 }
+
+                if ui.button("Step").clicked() {
+                    self.frame.step();
+                }
+
+                // ui.centered_and_justified(add_contents)
 
             });
         });
@@ -233,6 +239,15 @@ impl eframe::App for GralifferApp {
                 for event in &events {
                     use {egui::Event, egui::Key};
                     match event {
+                        Event::Key {
+                            key: egui::Key::N,
+                            modifiers: egui::Modifiers::SHIFT,
+                            pressed: true,
+                            ..
+                        } => {
+                            self.frame.step();
+                        }
+
                         Event::Copy => {
                             let cell = self.frame.grid.get(self.cursor.grid_position);
                             if !cell.is_empty() {
@@ -366,6 +381,7 @@ impl eframe::App for GralifferApp {
                 transform,
                 has_focus: response.has_focus(),
                 cursor: self.cursor,
+                head: self.frame.head,
                 grid: &self.frame.grid
             });
         });
@@ -377,6 +393,7 @@ struct GridWidget<'a> {
     cursor: Cursor,
     has_focus: bool,
     transform: TSTransform,
+    head: Head,
     grid: &'a Grid,
 }
 
@@ -425,16 +442,26 @@ impl<'a> Widget for GridWidget<'a> {
 
                 let cell = self.grid.get(grid_pos);
 
-                let bg_color = if self.cursor.grid_position == grid_pos && self.has_focus {
+
+
+                let bg_color = /*if self.has_focus && self.cursor.grid_position == grid_pos {
                     egui::Color32::from_gray(45)
+                } else */ if self.head.position == grid_pos {
+                    egui::Color32::from_hex("#445E93").unwrap()
                 } else {
                     egui::Color32::from_gray(27)
                 };
 
-                let stroke = if self.cursor.grid_position == grid_pos {
-                    egui::Stroke::new(self.transform.scaling * 2.0, egui::Color32::from_gray(45))
+                let (stroke, stroke_kind) = if self.cursor.grid_position == grid_pos {
+                    (
+                        egui::Stroke::new(self.transform.scaling * 2.0, egui::Color32::from_gray(45)),
+                        egui::StrokeKind::Outside,
+                    )
                 } else {
-                    egui::Stroke::new(self.transform.scaling * 1.0, egui::Color32::from_gray(45))
+                    (
+                        egui::Stroke::new(self.transform.scaling * 1.0, egui::Color32::from_gray(45)),
+                        egui::StrokeKind::Inside,
+                    )
                 };
 
                 let bg_corner_radius = self.transform.scaling * 3.0;
@@ -445,7 +472,7 @@ impl<'a> Widget for GridWidget<'a> {
                     bg_corner_radius,
                     bg_color,
                     stroke,
-                    egui::StrokeKind::Inside,
+                    stroke_kind,
                 );
 
                 painter.text(
