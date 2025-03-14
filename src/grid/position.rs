@@ -47,6 +47,21 @@ impl PositionAxis {
         (Self::MIN_NUMERIC..=Self::MAX_NUMERIC).contains(&value)
     }
 
+
+    /// Restrict a value to the limit of the numeric representation of `PositionAxis`.
+    ///
+    /// # Examples
+    /// ```
+    /// # use graliffer::grid::PositionAxis;
+    /// assert_eq!(PositionAxis::clamp_numeric(0), 0);
+    /// assert_eq!(PositionAxis::clamp_numeric(25), 25);
+    /// assert_eq!(PositionAxis::clamp_numeric(63), 63);
+    /// assert_eq!(PositionAxis::clamp_numeric(64), 63);
+    /// ```
+    pub fn clamp_numeric(value: u32) -> u32 {
+        value.clamp(Self::MIN_NUMERIC, Self::MAX_NUMERIC)
+    }
+
     /// Return `true` if the given `char` is considered a valid textual representation of [`PositionAxis`]
     ///
     /// Any char in set `[A-Za-z0-9+/]` is valid. See [base64](https://en.wikipedia.org/wiki/Base64) for more infos

@@ -364,20 +364,20 @@ impl<'a> Widget for GridWidget<'a> {
         let (min_x, max_x, min_y, max_y) = {
             use crate::grid::PositionAxis;
 
-            let trans_rect = self.transform.inverse().mul_rect(container_rect);
+            let rect_t = self.transform.inverse().mul_rect(container_rect);
 
-            let min_x = ((trans_rect.min.x / GridWidget::CELL_FULL_SIZE).floor() as u32).clamp(PositionAxis::MIN_NUMERIC, PositionAxis::MAX_NUMERIC);
-            let max_x = ((trans_rect.max.x / GridWidget::CELL_FULL_SIZE).ceil() as u32).clamp(PositionAxis::MIN_NUMERIC, PositionAxis::MAX_NUMERIC);
-            let min_y = ((trans_rect.min.y / GridWidget::CELL_FULL_SIZE).floor() as u32).clamp(PositionAxis::MIN_NUMERIC, PositionAxis::MAX_NUMERIC);
-            let max_y = ((trans_rect.max.y / GridWidget::CELL_FULL_SIZE).ceil() as u32).clamp(PositionAxis::MIN_NUMERIC, PositionAxis::MAX_NUMERIC);
+            let min_x = PositionAxis::clamp_numeric((rect_t.min.x / GridWidget::CELL_FULL_SIZE).floor() as u32);
+            let max_x = PositionAxis::clamp_numeric((rect_t.max.x / GridWidget::CELL_FULL_SIZE).ceil() as u32);
+            let min_y = PositionAxis::clamp_numeric((rect_t.min.y / GridWidget::CELL_FULL_SIZE).floor() as u32);
+            let max_y = PositionAxis::clamp_numeric((rect_t.max.y / GridWidget::CELL_FULL_SIZE).ceil() as u32);
 
             (min_x, max_x, min_y, max_y)
         };
 
         let painter = ui.painter_at(container_rect);
 
-        for grid_pos_y in min_y..max_y {
-            for grid_pos_x in min_x..max_x {
+        for grid_pos_y in min_y..=max_y {
+            for grid_pos_x in min_x..=max_x {
 
                 let screen_pos = Pos2 {
                     x: GridWidget::CELL_FULL_SIZE * (grid_pos_x as f32),
