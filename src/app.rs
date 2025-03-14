@@ -1,18 +1,19 @@
-use std::{fmt::format, ops::Neg};
+use std::ops::Neg;
 
-use anyhow::Context;
-use serde_json::map::Keys;
 use crate::{
-	grid::{Cell, Direction, Grid, Position},
+	grid::{Cell, Direction, Grid, Position, PositionAxis},
 	Frame,
 	RunDescriptor,
 };
 
 use eframe::glow::ZERO;
-use egui::{emath::TSTransform, Label, Pos2, Rect, Scene, TextBuffer, TextWrapMode, Vec2, Widget};
+use egui::{emath::TSTransform, Pos2, Rect, Vec2, Widget};
 
 /// A cursor wandering around a [`Grid`]
 /// For now the cursor has only one [`Position`], but will probably have two in the future to represent a selection
+// Work to make the char_position cursor better :
+// a prefered position, to be used when moving a new grid_pos, because we want to be a certain place of the cell content
+// or when clicking on a cell, we want to be at this place when
 #[derive(Debug, Clone, Copy)]
 struct Cursor {
     pub grid_position: Position,
@@ -27,10 +28,11 @@ impl Cursor {
         }
     }
 
-    // pub fn move_to(&mut self, grid_position: Position, char_position: usize) {
-    //     self.grid_position = grid_position;
-    //     self.char_position = char_position
-    // }
+    /// Move the cursor to new [`Position`] placing self.char_position after the last char of new cell.
+    pub fn move_to(&mut self, grid_position: Position, grid: &Grid) {
+        self.grid_position = grid_position;
+        self.char_position = grid.get(grid_position).len();
+    }
 
     /// Move the cursor one cell in the given [`Direction`],
     /// and move `self.char_position` after the last char of new cell.
@@ -153,16 +155,46 @@ impl eframe::App for GralifferApp {
             let (container_id, container_rect) = ui.allocate_space(ui.available_size());
             let response = ui.interact(container_rect, container_id, egui::Sense::click_and_drag());
 
+            // Autofocus on app startup
+            if self.first_frame {
+                response.request_focus();
+                self.first_frame = false;
+            }
+
             let transform =
                 TSTransform::from_translation(ui.min_rect().left_top().to_vec2()) * self.transform;
-
-            if response.clicked() || self.first_frame {
-                response.request_focus();
-            }
 
             // Handle pointer (drag, zoom ..)
             if let Some(pointer) = ui.ctx().input(|i| i.pointer.hover_pos()) {
                 if container_rect.contains(pointer) {
+                    if response.clicked() {
+                        response.request_focus();
+
+                        // from pointer position, figure out hovered cell rect and pos
+                        // *_t for translated, as in grid render coordinates
+                        let pointer_pos_t = transform.inverse().mul_pos(pointer);
+                        let hovered_cell_pos_t = Pos2 {
+                            x: pointer_pos_t.x / GridWidget::CELL_FULL_SIZE,
+                            y: pointer_pos_t.y / GridWidget::CELL_FULL_SIZE,
+                        };
+
+                        let hovered_cell_rect_t = Rect {
+                            min: hovered_cell_pos_t.floor() * GridWidget::CELL_FULL_SIZE,
+                            max: hovered_cell_pos_t.ceil() * GridWidget::CELL_FULL_SIZE,
+                        };
+
+                        let hovered_cell_x = hovered_cell_pos_t.x.floor() as u32;
+                        let hovered_cell_y = hovered_cell_pos_t.y.floor() as u32;
+                        let hovered_cell_pos = transform.mul_pos(hovered_cell_pos_t);
+                        let hovered_cell_rect = transform.mul_rect(hovered_cell_rect_t);
+
+                        if hovered_cell_rect.contains(pointer) {
+                            // TODO: move the cursor to the right spot when clicking on text
+                            // Should be possible if we work on Cursor with prefered position
+                            self.cursor.move_to(Position::from_numeric(hovered_cell_x, hovered_cell_y).unwrap(), &self.frame.grid);
+                        }
+                    }
+
                     let pointer_in_layer = transform.inverse() * pointer;
                     let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
                     let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta * 1.5);
