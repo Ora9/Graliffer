@@ -61,7 +61,7 @@ impl Cell {
         }
     }
 
-    /// Try to remove the specified `char_range` from the string
+    /// Try to remove the specified `char_range` from the `Cell`
     ///
     /// # Notes
     /// `char_range` is a *character index*, not a byte index.
@@ -80,6 +80,11 @@ impl Cell {
         let byte_end = byte_index_from_char_index(self.as_str(), char_range.end);
 
         Ok(self.0.drain(byte_start..byte_end).count() as usize)
+    }
+
+    /// Remove all character from the `Cell`
+    pub fn clear(&mut self) {
+        self.0.clear();
     }
 
     pub fn len(&self) -> usize {

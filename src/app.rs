@@ -224,13 +224,47 @@ impl eframe::App for GralifferApp {
                 ..Default::default()
             };
 
-            ui.memory_mut(|mem| mem.set_focus_lock_filter(container_id, event_filter));
-            let events = ui.input(|i| i.filtered_events(&event_filter));
-
             if response.has_focus() {
+                ui.memory_mut(|mem| mem.set_focus_lock_filter(container_id, event_filter));
+                let events = ui.input(|i| i.filtered_events(&event_filter));
+
                 for event in &events {
                     use {egui::Event, egui::Key};
                     match event {
+                        Event::Copy => {
+                            let cell = self.frame.grid.get(self.cursor.grid_position);
+                            if !cell.is_empty() {
+                                ctx.copy_text(cell.content());
+                            }
+                        }
+
+                        Event::Cut => {
+                            let cell = self.frame.grid.get_mut(self.cursor.grid_position);
+                            if !cell.is_empty() {
+                                ctx.copy_text(cell.content());
+                            }
+
+                            cell.clear();
+                            self.cursor.char_position = 0
+                        }
+
+                        Event::Paste(text) => {
+                            let cell = self.frame.grid.get_mut(self.cursor.grid_position);
+
+                            let char_inserted = cell.insert_at(text, self.cursor.char_position).unwrap_or(0);
+                            self.cursor.char_position += char_inserted;
+                        }
+
+                        // TODO: better check to avoid whitespaces
+                        Event::Text(text) if text != " " => {
+                            dbg!(text);
+
+                            let cell_mut = self.frame.grid.get_mut(self.cursor.grid_position);
+                            let char_inserted = cell_mut.insert_at(text, self.cursor.char_position).unwrap_or(0);
+                            dbg!(char_inserted);
+                            self.cursor.char_position += char_inserted;
+                        }
+
                         Event::Key {
                             key: key @ (
                                 Key::ArrowRight
@@ -320,15 +354,6 @@ impl eframe::App for GralifferApp {
 
                                 let _ = cell_mut.delete_char_range(range);
                             }
-                        }
-
-                        Event::Text(text) if text != " " => {
-                            dbg!(text);
-
-                            let cell_mut = self.frame.grid.get_mut(self.cursor.grid_position);
-                            let char_inserted = cell_mut.insert_at(text, self.cursor.char_position).unwrap_or(0);
-                            dbg!(char_inserted);
-                            self.cursor.char_position += char_inserted;
                         }
                         _ => {}
                     }
