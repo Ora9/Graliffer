@@ -65,6 +65,9 @@ impl Cursor {
 pub struct GralifferApp {
     frame: Frame,
     cursor: Cursor,
+
+    editing: bool,
+
     grid_transform: TSTransform,
     first_frame: bool,
 
@@ -165,7 +168,7 @@ impl eframe::App for GralifferApp {
             // Handle pointer (drag, zoom ..)
             if let Some(pointer) = ui.ctx().input(|i| i.pointer.hover_pos()) {
                 if container_rect.contains(pointer) {
-                    if response.clicked() {
+                    if response.clicked_by(egui::PointerButton::Primary) {
                         response.request_focus();
 
                         // from pointer position, figure out hovered cell rect and pos
