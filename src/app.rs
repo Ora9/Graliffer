@@ -173,13 +173,19 @@ impl eframe::App for GralifferApp {
                         // *_t for translated, as in grid render coordinates
                         let pointer_pos_t = transform.inverse().mul_pos(pointer);
                         let hovered_cell_pos_t = Pos2 {
-                            x: pointer_pos_t.x / GridWidget::CELL_FULL_SIZE,
-                            y: pointer_pos_t.y / GridWidget::CELL_FULL_SIZE,
+                            x: (pointer_pos_t.x / GridWidget::CELL_FULL_SIZE).clamp(PositionAxis::MIN_NUMERIC as f32, PositionAxis::MAX_NUMERIC as f32),
+                            y: (pointer_pos_t.y / GridWidget::CELL_FULL_SIZE).clamp(PositionAxis::MIN_NUMERIC as f32, PositionAxis::MAX_NUMERIC as f32),
                         };
 
+                        // Ceil implementation says in https://doc.rust-lang.org/std/primitive.f32.html#method.ceil :
+                        // « Returns the smallest integer greater than or equal to self. » wich mean that 62.0 is still 62.0 not 63.0
+                        // So we truncate and add 1.0 instead
                         let hovered_cell_rect_t = Rect {
                             min: hovered_cell_pos_t.floor() * GridWidget::CELL_FULL_SIZE,
-                            max: hovered_cell_pos_t.ceil() * GridWidget::CELL_FULL_SIZE,
+                            max: Pos2 {
+                                x: (hovered_cell_pos_t.x.trunc() + 1.0) * GridWidget::CELL_FULL_SIZE,
+                                y: (hovered_cell_pos_t.y.trunc() + 1.0) * GridWidget::CELL_FULL_SIZE,
+                            }
                         };
 
                         let hovered_cell_x = hovered_cell_pos_t.x.floor() as u32;
