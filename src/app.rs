@@ -65,7 +65,7 @@ impl Cursor {
 pub struct GralifferApp {
     frame: Frame,
     cursor: Cursor,
-    transform: TSTransform,
+    grid_transform: TSTransform,
     first_frame: bool,
 
     inspect: bool,
@@ -101,7 +101,6 @@ impl GralifferApp {
 
         Self {
             frame: frame,
-            transform: TSTransform::default(),
             cursor: Cursor::new(Position::ZERO),
             first_frame: true,
 
@@ -161,7 +160,7 @@ impl eframe::App for GralifferApp {
             }
 
             let transform =
-                TSTransform::from_translation(ui.min_rect().left_top().to_vec2()) * self.transform;
+                TSTransform::from_translation(ui.min_rect().left_top().to_vec2()) * self.grid_transform;
 
             // Handle pointer (drag, zoom ..)
             if let Some(pointer) = ui.ctx().input(|i| i.pointer.hover_pos()) {
@@ -206,13 +205,13 @@ impl eframe::App for GralifferApp {
                     // let multi_touch_info = ui.ctx().input(|i| i.multi_touch());
 
                     // Zoom in on pointer:
-                    self.transform = self.transform
+                    self.grid_transform = self.grid_transform
                         * TSTransform::from_translation(pointer_in_layer.to_vec2())
                         * TSTransform::from_scaling(zoom_delta)
                         * TSTransform::from_translation(-pointer_in_layer.to_vec2());
 
                     // Pan:
-                    self.transform = TSTransform::from_translation(pan_delta * 2.0) * self.transform;
+                    self.grid_transform = TSTransform::from_translation(pan_delta * 2.0) * self.grid_transform;
                 }
             }
 
