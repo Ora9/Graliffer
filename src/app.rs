@@ -206,15 +206,6 @@ impl eframe::App for GralifferApp {
                             pressed: true,
                             ..
                         } => {
-
-                            // If Up or Down, move grid_position
-                            // If Left
-                            // - and char_position == 0, move grid_position
-                            // - else, decrement char_position
-                            // If Right
-                            // - and char_position == current_cell.len, move grid_position
-                            // - else, increment char_position
-
                             match key {
                                 Key::ArrowUp => {
                                     self.cursor.move_in_direction(Direction::Up, &self.frame.grid);
@@ -243,39 +234,54 @@ impl eframe::App for GralifferApp {
                                 },
                                 _ => unreachable!(),
                             }
-
-
-                            // let direction = match key {
-                            //     Key::ArrowRight => Direction::Right,
-                            //     Key::ArrowDown => Direction::Down,
-                            //     Key::ArrowLeft => Direction::Left,
-                            //     Key::ArrowUp => Direction::Up,
-                            // };
-
-                            // if let Ok(new_pos) = self.cursor.move_in_direction(direction) {
-                            //     let new_pos_cell_length = self.frame.grid.get(new_pos).len();
-                            //     self.cursor.char_position = new_pos_cell_length;
-                            // }
                         },
 
                         Event::Key {
                             key: Key::Backspace,
                             pressed: true,
+                            modifiers,
                             ..
                         } => {
-
-                            dbg!("Backspace!");
-
                             let cell_mut = self.frame.grid.get_mut(self.cursor.grid_position);
 
                             let char_pos = self.cursor.char_position;
 
                             if char_pos > 0 {
-                                let range_start = char_pos - 1;
-                                let range_end = char_pos;
+                                let range = if modifiers.ctrl {
+                                    // let range_start = 0;
+                                    // let range_end = char_pos;
+                                    0..char_pos
+                                } else {
+                                    (char_pos - 1)..char_pos
+                                };
 
-                                let char_deleted = cell_mut.delete_char_range(range_start..range_end).unwrap_or(0);
+                                let char_deleted = cell_mut.delete_char_range(range).unwrap_or(0);
                                 self.cursor.char_position -= char_deleted;
+                            } else {
+                                self.cursor.move_in_direction(Direction::Left, &self.frame.grid);
+                            }
+                        }
+
+                        Event::Key {
+                            key: Key::Delete,
+                            pressed: true,
+                            modifiers,
+                            ..
+                        } => {
+                            let cell_mut = self.frame.grid.get_mut(self.cursor.grid_position);
+
+                            let char_pos = self.cursor.char_position;
+
+                            if char_pos < cell_mut.len() {
+                                let range = if modifiers.ctrl {
+                                    // let range_start = 0;
+                                    // let range_end = char_pos;
+                                    char_pos..cell_mut.len()
+                                } else {
+                                    char_pos..(char_pos + 1)
+                                };
+
+                                let _ = cell_mut.delete_char_range(range);
                             }
                         }
 
