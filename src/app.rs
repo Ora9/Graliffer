@@ -6,7 +6,6 @@ use crate::{
 	RunDescriptor,
 };
 
-use eframe::glow::ZERO;
 use egui::{emath::TSTransform, Pos2, Rect, Vec2, Widget};
 
 /// A cursor wandering around a [`Grid`]
