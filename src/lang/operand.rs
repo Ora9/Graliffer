@@ -1,6 +1,6 @@
 use crate::grid::{Grid, Cell, Position};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Literal {
     value: Cell,
 }
@@ -209,11 +209,15 @@ impl Operand {
         }
     }
 
-    pub fn as_bool(&self, grid: &Grid) -> bool {
-            self.resolve_to_literal(grid).as_bool()
+    pub fn resolve_as_cell(&self, grid: &Grid) -> Cell {
+        self.resolve_to_literal(grid).as_cell()
     }
 
-    pub fn as_numeric(&self, grid: &Grid) -> u32 {
+    pub fn resolve_as_bool(&self, grid: &Grid) -> bool {
+        self.resolve_to_literal(grid).as_bool()
+    }
+
+    pub fn resolve_as_numeric(&self, grid: &Grid) -> u32 {
         self.resolve_to_literal(grid).as_numeric()
     }
 }

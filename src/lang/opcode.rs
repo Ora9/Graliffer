@@ -15,7 +15,7 @@ use super::{Frame, Operand};
 /// Return an error if a Cell couldn't be constructed based on input string
 macro_rules! lit {
     ($literal_string:expr) => {
-        Cell::new($literal_string).map(|cell| {Operand::from_literal(Literal::from_cell(cell))})
+        Cell::new($literal_string).map(|cell| Operand::from_literal(Literal::from_cell(cell)))
     };
 }
 
@@ -27,12 +27,14 @@ pub enum Opcode {
 
     // Program management
     Hlt,
+    Nop,
 
     // Basic head movements
     Gou,
     Gor,
     God,
     Gol,
+    Jmp,
 
     // Arithmetic operations
     Add,
@@ -41,30 +43,35 @@ pub enum Opcode {
     Div,
 
     // Comparaison operations
-    // Equ,
-    // Neq,
-    // Grt,
-    // Lst,
-    // Leq,
-    // Geq,
+    Equ,
+    Neq,
+    Grt,
+    Lst,
+    Grq,
+    Lsq,
 
-    Set
-
-
+    Set,
 }
 
 impl Opcode {
     pub fn from_cell(cell: Cell) -> Result<Opcode, anyhow::Error> {
-        Opcode::from_str(&cell.content()).map_err(|_| anyhow::anyhow!(format!("not a valid opcode")))
+        Opcode::from_str(&cell.content())
+            .map_err(|_| anyhow::anyhow!(format!("not a valid opcode")))
     }
 
     pub fn is_cell_valid(cell: &Cell) -> bool {
         Self::from_str(&cell.content()).is_ok()
     }
 
-    pub fn evaluate(self, frame: &mut Frame) -> Result<(), anyhow::Error>{
+    pub fn evaluate(self, frame: &mut Frame) -> Result<(), anyhow::Error> {
+
+        let mut move_after = true;
+
         use Opcode::*;
-        match self {
+        let result = match self {
+            Nop => {
+                Ok(())
+            }
             Hlt => {
                 unimplemented!();
             }
@@ -91,31 +98,87 @@ impl Opcode {
                 Ok(())
             }
 
-            Add | Sub | Mul | Div => {
-                let rhs = frame.stack.pop_err()?.as_numeric(&frame.grid);
-                let lhs = frame.stack.pop_err()?.as_numeric(&frame.grid);
+            Jmp => {
+                let position = frame
+                    .stack
+                    .pop_err()?
+                    .resolve_to_address(&frame.grid)?
+                    .as_position();
 
-                let sum = match self {
-                    Add => { lhs.checked_add(rhs).unwrap_or(0) },
-                    Sub => { lhs.checked_sub(rhs).unwrap_or(0) },
-                    Mul => { lhs.checked_mul(rhs).unwrap_or(0) },
-                    Div => { lhs.checked_div(rhs).unwrap_or(0) },
-                    _ => unreachable!()
-                };
-
-                frame.stack.push(lit!(&sum.to_string())?);
+                frame.head.move_to(position);
+                move_after = false;
 
                 Ok(())
             }
 
+            Equ | Neq => {
+                let rhs = frame.stack.pop_err()?.resolve_to_literal(&frame.grid);
+                let lhs = frame.stack.pop_err()?.resolve_to_literal(&frame.grid);
+
+                let result = match self {
+                    Equ => lhs.eq(&rhs),
+                    Neq => lhs.ne(&rhs),
+                    _ => unreachable!(),
+                } as u8;
+
+                frame.stack.push(lit!(&result.to_string())?);
+                Ok(())
+            }
+
+            Grt | Lst | Grq | Lsq => {
+                let rhs = frame.stack.pop_err()?.resolve_as_numeric(&frame.grid);
+                let lhs = frame.stack.pop_err()?.resolve_as_numeric(&frame.grid);
+
+                let result = match self {
+                    Grt => lhs.gt(&rhs),
+                    Lst => lhs.lt(&rhs),
+                    Grq => lhs.ge(&rhs),
+                    Lsq => lhs.le(&rhs),
+                    _ => unreachable!(),
+                } as u8;
+
+                frame.stack.push(lit!(&result.to_string())?);
+                Ok(())
+            }
+
+            Add | Sub | Mul | Div => {
+                let rhs = frame.stack.pop_err()?.resolve_as_numeric(&frame.grid);
+                let lhs = frame.stack.pop_err()?.resolve_as_numeric(&frame.grid);
+
+                let result = match self {
+                    Add => lhs.checked_add(rhs).unwrap_or(0),
+                    Sub => lhs.checked_sub(rhs).unwrap_or(0),
+                    Mul => lhs.checked_mul(rhs).unwrap_or(0),
+                    Div => lhs.checked_div(rhs).unwrap_or(0),
+                    _ => unreachable!(),
+                };
+
+                frame.stack.push(lit!(&result.to_string())?);
+                Ok(())
+            }
+
             Set => {
-                let position = frame.stack.pop_err()?.resolve_to_address(&frame.grid)?.as_position();
-                let cell = frame.stack.pop_err()?.as_cell();
+                let position = frame
+                    .stack
+                    .pop_err()?
+                    .resolve_to_address(&frame.grid)?
+                    .as_position();
+                let cell = frame
+                    .stack
+                    .pop_err()?
+                    .resolve_to_literal(&frame.grid)
+                    .as_cell();
 
                 frame.grid.set(position, cell);
 
                 Ok(())
             }
+        };
+
+        if move_after {
+            let _ = frame.head.take_step();
         }
+
+        result
     }
 }

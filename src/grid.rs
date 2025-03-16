@@ -19,7 +19,7 @@ pub use head::{
 };
 
 /// A `Cell` represents a unit of a [`Grid`], it holds a string of 3 chars (more precislely unicode graphems)
-#[derive(Default, Serialize, Debug, Clone)]
+#[derive(Default, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Cell(String);
 
 impl Cell {

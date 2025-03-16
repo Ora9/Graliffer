@@ -44,7 +44,9 @@ impl Frame {
     pub fn step(&mut self) {
         let current_cell = self.grid.get(self.head.position);
 
-        if !current_cell.is_empty() {
+        if current_cell.is_empty() {
+            let _ = self.head.take_step();
+        } else {
             let word = Word::from_cell(current_cell);
 
             match word {
@@ -54,12 +56,10 @@ impl Frame {
                 }
                 Word::Operand(operand) => {
                     self.stack.push(operand);
+                    let _ = self.head.take_step();
                 }
             }
-
             println!(" - {:?}", self.stack);
         }
-
-        self.head.take_step().expect("oupsie, implémente un wrapping pour les head movements ou jsp");
     }
 }
