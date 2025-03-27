@@ -1,5 +1,3 @@
-use serde::Serialize;
-use eframe::egui;
 use graliffer::GralifferApp;
 
 fn main() {

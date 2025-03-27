@@ -18,6 +18,8 @@ pub use head::{
     Direction,
 };
 
+use crate::{artifact::{Action, Artifact}, Frame};
+
 /// A `Cell` represents a unit of a [`Grid`], it holds a string of 3 chars (more precislely unicode graphems)
 #[derive(Default, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Cell(String);
@@ -195,4 +197,26 @@ impl Grid {
     // pub fn to_json(&self) -> String {
     //     let serialized = serde_json::to_string(&self).unwrap();
     // }
+}
+
+#[derive(Debug, Clone)]
+pub enum GridAction {
+    Set(Position, Cell),
+}
+
+impl Action for GridAction {
+    fn act(&self, frame: &mut Frame) -> Artifact {
+        match self {
+            Self::Set(position, cell) => {
+                let previous_cell = frame.grid.get(*position);
+
+                frame.grid.set(*position, cell.clone());
+
+                Artifact::from_reciprocal(
+                    Box::new(self.to_owned()),
+                    Box::new(Self::Set(*position, previous_cell))
+                )
+            }
+        }
+    }
 }

@@ -1,7 +1,7 @@
 use std::ops::Neg;
 
 use crate::{
-	grid::{Cell, Direction, Grid, Head, Position, PositionAxis},
+	grid::{Cell, Direction, Grid, GridAction, Head, Position, PositionAxis},
 	Frame,
 	RunDescriptor,
 };
@@ -94,9 +94,9 @@ impl GralifferApp {
     		..Default::default()
     	});
 
-    	for _ in 0..20 {
-    		frame.step();
-    	}
+    	// for _ in 0..20 {
+    	// 	frame.step();
+    	// }
 
     	println!("last pos: {:?}", frame.head.position.as_textual());
 
@@ -236,6 +236,9 @@ impl eframe::App for GralifferApp {
                 ui.memory_mut(|mem| mem.set_focus_lock_filter(container_id, event_filter));
                 let events = ui.input(|i| i.filtered_events(&event_filter));
 
+                let mut focused_cell_temp = self.frame.grid.get(self.cursor.grid_position);
+                let mut has_edited = false;
+
                 for event in &events {
                     use {egui::Event, egui::Key};
                     match event {
@@ -276,9 +279,8 @@ impl eframe::App for GralifferApp {
                         Event::Text(text) if text != " " => {
                             dbg!(text);
 
-                            let cell_mut = self.frame.grid.get_mut(self.cursor.grid_position);
-                            let char_inserted = cell_mut.insert_at(text, self.cursor.char_position).unwrap_or(0);
-                            dbg!(char_inserted);
+                            let char_inserted = focused_cell_temp.insert_at(text, self.cursor.char_position).unwrap_or(0);
+                            has_edited = true;
                             self.cursor.char_position += char_inserted;
                         }
 
@@ -375,6 +377,11 @@ impl eframe::App for GralifferApp {
                         _ => {}
                     }
                 }
+
+                if has_edited {
+                    dbg!(self.frame.act(GridAction::Set(self.cursor.grid_position, focused_cell_temp)));
+                }
+
             }
 
             ui.put(container_rect, GridWidget {

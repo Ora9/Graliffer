@@ -2,7 +2,7 @@
 //! The grid holds the code, and data
 //! The stack hold execution data
 
-use crate::Operand;
+use crate::{artifact::{Action, Artifact}, Frame, Operand};
 
 #[derive(Default, Debug)]
 pub struct Stack {
@@ -14,68 +14,57 @@ impl Stack {
         Self { data: Vec::new() }
     }
 
-    pub fn push(&mut self, operand: Operand) {
+    fn push(&mut self, operand: Operand) {
         self.data.push(operand);
     }
 
-    pub fn pop(&mut self) -> Option<Operand> {
+    fn pop(&mut self) -> Option<Operand> {
         self.data.pop()
     }
 
-    pub fn pop_err(&mut self) -> Result<Operand, anyhow::Error> {
-        self.data.pop().ok_or(anyhow::anyhow!("Could not pop an element from the stack"))
+    // fn pop_err(&mut self) -> Result<Operand, anyhow::Error> {
+    //     self.data.pop().ok_or(anyhow::anyhow!("Could not pop an element from the stack"))
+    // }
+
+    pub fn get_last(&self) -> Option<&Operand> {
+        self.data.last()
     }
 
-
-    // /// Return an option of the last operation in the stack if there is any
-    // pub fn drain_last_operation(&mut self) -> Option<Operation> {
-    //     if let Some((operation, index)) = self.get_last_operation_with_index() {
-    //         self.truncate(index);
-    //         Some(operation)
-    //     } else {
-    //         None
-    //     }
+    // pub fn get_last_err(&self) -> Result<&Operand, anyhow::Error> {
+    //     self.data.last().ok_or(anyhow::anyhow!("Could not pop an element from the stack"))
     // }
+}
 
-    // pub fn peek_last_operation(&self) -> Option<Operation> {
-    //     // return operation and drop index as we don't need it
-    //     self.get_last_operation_with_index().map(|opt| opt.0)
-    // }
+#[derive(Debug, Clone)]
+pub enum StackAction {
+    Pop,
+    Push(Operand)
+}
 
-    // // This is quite ugly, please refactor this, actually, the whole stack implementation is
-    // fn get_last_operation_with_index(&self) -> Option<(Operation, usize)> {
-    //     let mut operands: Vec<Operand> = Vec::new();
-    //     let mut opcode_opt: Option<(Opcode, usize)> = None;
+impl Action for StackAction {
+    fn act(&self, frame: &mut Frame) -> Artifact {
+        match self {
+            Self::Push(operand) => {
+                frame.stack.push(operand.to_owned());
 
-    //     for (index, word) in self.data.iter().enumerate().rev() {
-    //         match word {
-    //             Word::Operand(operand) => {
-    //                 operands.push(operand.clone());
-    //             },
-    //             Word::Opcode(opcode) => {
-    //                 opcode_opt = Some((opcode.clone(), index));
-    //                 break;
-    //             }
-    //         }
-    //     }
+                Artifact::from_reciprocal(
+                    Box::new(self.to_owned()),
+                    Box::new(Self::Pop)
+                )
+            }
+            Self::Pop => {
+                if let Some(popped) = frame.stack.pop() {
+                    Artifact::from_reciprocal(
+                        Box::new(self.to_owned()),
+                        Box::new(Self::Push(popped))
+                    )
+                } else {
+                    Artifact::from_action(
+                        Box::new(self.to_owned())
+                    )
+                }
 
-    //     if let Some((opcode, index)) = opcode_opt {
-    //         let operands_needed = opcode.syntax().operand_amount();
-
-    //         // Keeping only operand that are needed, based on opcode syntax
-    //         operands.truncate(operands_needed as usize);
-
-    //         if let Ok(operation) = Operation::new(opcode, operands) {
-    //             Some((operation, index))
-    //         } else {
-    //             None
-    //         }
-    //     } else {
-    //         None
-    //     }
-    // }
-
-    // pub fn truncate(&mut self, length: usize) {
-    //     self.data.truncate(length);
-    // }
+            }
+        }
+    }
 }

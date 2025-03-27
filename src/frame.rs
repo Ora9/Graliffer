@@ -1,7 +1,5 @@
 use crate::{
-    grid::{Head, Grid, Position},
-    stack::Stack,
-    Address, Opcode, Operand, Word,
+    artifact::{Action, Artifact}, grid::{Cell, Grid, Head, Position}, stack::{Stack, StackAction}, Address, Opcode, Operand, Word
 };
 
 #[derive(Default)]
@@ -12,7 +10,7 @@ pub struct RunDescriptor {
 }
 
 /// A [`Frame`] represents a run
-#[derive(Debug)]
+// #[derive(Debug)]
 pub struct Frame {
     pub head: Head,
     pub grid: Grid,
@@ -49,17 +47,28 @@ impl Frame {
         } else {
             let word = Word::from_cell(current_cell);
 
-            match word {
+            let artifact = match word {
                 Word::Opcode(opcode) => {
                     println!("Opcode! : {:?}", opcode);
-                    opcode.evaluate(self).unwrap();
+                    opcode.evaluate(self)
                 }
                 Word::Operand(operand) => {
-                    self.stack.push(operand);
                     let _ = self.head.take_step();
+                    self.act(StackAction::Push(operand))
                 }
-            }
+            };
             println!(" - {:?}", self.stack);
+
+            dbg!(artifact);
         }
+    }
+
+    #[must_use]
+    pub fn act<T: Action>(&mut self, action: T) -> Artifact {
+        action.act(self)
+    }
+
+    pub fn act_by_ref(&mut self, action: &dyn Action) -> Artifact {
+        action.act(self)
     }
 }

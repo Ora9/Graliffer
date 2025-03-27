@@ -35,7 +35,7 @@ impl Literal {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Address {
     position: Position
 }
@@ -81,7 +81,7 @@ impl Address {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Pointer {
     position: Position,
 }
@@ -149,7 +149,7 @@ impl Pointer {
 }
 
 /// Operand
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Operand {
     Literal(Literal),
     Address(Address),
