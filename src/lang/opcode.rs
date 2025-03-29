@@ -29,7 +29,7 @@ fn pop_as_numeric(frame: &mut Frame) -> (u32, Artifact) {
     if let Some(last_ope) = frame.stack.get_last() {
         (
             last_ope.resolve_as_numeric(&frame.grid),
-            frame.act(StackAction::Pop),
+            frame.act(Box::new(StackAction::Pop)),
         )
     } else {
         (
@@ -133,10 +133,10 @@ impl Opcode {
 
             Equ | Neq => {
                 let rhs_opt = frame.stack.get_last().map(|ope| ope.to_owned());
-                let mut rhs_artifact = frame.act(StackAction::Pop);
+                let mut rhs_artifact = frame.act(Box::new(StackAction::Pop));
 
                 let lhs_opt = frame.stack.get_last().map(|ope| ope.to_owned());
-                let lhs_artifact = frame.act(StackAction::Pop);
+                let lhs_artifact = frame.act(Box::new(StackAction::Pop));
 
                 rhs_artifact.append_last(lhs_artifact);
 
@@ -154,7 +154,7 @@ impl Opcode {
                 let result_operand = operand_from_string(result.to_string())
                     .unwrap_or(operand_from_string("0".to_string()).unwrap());
 
-                let push_artifact = frame.act(StackAction::Push(result_operand));
+                let push_artifact = frame.act(Box::new(StackAction::Push(result_operand)));
 
                 rhs_artifact.append_last(push_artifact);
 
@@ -164,11 +164,11 @@ impl Opcode {
             Grt | Lst | Grq | Lsq => {
                 let rhs = frame.stack.get_last()
                     .map_or(0, |operand| operand.resolve_as_numeric(&frame.grid));
-                let mut rhs_artifact = frame.act(StackAction::Pop);
+                let mut rhs_artifact = frame.act(Box::new(StackAction::Pop));
 
                 let lhs = frame.stack.get_last()
                     .map_or(0, |operand| operand.resolve_as_numeric(&frame.grid));
-                let lhs_artifact = frame.act(StackAction::Pop);
+                let lhs_artifact = frame.act(Box::new(StackAction::Pop));
 
                 rhs_artifact.append_last(lhs_artifact);
 
@@ -184,7 +184,7 @@ impl Opcode {
                 let result_operand = operand_from_string(result.to_string())
                     .unwrap_or(operand_from_string("0".to_string()).unwrap());
 
-                let push_artifact = frame.act(StackAction::Push(result_operand));
+                let push_artifact = frame.act(Box::new(StackAction::Push(result_operand)));
 
                 rhs_artifact.append_last(push_artifact);
 
@@ -194,11 +194,11 @@ impl Opcode {
             Add | Sub | Mul | Div => {
                 let rhs = frame.stack.get_last()
                     .map_or(0, |operand| operand.resolve_as_numeric(&frame.grid));
-                let mut rhs_artifact = frame.act(StackAction::Pop);
+                let mut rhs_artifact = frame.act(Box::new(StackAction::Pop));
 
                 let lhs = frame.stack.get_last()
                     .map_or(0, |operand| operand.resolve_as_numeric(&frame.grid));
-                let lhs_artifact = frame.act(StackAction::Pop);
+                let lhs_artifact = frame.act(Box::new(StackAction::Pop));
 
                 rhs_artifact.append_last(lhs_artifact);
 
@@ -214,7 +214,7 @@ impl Opcode {
                 let result_operand = operand_from_string(result.to_string())
                     .unwrap_or(operand_from_string("0".to_string()).unwrap());
 
-                let push_artifact = frame.act(StackAction::Push(result_operand));
+                let push_artifact = frame.act(Box::new(StackAction::Push(result_operand)));
 
                 rhs_artifact.append_last(push_artifact);
 
@@ -224,16 +224,16 @@ impl Opcode {
             Set => {
                 let address_opt = frame.stack.get_last()
                     .map(|operand| operand.resolve_to_address(&frame.grid));
-                let mut artifact = frame.act(StackAction::Pop);
+                let mut artifact = frame.act(Box::new(StackAction::Pop));
 
                 let cell_opt = frame.stack.get_last()
                     .map(|operand| {
                         operand.resolve_to_literal(&frame.grid).as_cell()
                     });
-                artifact.append_last(frame.act(StackAction::Pop));
+                artifact.append_last(frame.act(Box::new(StackAction::Pop)));
 
                 if let (Some(Ok(address)), Some(cell)) = (address_opt, cell_opt) {
-                    artifact.append_last(frame.act(GridAction::Set(address.as_position(), cell)));
+                    artifact.append_last(frame.act(Box::new(GridAction::Set(address.as_position(), cell))));
 
                     artifact
                 } else {

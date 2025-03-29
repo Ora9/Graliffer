@@ -23,7 +23,7 @@ impl Artifact {
         actions: Vec::new(),
     };
 
-    pub fn from_action(redo: Box<dyn Action>) -> Self {
+    pub fn from_redo(redo: Box<dyn Action>) -> Self {
         Self {
             actions: vec!(ReciprocalAction {
                 redo: redo,
@@ -32,7 +32,7 @@ impl Artifact {
         }
     }
 
-    pub fn from_reciprocal(redo: Box<dyn Action>, undo: Box<dyn Action>) -> Self {
+    pub fn from_redo_undo(redo: Box<dyn Action>, undo: Box<dyn Action>) -> Self {
         Self {
             actions: vec!(ReciprocalAction {
                 redo,
@@ -45,7 +45,7 @@ impl Artifact {
         self.actions.extend(other.actions);
     }
 
-    pub fn add_action(&mut self, action: ReciprocalAction) {
+    fn add_action(&mut self, action: ReciprocalAction) {
         self.actions.push(action);
     }
 
@@ -62,4 +62,8 @@ impl Artifact {
             }
         }
     }
+}
+
+struct History {
+
 }

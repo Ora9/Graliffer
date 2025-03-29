@@ -212,7 +212,7 @@ impl Action for GridAction {
 
                 frame.grid.set(*position, cell.clone());
 
-                Artifact::from_reciprocal(
+                Artifact::from_redo_undo(
                     Box::new(self.to_owned()),
                     Box::new(Self::Set(*position, previous_cell))
                 )

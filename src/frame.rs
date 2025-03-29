@@ -54,7 +54,7 @@ impl Frame {
                 }
                 Word::Operand(operand) => {
                     let _ = self.head.take_step();
-                    self.act(StackAction::Push(operand))
+                    self.act(Box::new(StackAction::Push(operand)))
                 }
             };
             println!(" - {:?}", self.stack);
@@ -64,7 +64,7 @@ impl Frame {
     }
 
     #[must_use]
-    pub fn act<T: Action>(&mut self, action: T) -> Artifact {
+    pub fn act(&mut self, action: Box<dyn Action>) -> Artifact {
         action.act(self)
     }
 

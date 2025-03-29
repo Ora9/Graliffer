@@ -47,23 +47,22 @@ impl Action for StackAction {
             Self::Push(operand) => {
                 frame.stack.push(operand.to_owned());
 
-                Artifact::from_reciprocal(
+                Artifact::from_redo_undo(
                     Box::new(self.to_owned()),
                     Box::new(Self::Pop)
                 )
             }
             Self::Pop => {
                 if let Some(popped) = frame.stack.pop() {
-                    Artifact::from_reciprocal(
+                    Artifact::from_redo_undo(
                         Box::new(self.to_owned()),
                         Box::new(Self::Push(popped))
                     )
                 } else {
-                    Artifact::from_action(
+                    Artifact::from_redo(
                         Box::new(self.to_owned())
                     )
                 }
-
             }
         }
     }
