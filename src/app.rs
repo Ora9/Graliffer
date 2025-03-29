@@ -62,11 +62,254 @@ impl Cursor {
     // }
 }
 
+pub struct Editor {
+    cursor: Cursor,
+    grid_transform: TSTransform,
+}
+
+impl Editor {
+    fn show(&mut self, ui: &mut egui::Ui, frame: &mut Frame) {
+        let (container_id, container_rect) = ui.allocate_space(ui.available_size());
+        let response = ui.interact(container_rect, container_id, egui::Sense::click_and_drag());
+
+        // // Autofocus on app startup
+        // if self.first_frame {
+        //     response.request_focus();
+        //     self.first_frame = false;
+        // }
+
+        let transform =
+            TSTransform::from_translation(ui.min_rect().left_top().to_vec2()) * self.grid_transform;
+
+        // Handle pointer (drag, zoom ..)
+        if let Some(pointer) = ui.ctx().input(|i| i.pointer.hover_pos()) {
+            if container_rect.contains(pointer) {
+                if response.clicked_by(egui::PointerButton::Primary) {
+                    response.request_focus();
+
+                    // from pointer position, figure out hovered cell rect and pos
+                    // *_t for translated, as in grid render coordinates
+                    let pointer_pos_t = transform.inverse().mul_pos(pointer);
+                    let hovered_cell_pos_t = Pos2 {
+                        x: (pointer_pos_t.x / GridWidget::CELL_FULL_SIZE).clamp(PositionAxis::MIN_NUMERIC as f32, PositionAxis::MAX_NUMERIC as f32),
+                        y: (pointer_pos_t.y / GridWidget::CELL_FULL_SIZE).clamp(PositionAxis::MIN_NUMERIC as f32, PositionAxis::MAX_NUMERIC as f32),
+                    };
+
+                    // Ceil implementation says in https://doc.rust-lang.org/std/primitive.f32.html#method.ceil :
+                    // « Returns the smallest integer greater than or equal to self. » wich mean that 62.0 is still 62.0 not 63.0
+                    // So we truncate and add 1.0 instead
+                    let hovered_cell_rect_t = Rect {
+                        min: hovered_cell_pos_t.floor() * GridWidget::CELL_FULL_SIZE,
+                        max: Pos2 {
+                            x: (hovered_cell_pos_t.x.trunc() + 1.0) * GridWidget::CELL_FULL_SIZE,
+                            y: (hovered_cell_pos_t.y.trunc() + 1.0) * GridWidget::CELL_FULL_SIZE,
+                        }
+                    };
+
+                    let hovered_cell_x = hovered_cell_pos_t.x.floor() as u32;
+                    let hovered_cell_y = hovered_cell_pos_t.y.floor() as u32;
+                    let hovered_cell_pos = transform.mul_pos(hovered_cell_pos_t);
+                    let hovered_cell_rect = transform.mul_rect(hovered_cell_rect_t);
+
+                    if hovered_cell_rect.contains(pointer) {
+                        // TODO: move the cursor to the right spot when clicking on text
+                        // Should be possible if we work on Cursor with prefered position
+                        self.cursor.move_to(Position::from_numeric(hovered_cell_x, hovered_cell_y).unwrap(), &frame.grid);
+                    }
+                }
+
+                let pointer_in_layer = transform.inverse() * pointer;
+                let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
+                let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta * 1.5);
+                // let multi_touch_info = ui.ctx().input(|i| i.multi_touch());
+
+                // Zoom in on pointer:
+                self.grid_transform = self.grid_transform
+                    * TSTransform::from_translation(pointer_in_layer.to_vec2())
+                    * TSTransform::from_scaling(zoom_delta)
+                    * TSTransform::from_translation(-pointer_in_layer.to_vec2());
+
+                // Pan:
+                self.grid_transform = TSTransform::from_translation(pan_delta * 2.0) * self.grid_transform;
+            }
+        }
+
+        let event_filter = egui::EventFilter {
+            horizontal_arrows: true,
+            vertical_arrows: true,
+            escape: true,
+            tab: true,
+            ..Default::default()
+        };
+
+        if response.has_focus() {
+            ui.memory_mut(|mem| mem.set_focus_lock_filter(container_id, event_filter));
+            let events = ui.input(|i| i.filtered_events(&event_filter));
+
+            let mut focused_cell_temp = frame.grid.get(self.cursor.grid_position);
+            let mut has_edited = false;
+
+            for event in &events {
+                use {egui::Event, egui::Key};
+                match event {
+                    Event::Key {
+                        key: egui::Key::N,
+                        modifiers: egui::Modifiers::SHIFT,
+                        pressed: true,
+                        ..
+                    } => {
+                        frame.step();
+                    }
+
+                    Event::Copy => {
+                        let cell = frame.grid.get(self.cursor.grid_position);
+                        if !cell.is_empty() {
+                            ui.ctx().copy_text(cell.content());
+                        }
+                    }
+
+                    Event::Cut => {
+                        let cell = frame.grid.get_mut(self.cursor.grid_position);
+                        if !cell.is_empty() {
+                            ui.ctx().copy_text(cell.content());
+                        }
+
+                        cell.clear();
+                        self.cursor.char_position = 0
+                    }
+
+                    Event::Paste(text) => {
+                        let cell = frame.grid.get_mut(self.cursor.grid_position);
+
+                        let char_inserted = cell.insert_at(text, self.cursor.char_position).unwrap_or(0);
+                        self.cursor.char_position += char_inserted;
+                    }
+
+                    // TODO: better check to avoid whitespaces
+                    Event::Text(text) if text != " " => {
+                        dbg!(text);
+
+                        let char_inserted = focused_cell_temp.insert_at(text, self.cursor.char_position).unwrap_or(0);
+                        if char_inserted > 0 {has_edited = true};
+                        self.cursor.char_position += char_inserted;
+                    }
+
+                    Event::Key {
+                        key: key @ (
+                            Key::ArrowRight
+                            | Key::Tab
+                            | Key::Space
+                            | Key::Enter
+                            | Key::ArrowDown
+                            | Key::ArrowLeft
+                            | Key::ArrowUp),
+                        pressed: true,
+                        ..
+                    } => {
+                        match key {
+                            Key::ArrowUp => {
+                                self.cursor.move_in_direction(Direction::Up, &frame.grid);
+                            },
+                            Key::ArrowDown | Key::Enter => {
+                                self.cursor.move_in_direction(Direction::Down, &frame.grid);
+                            }
+                            Key::Tab | Key::Space => {
+                                self.cursor.move_in_direction(Direction::Right, &frame.grid);
+                            }
+                            Key::ArrowRight => {
+                                let current_cell_len = frame.grid.get(self.cursor.grid_position).len();
+
+                                if self.cursor.char_position == current_cell_len {
+                                    self.cursor.move_in_direction(Direction::Right, &frame.grid);
+                                } else {
+                                    self.cursor.char_position += 1;
+                                }
+                            },
+                            Key::ArrowLeft => {
+                                if self.cursor.char_position == 0 {
+                                    self.cursor.move_in_direction(Direction::Left, &frame.grid);
+                                } else {
+                                    self.cursor.char_position -= 1;
+                                }
+                            },
+                            _ => unreachable!(),
+                        }
+                    },
+
+                    Event::Key {
+                        key: Key::Backspace,
+                        pressed: true,
+                        modifiers,
+                        ..
+                    } => {
+                        let cell_mut = frame.grid.get_mut(self.cursor.grid_position);
+
+                        let char_pos = self.cursor.char_position;
+
+                        if char_pos > 0 {
+                            let range = if modifiers.ctrl {
+                                // let range_start = 0;
+                                // let range_end = char_pos;
+                                0..char_pos
+                            } else {
+                                (char_pos - 1)..char_pos
+                            };
+
+                            let char_deleted = cell_mut.delete_char_range(range).unwrap_or(0);
+                            self.cursor.char_position -= char_deleted;
+                        } else {
+                            self.cursor.move_in_direction(Direction::Left, &frame.grid);
+                        }
+                    }
+
+                    Event::Key {
+                        key: Key::Delete,
+                        pressed: true,
+                        modifiers,
+                        ..
+                    } => {
+                        let cell_mut = frame.grid.get_mut(self.cursor.grid_position);
+
+                        let char_pos = self.cursor.char_position;
+
+                        if char_pos < cell_mut.len() {
+                            let range = if modifiers.ctrl {
+                                // let range_start = 0;
+                                // let range_end = char_pos;
+                                char_pos..cell_mut.len()
+                            } else {
+                                char_pos..(char_pos + 1)
+                            };
+
+                            let _ = cell_mut.delete_char_range(range);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+
+            if has_edited {
+                dbg!(frame.act(Box::new(GridAction::Set(self.cursor.grid_position, focused_cell_temp))));
+            }
+
+        }
+
+        ui.put(container_rect, GridWidget {
+            transform,
+            has_focus: response.has_focus(),
+            cursor: self.cursor,
+            head: frame.head,
+            grid: &frame.grid
+        });
+    }
+}
+
 pub struct GralifferApp {
     frame: Frame,
-    cursor: Cursor,
+    editor: Editor,
+    // cursor: Cursor,
 
-    grid_transform: TSTransform,
+    // grid_transform: TSTransform,
 
     first_frame: bool,
     inspect: bool,
@@ -80,31 +323,36 @@ impl GralifferApp {
         // for e.g. egui::PaintCallback.
 
        	let mut initial_grid = Grid::new();
-    	initial_grid.set(Position::from_textual('A', 'A').unwrap(), Cell::new("100").unwrap());
-    	initial_grid.set(Position::from_textual('B', 'A').unwrap(), Cell::new("&BB").unwrap());
-    	initial_grid.set(Position::from_textual('C', 'A').unwrap(), Cell::new("div").unwrap());
-    	initial_grid.set(Position::from_textual('B', 'B').unwrap(), Cell::new("@CB").unwrap());
-    	initial_grid.set(Position::from_textual('C', 'B').unwrap(), Cell::new("3").unwrap());
-    	// initial_grid.set(Position::from_textual('D', 'A').unwrap(), Cell::new("").unwrap());
-    	initial_grid.set(Position::from_textual('E', 'A').unwrap(), Cell::new("20").unwrap());
-    	initial_grid.set(Position::from_textual('F', 'A').unwrap(), Cell::new("sub").unwrap());
+        initial_grid.set(Position::from_textual('A', 'A').unwrap(), Cell::new("100").unwrap());
+        initial_grid.set(Position::from_textual('B', 'A').unwrap(), Cell::new("&BB").unwrap());
+        initial_grid.set(Position::from_textual('C', 'A').unwrap(), Cell::new("div").unwrap());
+        initial_grid.set(Position::from_textual('B', 'B').unwrap(), Cell::new("@CB").unwrap());
+        initial_grid.set(Position::from_textual('C', 'B').unwrap(), Cell::new("3").unwrap());
+        // initial_grid.set(Position::from_textual('D', 'A').unwrap(), Cell::new("").unwrap());
+        initial_grid.set(Position::from_textual('E', 'A').unwrap(), Cell::new("20").unwrap());
+        initial_grid.set(Position::from_textual('F', 'A').unwrap(), Cell::new("sub").unwrap());
 
-    	let mut frame = Frame::new(RunDescriptor {
-    		grid: initial_grid,
-    		..Default::default()
-    	});
+        let mut frame = Frame::new(RunDescriptor {
+        grid: initial_grid,
+        ..Default::default()
+        });
 
-    	// for _ in 0..20 {
-    	// 	frame.step();
-    	// }
+        // for _ in 0..20 {
+        // 	frame.step();
+        // }
 
-    	println!("last pos: {:?}", frame.head.position.as_textual());
+        println!("last pos: {:?}", frame.head.position.as_textual());
 
-        Self {
-            frame: frame,
+        let editor = Editor {
             cursor: Cursor::new(Position::ZERO),
 
             grid_transform: TSTransform::default(),
+
+        };
+
+        Self {
+            frame,
+            editor,
 
             first_frame: true,
             inspect: false,
@@ -155,242 +403,11 @@ impl eframe::App for GralifferApp {
         // egui::SidePanel::left("inspectors").show(ctx, |ui| {
         //     ui.separator();
         // });
-
-        egui::CentralPanel::default().show(ctx, |ui| {
         // });
-        // egui::Window::new("graliffer ouais").show(ctx, |ui| {
-            let (container_id, container_rect) = ui.allocate_space(ui.available_size());
-            let response = ui.interact(container_rect, container_id, egui::Sense::click_and_drag());
 
-            // Autofocus on app startup
-            if self.first_frame {
-                response.request_focus();
-                self.first_frame = false;
-            }
-
-            let transform =
-                TSTransform::from_translation(ui.min_rect().left_top().to_vec2()) * self.grid_transform;
-
-            // Handle pointer (drag, zoom ..)
-            if let Some(pointer) = ui.ctx().input(|i| i.pointer.hover_pos()) {
-                if container_rect.contains(pointer) {
-                    if response.clicked_by(egui::PointerButton::Primary) {
-                        response.request_focus();
-
-                        // from pointer position, figure out hovered cell rect and pos
-                        // *_t for translated, as in grid render coordinates
-                        let pointer_pos_t = transform.inverse().mul_pos(pointer);
-                        let hovered_cell_pos_t = Pos2 {
-                            x: (pointer_pos_t.x / GridWidget::CELL_FULL_SIZE).clamp(PositionAxis::MIN_NUMERIC as f32, PositionAxis::MAX_NUMERIC as f32),
-                            y: (pointer_pos_t.y / GridWidget::CELL_FULL_SIZE).clamp(PositionAxis::MIN_NUMERIC as f32, PositionAxis::MAX_NUMERIC as f32),
-                        };
-
-                        // Ceil implementation says in https://doc.rust-lang.org/std/primitive.f32.html#method.ceil :
-                        // « Returns the smallest integer greater than or equal to self. » wich mean that 62.0 is still 62.0 not 63.0
-                        // So we truncate and add 1.0 instead
-                        let hovered_cell_rect_t = Rect {
-                            min: hovered_cell_pos_t.floor() * GridWidget::CELL_FULL_SIZE,
-                            max: Pos2 {
-                                x: (hovered_cell_pos_t.x.trunc() + 1.0) * GridWidget::CELL_FULL_SIZE,
-                                y: (hovered_cell_pos_t.y.trunc() + 1.0) * GridWidget::CELL_FULL_SIZE,
-                            }
-                        };
-
-                        let hovered_cell_x = hovered_cell_pos_t.x.floor() as u32;
-                        let hovered_cell_y = hovered_cell_pos_t.y.floor() as u32;
-                        let hovered_cell_pos = transform.mul_pos(hovered_cell_pos_t);
-                        let hovered_cell_rect = transform.mul_rect(hovered_cell_rect_t);
-
-                        if hovered_cell_rect.contains(pointer) {
-                            // TODO: move the cursor to the right spot when clicking on text
-                            // Should be possible if we work on Cursor with prefered position
-                            self.cursor.move_to(Position::from_numeric(hovered_cell_x, hovered_cell_y).unwrap(), &self.frame.grid);
-                        }
-                    }
-
-                    let pointer_in_layer = transform.inverse() * pointer;
-                    let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
-                    let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta * 1.5);
-                    // let multi_touch_info = ui.ctx().input(|i| i.multi_touch());
-
-                    // Zoom in on pointer:
-                    self.grid_transform = self.grid_transform
-                        * TSTransform::from_translation(pointer_in_layer.to_vec2())
-                        * TSTransform::from_scaling(zoom_delta)
-                        * TSTransform::from_translation(-pointer_in_layer.to_vec2());
-
-                    // Pan:
-                    self.grid_transform = TSTransform::from_translation(pan_delta * 2.0) * self.grid_transform;
-                }
-            }
-
-            let event_filter = egui::EventFilter {
-                horizontal_arrows: true,
-                vertical_arrows: true,
-                escape: true,
-                tab: true,
-                ..Default::default()
-            };
-
-            if response.has_focus() {
-                ui.memory_mut(|mem| mem.set_focus_lock_filter(container_id, event_filter));
-                let events = ui.input(|i| i.filtered_events(&event_filter));
-
-                let mut focused_cell_temp = self.frame.grid.get(self.cursor.grid_position);
-                let mut has_edited = false;
-
-                for event in &events {
-                    use {egui::Event, egui::Key};
-                    match event {
-                        Event::Key {
-                            key: egui::Key::N,
-                            modifiers: egui::Modifiers::SHIFT,
-                            pressed: true,
-                            ..
-                        } => {
-                            self.frame.step();
-                        }
-
-                        Event::Copy => {
-                            let cell = self.frame.grid.get(self.cursor.grid_position);
-                            if !cell.is_empty() {
-                                ctx.copy_text(cell.content());
-                            }
-                        }
-
-                        Event::Cut => {
-                            let cell = self.frame.grid.get_mut(self.cursor.grid_position);
-                            if !cell.is_empty() {
-                                ctx.copy_text(cell.content());
-                            }
-
-                            cell.clear();
-                            self.cursor.char_position = 0
-                        }
-
-                        Event::Paste(text) => {
-                            let cell = self.frame.grid.get_mut(self.cursor.grid_position);
-
-                            let char_inserted = cell.insert_at(text, self.cursor.char_position).unwrap_or(0);
-                            self.cursor.char_position += char_inserted;
-                        }
-
-                        // TODO: better check to avoid whitespaces
-                        Event::Text(text) if text != " " => {
-                            dbg!(text);
-
-                            let char_inserted = focused_cell_temp.insert_at(text, self.cursor.char_position).unwrap_or(0);
-                            has_edited = true;
-                            self.cursor.char_position += char_inserted;
-                        }
-
-                        Event::Key {
-                            key: key @ (
-                                Key::ArrowRight
-                                | Key::Tab
-                                | Key::Space
-                                | Key::Enter
-                                | Key::ArrowDown
-                                | Key::ArrowLeft
-                                | Key::ArrowUp),
-                            pressed: true,
-                            ..
-                        } => {
-                            match key {
-                                Key::ArrowUp => {
-                                    self.cursor.move_in_direction(Direction::Up, &self.frame.grid);
-                                },
-                                Key::ArrowDown | Key::Enter => {
-                                    self.cursor.move_in_direction(Direction::Down, &self.frame.grid);
-                                }
-                                Key::Tab | Key::Space => {
-                                    self.cursor.move_in_direction(Direction::Right, &self.frame.grid);
-                                }
-                                Key::ArrowRight => {
-                                    let current_cell_len = self.frame.grid.get(self.cursor.grid_position).len();
-
-                                    if self.cursor.char_position == current_cell_len {
-                                        self.cursor.move_in_direction(Direction::Right, &self.frame.grid);
-                                    } else {
-                                        self.cursor.char_position += 1;
-                                    }
-                                },
-                                Key::ArrowLeft => {
-                                    if self.cursor.char_position == 0 {
-                                        self.cursor.move_in_direction(Direction::Left, &self.frame.grid);
-                                    } else {
-                                        self.cursor.char_position -= 1;
-                                    }
-                                },
-                                _ => unreachable!(),
-                            }
-                        },
-
-                        Event::Key {
-                            key: Key::Backspace,
-                            pressed: true,
-                            modifiers,
-                            ..
-                        } => {
-                            let cell_mut = self.frame.grid.get_mut(self.cursor.grid_position);
-
-                            let char_pos = self.cursor.char_position;
-
-                            if char_pos > 0 {
-                                let range = if modifiers.ctrl {
-                                    // let range_start = 0;
-                                    // let range_end = char_pos;
-                                    0..char_pos
-                                } else {
-                                    (char_pos - 1)..char_pos
-                                };
-
-                                let char_deleted = cell_mut.delete_char_range(range).unwrap_or(0);
-                                self.cursor.char_position -= char_deleted;
-                            } else {
-                                self.cursor.move_in_direction(Direction::Left, &self.frame.grid);
-                            }
-                        }
-
-                        Event::Key {
-                            key: Key::Delete,
-                            pressed: true,
-                            modifiers,
-                            ..
-                        } => {
-                            let cell_mut = self.frame.grid.get_mut(self.cursor.grid_position);
-
-                            let char_pos = self.cursor.char_position;
-
-                            if char_pos < cell_mut.len() {
-                                let range = if modifiers.ctrl {
-                                    // let range_start = 0;
-                                    // let range_end = char_pos;
-                                    char_pos..cell_mut.len()
-                                } else {
-                                    char_pos..(char_pos + 1)
-                                };
-
-                                let _ = cell_mut.delete_char_range(range);
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-
-                if has_edited {
-                    dbg!(self.frame.act(GridAction::Set(self.cursor.grid_position, focused_cell_temp)));
-                }
-
-            }
-
-            ui.put(container_rect, GridWidget {
-                transform,
-                has_focus: response.has_focus(),
-                cursor: self.cursor,
-                head: self.frame.head,
-                grid: &self.frame.grid
-            });
+        // egui::CentralPanel::default().show(ctx, |ui| {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            self.editor.show(ui, &mut self.frame);
         });
     }
 }
