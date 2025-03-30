@@ -178,12 +178,12 @@ impl Grid {
         }
     }
 
-    pub fn get_mut(&mut self, position: Position) -> &mut Cell {
-        // Break the empty is inexistant by creating a empty cell in the hashset
-        let entry = self.0.entry(position);
+    // pub fn get_mut(&mut self, position: Position) -> &mut Cell {
+    //     // Break the empty is inexistant by creating a empty cell in the hashset
+    //     let entry = self.0.entry(position);
 
-        entry.or_insert(Cell::new("").unwrap())
-    }
+    //     entry.or_insert(Cell::new("").unwrap())
+    // }
 
     pub fn set(&mut self, position: Position, cell: Cell) {
         // If we set an empty cell, remove that cell from grid

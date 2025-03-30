@@ -99,15 +99,12 @@ impl Editor {
             ui.memory_mut(|mem| mem.set_focus_lock_filter(container_id, event_filter));
             let events = ui.input(|i| i.filtered_events(&event_filter));
 
-            let mut focused_cell_temp = frame.grid.get(frame.editor.cursor.grid_position());
-            let mut has_edited = false;
-
             for event in &events {
                 use {egui::Event, egui::Key};
                 match event {
                     Event::Key {
                         key: egui::Key::N,
-                        modifiers: egui::Modifiers::SHIFT,
+                        modifiers: egui::Modifiers::CTRL,
                         pressed: true,
                         ..
                     } => {
@@ -122,26 +119,37 @@ impl Editor {
                     }
 
                     Event::Cut => {
-                        let cell = frame.grid.get_mut(frame.editor.cursor.grid_position());
+                        let pos = frame.editor.cursor.grid_position();
+                        let mut cell = frame.grid.get(pos);
+
                         if !cell.is_empty() {
                             ui.ctx().copy_text(cell.content());
-                        }
 
-                        cell.clear();
-                        artifact.append_last(frame.act(Box::new(CursorAction::CharMoveTo(cursor::PreferredCharPosition::AtStart))));
+                            cell.clear();
+
+                            artifact.append_last(frame.act(Box::new(GridAction::Set(pos, cell))));
+                            artifact.append_last(frame.act(Box::new(CursorAction::CharMoveTo(cursor::PreferredCharPosition::AtStart))));;
+                        }
                     }
 
                     Event::Paste(text) => {
-                        let cell = frame.grid.get_mut(frame.editor.cursor.grid_position());
+                        let pos = frame.editor.cursor.grid_position();
+                        let mut cell = frame.grid.get(pos);
 
                         let char_inserted = cell.insert_at(text, frame.editor.cursor.char_position()).unwrap_or(0);
+
+                        artifact.append_last(frame.act(Box::new(GridAction::Set(pos, cell))));
                         artifact.append_last(frame.act(Box::new(CursorAction::CharMoveTo(cursor::PreferredCharPosition::ForwardBy(char_inserted)))));
                     }
 
                     // TODO: better check to avoid whitespaces
                     Event::Text(text) if text != " " => {
-                        let char_inserted = focused_cell_temp.insert_at(text, frame.editor.cursor.char_position()).unwrap_or(0);
-                        if char_inserted > 0 {has_edited = true};
+                        let pos = frame.editor.cursor.grid_position();
+                        let mut cell = frame.grid.get(pos);
+
+                        let char_inserted = cell.insert_at(text, frame.editor.cursor.char_position()).unwrap_or(0);
+
+                        artifact.append_last(frame.act(Box::new(GridAction::Set(pos, cell))));
                         artifact.append_last(frame.act(Box::new(CursorAction::CharMoveTo(cursor::PreferredCharPosition::ForwardBy(char_inserted)))));
                     }
 
@@ -211,27 +219,30 @@ impl Editor {
                         modifiers,
                         ..
                     } => {
-                        let cell_mut = frame.grid.get_mut(frame.editor.cursor.grid_position());
-
+                        let grid_pos = frame.editor.cursor.grid_position();
                         let char_pos = frame.editor.cursor.char_position();
+                        let mut cell = frame.grid.get(grid_pos);
 
-                        let action = if char_pos > 0 {
+                        if char_pos > 0 {
                             let char_range = if modifiers.ctrl {
                                 0..char_pos
                             } else {
                                 (char_pos - 1)..char_pos
                             };
 
-                            let char_deleted = cell_mut.delete_char_range(char_range).unwrap_or(0);
+                            let chars_deleted = cell.delete_char_range(char_range).unwrap_or(0);
 
-                            let char_pos = cursor::PreferredCharPosition::BackwardBy(char_deleted);
-                            CursorAction::CharMoveTo(char_pos)
+                            artifact.append_last(frame.act(Box::new(GridAction::Set(grid_pos, cell))));
+
+                            let preferred_char_position = cursor::PreferredCharPosition::BackwardBy(chars_deleted);
+                            artifact.append_last(frame.act(Box::new(CursorAction::CharMoveTo(preferred_char_position))));
                         } else {
-                            let char_pos = cursor::PreferredCharPosition::AtEnd;
-                            CursorAction::GridStepInDirection(Direction::Left, char_pos)
-                        };
-
-                        artifact.append_last(frame.act(Box::new(action)));
+                            let action = CursorAction::GridStepInDirection(
+                                Direction::Left,
+                                cursor::PreferredCharPosition::AtEnd
+                            );
+                            artifact.append_last(frame.act(Box::new(action)));
+                        }
                     }
 
                     Event::Key {
@@ -240,26 +251,23 @@ impl Editor {
                         modifiers,
                         ..
                     } => {
-                        let cell_mut = frame.grid.get_mut(frame.editor.cursor.grid_position());
-
+                        let grid_pos = frame.editor.cursor.grid_position();
                         let char_pos = frame.editor.cursor.char_position();
+                        let mut cell = frame.grid.get(grid_pos);
 
-                        if char_pos < cell_mut.len() {
+                        if char_pos < cell.len() {
                             let range = if modifiers.ctrl {
-                                char_pos..cell_mut.len()
+                                char_pos..cell.len()
                             } else {
                                 char_pos..(char_pos + 1)
                             };
 
-                            let _ = cell_mut.delete_char_range(range);
+                            let _ = cell.delete_char_range(range);
+                            artifact.append_last(frame.act(Box::new(GridAction::Set(grid_pos, cell))));
                         }
                     }
                     _ => {}
                 }
-            }
-
-            if has_edited {
-                artifact.append_last(frame.act(Box::new(GridAction::Set(frame.editor.cursor.grid_position(), focused_cell_temp))));
             }
         }
 

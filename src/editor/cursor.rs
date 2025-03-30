@@ -38,8 +38,6 @@ impl Cursor {
 
     /// Move the cursor to new [`Position`] placing self.char_position after the last char of new cell.
     fn move_to(&mut self, grid_position: Position, char_position: usize) {
-        dbg!(grid_position, char_position);
-
         self.grid_position = grid_position;
         self.char_position = char_position
     }
@@ -73,8 +71,6 @@ impl Action for CursorAction {
                     ForwardBy(offset) => old_char_position.saturating_add(offset),
                     BackwardBy(offset) => old_char_position.saturating_sub(offset),
                 };
-
-                dbg!(char_position);
 
                 frame.editor.cursor.move_to(*grid_position, char_position);
 
