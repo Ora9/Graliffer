@@ -28,3 +28,5 @@ mod app;
 pub use app::{
     GralifferApp,
 };
+
+mod editor;

@@ -1,7 +1,6 @@
 //! Grid represent the Graliffer grid, it hold the data
 
 use std::{collections::HashMap, ops::Range};
-use anyhow::Context;
 use egui::TextBuffer;
 use serde::Serialize;
 use unicode_segmentation::UnicodeSegmentation;
@@ -15,6 +14,7 @@ pub use position::{
 mod head;
 pub use head::{
     Head,
+    HeadAction,
     Direction,
 };
 

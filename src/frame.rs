@@ -1,5 +1,5 @@
 use crate::{
-    artifact::{Action, Artifact}, grid::{Cell, Grid, Head, Position}, stack::{Stack, StackAction}, Address, Opcode, Operand, Word
+    artifact::{Action, Artifact}, editor::Editor, grid::{Cell, Grid, Head, HeadAction, Position}, stack::{Stack, StackAction}, Address, Opcode, Operand, Word
 };
 
 #[derive(Default)]
@@ -7,6 +7,7 @@ pub struct RunDescriptor {
     pub head: Head,
     pub grid: Grid,
     pub stack: Stack,
+    pub editor: Editor
 }
 
 /// A [`Frame`] represents a run
@@ -15,6 +16,7 @@ pub struct Frame {
     pub head: Head,
     pub grid: Grid,
     pub stack: Stack,
+    pub editor: Editor
 }
 
 impl Frame {
@@ -23,6 +25,7 @@ impl Frame {
             head: descriptor.head,
             grid: descriptor.grid,
             stack: descriptor.stack,
+            editor: descriptor.editor,
         }
     }
 
@@ -39,27 +42,27 @@ impl Frame {
     ///     - if yes, evaluate the operation
     ///     - if not, hop
     ///
-    pub fn step(&mut self) {
+    pub fn step(&mut self) -> Artifact {
         let current_cell = self.grid.get(self.head.position);
 
         if current_cell.is_empty() {
-            let _ = self.head.take_step();
+            self.act(Box::new(HeadAction::TakeStep()))
         } else {
             let word = Word::from_cell(current_cell);
 
-            let artifact = match word {
+            match word {
                 Word::Opcode(opcode) => {
                     println!("Opcode! : {:?}", opcode);
                     opcode.evaluate(self)
                 }
                 Word::Operand(operand) => {
-                    let _ = self.head.take_step();
-                    self.act(Box::new(StackAction::Push(operand)))
-                }
-            };
-            println!(" - {:?}", self.stack);
+                    let mut artifact = self.act(Box::new(StackAction::Push(operand)));
+                    artifact.append_last(self.act(Box::new(HeadAction::TakeStep())));
 
-            dbg!(artifact);
+                    artifact
+                }
+            }
+            // println!(" - {:?}", self.stack);
         }
     }
 
@@ -68,6 +71,7 @@ impl Frame {
         action.act(self)
     }
 
+    #[must_use]
     pub fn act_by_ref(&mut self, action: &dyn Action) -> Artifact {
         action.act(self)
     }

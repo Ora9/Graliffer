@@ -51,19 +51,34 @@ impl Artifact {
 
     fn redo(self, frame: &mut Frame) {
         for action in self.actions {
-            frame.act_by_ref(&*action.redo);
+            let _ = frame.act_by_ref(&*action.redo);
         }
     }
 
     fn undo(self, frame: &mut Frame) {
         for action in self.actions {
             if let Some(undo) = action.undo {
-                frame.act_by_ref(&*undo);
+                let _ = frame.act_by_ref(&*undo);
             }
         }
     }
 }
 
-struct History {
+#[derive(Debug)]
+pub struct History {
+    artifacts: Vec<Artifact>,
+}
 
+impl History {
+    pub fn new() -> Self {
+        Self {
+            artifacts: Vec::new()
+        }
+    }
+
+    pub fn append(&mut self, artifact: Artifact) {
+        if !artifact.actions.is_empty() {
+            self.artifacts.push(artifact);
+        }
+    }
 }

@@ -2,7 +2,7 @@ use std::str::FromStr;
 use strum_macros::EnumString;
 
 use crate::{
-    artifact::Artifact, grid::{Cell, Direction, GridAction, Head}, stack::StackAction, Literal, Word
+    artifact::Artifact, grid::{Cell, Direction, GridAction, Head, HeadAction}, stack::StackAction, Literal, Word
 };
 
 use super::{Frame, Operand};
@@ -84,11 +84,8 @@ impl Opcode {
     }
 
     pub fn evaluate(self, frame: &mut Frame) -> Artifact {
-
-        let mut move_after = true;
-
         use Opcode::*;
-        let result = match self {
+        let mut artifact = match self {
             Nop => {
                 Artifact::EMPTY
             }
@@ -102,33 +99,28 @@ impl Opcode {
                 Artifact::EMPTY
             }
             Gou => {
-                frame.head.direct_to(Direction::Up);
-                Artifact::EMPTY
+                frame.act(Box::new(HeadAction::DirectTo(Direction::Up)))
             }
             Gor => {
-                frame.head.direct_to(Direction::Right);
-                Artifact::EMPTY
+                frame.act(Box::new(HeadAction::DirectTo(Direction::Right)))
             }
             God => {
-                frame.head.direct_to(Direction::Down);
-                Artifact::EMPTY
+                frame.act(Box::new(HeadAction::DirectTo(Direction::Down)))
             }
             Gol => {
-                frame.head.direct_to(Direction::Left);
-                Artifact::EMPTY
+                frame.act(Box::new(HeadAction::DirectTo(Direction::Left)))
             }
 
             Jmp => {
-                // let position = frame
-                //     .stack
-                //     .pop_err()?
-                //     .resolve_to_address(&frame.grid)?
-                //     .as_position();
+                let address_opt = frame.stack.get_last()
+                    .map(|operand| operand.resolve_to_address(&frame.grid));
+                let mut artifact = frame.act(Box::new(StackAction::Pop));
 
-                // frame.head.move_to(position);
-                // move_after = false;
+                if let Some(Ok(address)) = address_opt {
+                    artifact.append_last(frame.act(Box::new(HeadAction::MoveTo(address.as_position()))));
+                }
 
-                Artifact::EMPTY
+                artifact
             }
 
             Equ | Neq => {
@@ -242,10 +234,10 @@ impl Opcode {
             }
         };
 
-        if move_after {
-            let _ = frame.head.take_step();
+        if !matches!(self, Jmp | Hlt) {
+            artifact.append_last(frame.act(Box::new(HeadAction::TakeStep())));
         }
 
-        result
+        artifact
     }
 }
