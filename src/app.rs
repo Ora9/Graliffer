@@ -78,8 +78,17 @@ impl eframe::App for GralifferApp {
                     let artifact = self.frame.step();
 
                     self.history.append(artifact);
-
                 }
+
+                if ui.button("Undo").clicked() {
+                    let artifact = self.history.undo(&mut self.frame);
+                }
+
+                if ui.button("Redo").clicked() {
+                    let artifact = self.history.redo(&mut self.frame);
+                }
+
+
 
                 // ui.centered_and_justified(add_contents)
 
@@ -101,6 +110,10 @@ impl eframe::App for GralifferApp {
             //     ui.response().request_focus();
             //     self.first_frame = false;
             // }
+
+            // ctx.input(|input_state| {
+            //     dbg!(&input_state);
+            // });
 
             let artifact = Editor::show(ui, &mut self.frame);
 

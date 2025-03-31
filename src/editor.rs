@@ -283,7 +283,6 @@ impl Editor {
     }
 }
 
-
 struct GridWidget<'a> {
     cursor: Cursor,
     has_focus: bool,

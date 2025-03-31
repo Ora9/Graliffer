@@ -49,16 +49,16 @@ impl Artifact {
         self.actions.push(action);
     }
 
-    fn redo(self, frame: &mut Frame) {
-        for action in self.actions {
+    fn redo(&self, frame: &mut Frame) {
+        for action in self.actions.iter() {
             let _ = frame.act_by_ref(&*action.redo);
         }
     }
 
-    fn undo(self, frame: &mut Frame) {
-        for action in self.actions {
-            if let Some(undo) = action.undo {
-                let _ = frame.act_by_ref(&*undo);
+    fn undo(&self, frame: &mut Frame) {
+        for action in self.actions.iter().rev() {
+            if let Some(undo) = &action.undo {
+                let _ = frame.act_by_ref(&**undo);
             }
         }
     }
@@ -67,18 +67,39 @@ impl Artifact {
 #[derive(Debug)]
 pub struct History {
     artifacts: Vec<Artifact>,
+    cursor: usize,
 }
 
 impl History {
     pub fn new() -> Self {
         Self {
-            artifacts: Vec::new()
+            artifacts: Vec::new(),
+            cursor: 0,
         }
     }
 
     pub fn append(&mut self, artifact: Artifact) {
         if !artifact.actions.is_empty() {
             self.artifacts.push(artifact);
+            self.cursor = self.artifacts.len() - 1;
+        }
+    }
+
+    pub fn undo(&mut self, frame: &mut Frame) {
+        // skip empty artifacts
+        if let Some(artifact) = self.artifacts.get(self.cursor) {
+            dbg!(&self);
+            artifact.undo(frame);
+            self.cursor = self.cursor.saturating_sub(1);
+        }
+    }
+
+    pub fn redo(&mut self, frame: &mut Frame) {
+        // skip empty artifacts
+        if let Some(artifact) = self.artifacts.get(self.cursor) {
+            dbg!(&self);
+            artifact.redo(frame);
+            self.cursor = self.cursor.saturating_add(1);
         }
     }
 }
