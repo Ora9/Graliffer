@@ -2,6 +2,8 @@
 //!
 //! The grid is 64 by 64 cells, holding 3 characters by cells, representing code or data
 
+mod utils;
+
 pub mod grid;
 
 pub mod stack;

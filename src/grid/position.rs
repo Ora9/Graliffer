@@ -481,6 +481,16 @@ impl Position {
         )
     }
 
+    /// Return the numeric representation of the `x` (horizontal) component of a `Position`
+    pub fn x(self) -> u32 {
+        self.x.as_numeric()
+    }
+
+    /// Return the numeric representation of the `y` (vertical) component of a `Position`
+    pub fn y(self) -> u32 {
+        self.y.as_numeric()
+    }
+
     /// Performs an addition on two [`Position`]
     ///
     /// Errors

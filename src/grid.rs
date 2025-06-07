@@ -15,10 +15,9 @@ mod head;
 pub use head::{
     Head,
     HeadAction,
-    Direction,
 };
 
-use crate::{artifact::{Action, Artifact}, Frame};
+use crate::{utils::Direction, artifact::{Action, Artifact}, Frame};
 
 /// A `Cell` represents a unit of a [`Grid`], it holds a string of 3 chars (more precislely unicode graphems)
 #[derive(Default, Serialize, Debug, Clone, PartialEq, Eq)]

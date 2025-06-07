@@ -4,7 +4,7 @@ use crate::{
 
 pub struct GralifferApp {
     frame: Frame,
-    // editor: Editor,
+    editor: Editor,
     first_frame: bool,
     inspect: bool,
 
@@ -43,7 +43,7 @@ impl GralifferApp {
 
         Self {
             frame,
-            // editor: Editor::default(),
+            editor: Editor::default(),
 
             first_frame: true,
             inspect: false,
@@ -115,7 +115,7 @@ impl eframe::App for GralifferApp {
             //     dbg!(&input_state);
             // });
 
-            let artifact = Editor::show(ui, &mut self.frame);
+            let artifact = self.editor.show(ui, &mut self.frame);
 
             self.history.append(artifact);
         });

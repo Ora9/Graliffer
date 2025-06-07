@@ -23,25 +23,25 @@ impl Artifact {
         actions: Vec::new(),
     };
 
-    pub fn from_redo(redo: Box<dyn Action>) -> Self {
+
+    fn new(redo: Box<dyn Action>, undo: Option<Box<dyn Action>>) -> Self {
         Self {
-            actions: vec!(ReciprocalAction {
-                redo: redo,
-                undo: None,
-            }),
+            actions: vec![ReciprocalAction {
+                redo,
+                undo
+            }]
         }
+    }
+
+    pub fn from_redo(redo: Box<dyn Action>) -> Self {
+        Self::new(redo, None)
     }
 
     pub fn from_redo_undo(redo: Box<dyn Action>, undo: Box<dyn Action>) -> Self {
-        Self {
-            actions: vec!(ReciprocalAction {
-                redo,
-                undo: Some(undo),
-            }),
-        }
+        Self::new(redo, Some(undo))
     }
 
-    pub fn append_last(&mut self, other: Self) {
+    pub fn push(&mut self, other: Self) {
         self.actions.extend(other.actions);
     }
 
@@ -82,6 +82,16 @@ impl History {
         if !artifact.actions.is_empty() {
             self.artifacts.push(artifact);
             self.cursor = self.artifacts.len() - 1;
+        }
+    }
+
+    pub fn merge_with_last(&mut self, artifact: Artifact) {
+        let last_index = self.artifacts.len();
+
+        if !artifact.actions.is_empty() {
+            if let Some(last_artifact) = self.artifacts.get_mut(last_index) {
+                last_artifact.push(artifact);
+            }
         }
     }
 

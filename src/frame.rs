@@ -7,7 +7,6 @@ pub struct RunDescriptor {
     pub head: Head,
     pub grid: Grid,
     pub stack: Stack,
-    pub editor: Editor
 }
 
 /// A [`Frame`] represents a run
@@ -16,7 +15,6 @@ pub struct Frame {
     pub head: Head,
     pub grid: Grid,
     pub stack: Stack,
-    pub editor: Editor
 }
 
 impl Frame {
@@ -25,7 +23,6 @@ impl Frame {
             head: descriptor.head,
             grid: descriptor.grid,
             stack: descriptor.stack,
-            editor: descriptor.editor,
         }
     }
 
@@ -57,7 +54,7 @@ impl Frame {
                 }
                 Word::Operand(operand) => {
                     let mut artifact = self.act(Box::new(StackAction::Push(operand)));
-                    artifact.append_last(self.act(Box::new(HeadAction::TakeStep())));
+                    artifact.push(self.act(Box::new(HeadAction::TakeStep())));
 
                     artifact
                 }

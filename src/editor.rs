@@ -1,11 +1,10 @@
 use std::ops::Neg;
 
 use crate::{
-	artifact::{Action, Artifact, History}, grid::{Cell, Direction, Grid, GridAction, Head, Position, PositionAxis}, Frame, RunDescriptor
+    artifact::{Action, Artifact, History}, editor::cursor::{PreferredCharPosition, PreferredGridPosition}, grid::{Cell, Grid, GridAction, Head, Position, PositionAxis}, utils::Direction, Frame, RunDescriptor
 };
 
-use cursor::CursorAction;
-use egui::{emath::TSTransform, Pos2, Rect, Vec2, Widget};
+use egui::{emath::TSTransform, KeyboardShortcut, Pos2, Rect, Vec2, Widget};
 
 mod cursor;
 pub use cursor::Cursor;
@@ -13,7 +12,12 @@ pub use cursor::Cursor;
 #[derive(Debug, Default)]
 pub struct Editor {
     cursor: Cursor,
+    // grid transform relative to the egui grid's window
     grid_transform: TSTransform,
+    // grid transform relative to the whole egui viewport
+    screen_transform: TSTransform,
+
+    last_text_artifact_merge: Option<std::time::Instant>,
 }
 
 impl Editor {
@@ -21,13 +25,21 @@ impl Editor {
         Self::default()
     }
 
-    pub fn show(ui: &mut egui::Ui, frame: &mut Frame) -> Artifact {
-        let (container_id, container_rect) = ui.allocate_space(ui.available_size());
-        let response = ui.interact(container_rect, container_id, egui::Sense::click_and_drag());
+    fn keyboard_shortcuts(self) -> Vec<(KeyboardShortcut, Box<dyn Action>)> {
+        vec![
+            (KeyboardShortcut::new(egui::Modifiers::CTRL, egui::Key::N), Box::new(GridAction::Set(Position::from_numeric(0, 0).unwrap(), Cell::new("oui").unwrap()))),
+            (KeyboardShortcut::new(egui::Modifiers::CTRL, egui::Key::B), Box::new(GridAction::Set(Position::from_numeric(0, 0).unwrap(), Cell::new("mbé").unwrap())))
+        ]
+    }
 
+    fn handle_inputs(&mut self, ui: &egui::Ui, frame: &Frame) -> Artifact {
+        self.screen_transform =
+            TSTransform::from_translation(ui.min_rect().left_top().to_vec2()) * self.grid_transform;
 
-        let transform =
-            TSTransform::from_translation(ui.min_rect().left_top().to_vec2()) * frame.editor.grid_transform;
+        let container_rect = ui.max_rect();
+        let response = ui.response();
+
+        let mut artifact = Artifact::EMPTY;
 
         // Handle pointer (drag, zoom ..)
         if let Some(pointer) = ui.ctx().input(|i| i.pointer.hover_pos()) {
@@ -37,7 +49,7 @@ impl Editor {
 
                     // from pointer position, figure out hovered cell rect and pos
                     // *_t for translated, as in grid render coordinates
-                    let pointer_pos_t = transform.inverse().mul_pos(pointer);
+                    let pointer_pos_t = self.screen_transform.inverse().mul_pos(pointer);
                     let hovered_cell_pos_t = Pos2 {
                         x: (pointer_pos_t.x / GridWidget::CELL_FULL_SIZE).clamp(PositionAxis::MIN_NUMERIC as f32, PositionAxis::MAX_NUMERIC as f32),
                         y: (pointer_pos_t.y / GridWidget::CELL_FULL_SIZE).clamp(PositionAxis::MIN_NUMERIC as f32, PositionAxis::MAX_NUMERIC as f32),
@@ -56,34 +68,41 @@ impl Editor {
 
                     let hovered_cell_x = hovered_cell_pos_t.x.floor() as u32;
                     let hovered_cell_y = hovered_cell_pos_t.y.floor() as u32;
-                    let hovered_cell_pos = transform.mul_pos(hovered_cell_pos_t);
-                    let hovered_cell_rect = transform.mul_rect(hovered_cell_rect_t);
+                    // let hovered_cell_pos = self.screen_transform.mul_pos(hovered_cell_pos_t);
+                    let hovered_cell_rect = self.screen_transform.mul_rect(hovered_cell_rect_t);
 
 
                     if hovered_cell_rect.contains(pointer) {
                         // TODO: move the cursor to the right spot when clicking on text
                         // Should be possible if we work on Cursor with prefered position
                         if let Ok(grid_pos) = Position::from_numeric(hovered_cell_x, hovered_cell_y) {
-                            frame.act(Box::new(CursorAction::MoveTo(grid_pos, cursor::PreferredCharPosition::AtEnd)));
+                            self.cursor.move_to(grid_pos, cursor::PreferredCharPosition::AtEnd, frame);
                         }
                     }
                 }
 
-                let pointer_in_layer = transform.inverse() * pointer;
+                let pointer_in_layer = self.screen_transform.inverse() * pointer;
                 let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
                 let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta * 1.5);
                 // let multi_touch_info = ui.ctx().input(|i| i.multi_touch());
 
                 // Zoom in on pointer:
-                frame.editor.grid_transform = frame.editor.grid_transform
+                self.grid_transform = self.grid_transform
                     * TSTransform::from_translation(pointer_in_layer.to_vec2())
                     * TSTransform::from_scaling(zoom_delta)
                     * TSTransform::from_translation(-pointer_in_layer.to_vec2());
 
                 // Pan:
-                frame.editor.grid_transform = TSTransform::from_translation(pan_delta * 2.0) * frame.editor.grid_transform;
+                self.grid_transform = TSTransform::from_translation(pan_delta * 2.0) * self.grid_transform;
             }
         }
+
+        artifact
+    }
+
+    pub fn show(&mut self, ui: &mut egui::Ui, frame: &mut Frame) -> Artifact {
+        let (container_id, container_rect) = ui.allocate_space(ui.available_size());
+        let response = ui.interact(container_rect, container_id, egui::Sense::click_and_drag());
 
         let event_filter = egui::EventFilter {
             horizontal_arrows: true,
@@ -93,7 +112,10 @@ impl Editor {
             ..Default::default()
         };
 
+        let should_merge = false;
         let mut artifact = Artifact::EMPTY;
+
+        self.handle_inputs(ui, frame);
 
         if response.has_focus() {
             ui.memory_mut(|mem| mem.set_focus_lock_filter(container_id, event_filter));
@@ -101,25 +123,21 @@ impl Editor {
 
             for event in &events {
                 use {egui::Event, egui::Key};
-                match event {
-                    Event::Key {
-                        key: egui::Key::N,
-                        modifiers: egui::Modifiers::CTRL,
-                        pressed: true,
-                        ..
-                    } => {
-                        frame.step();
-                    }
 
+                dbg!(event);
+
+                artifact.push(match event {
                     Event::Copy => {
-                        let cell = frame.grid.get(frame.editor.cursor.grid_position());
+                        let cell = frame.grid.get(self.cursor.grid_position());
                         if !cell.is_empty() {
                             ui.ctx().copy_text(cell.content());
                         }
+
+                        Artifact::EMPTY
                     }
 
                     Event::Cut => {
-                        let pos = frame.editor.cursor.grid_position();
+                        let pos = self.cursor.grid_position();
                         let mut cell = frame.grid.get(pos);
 
                         if !cell.is_empty() {
@@ -127,30 +145,60 @@ impl Editor {
 
                             cell.clear();
 
-                            artifact.append_last(frame.act(Box::new(GridAction::Set(pos, cell))));
-                            artifact.append_last(frame.act(Box::new(CursorAction::CharMoveTo(cursor::PreferredCharPosition::AtStart))));;
+                            let artifact = frame.act(Box::new(GridAction::Set(pos, cell)));
+                            self.cursor.move_to(pos, cursor::PreferredCharPosition::AtEnd, &frame);
+
+                            artifact
+                        } else {
+                            Artifact::EMPTY
                         }
                     }
 
                     Event::Paste(text) => {
-                        let pos = frame.editor.cursor.grid_position();
+                        let pos = self.cursor.grid_position();
                         let mut cell = frame.grid.get(pos);
 
-                        let char_inserted = cell.insert_at(text, frame.editor.cursor.char_position()).unwrap_or(0);
+                        let char_inserted = cell.insert_at(text, self.cursor.char_position()).unwrap_or(0);
 
-                        artifact.append_last(frame.act(Box::new(GridAction::Set(pos, cell))));
-                        artifact.append_last(frame.act(Box::new(CursorAction::CharMoveTo(cursor::PreferredCharPosition::ForwardBy(char_inserted)))));
+                        if char_inserted > 0 {
+                            let artifact = frame.act(Box::new(GridAction::Set(pos, cell)));
+                            // artifact.push(frame.act(Box::new(CursorAction::CharMoveTo(cursor::PreferredCharPosition::ForwardBy(char_inserted)))));
+                            self.cursor.move_to(pos, cursor::PreferredCharPosition::ForwardBy(char_inserted), &frame);
+
+
+                            artifact
+                        } else {
+                            Artifact::EMPTY
+                        }
                     }
 
                     // TODO: better check to avoid whitespaces
                     Event::Text(text) if text != " " => {
-                        let pos = frame.editor.cursor.grid_position();
+                        let pos = self.cursor.grid_position();
                         let mut cell = frame.grid.get(pos);
 
-                        let char_inserted = cell.insert_at(text, frame.editor.cursor.char_position()).unwrap_or(0);
+                        let char_inserted = cell.insert_at(text, self.cursor.char_position()).unwrap_or(0);
 
-                        artifact.append_last(frame.act(Box::new(GridAction::Set(pos, cell))));
-                        artifact.append_last(frame.act(Box::new(CursorAction::CharMoveTo(cursor::PreferredCharPosition::ForwardBy(char_inserted)))));
+                        if char_inserted > 0 {
+                            // should_merge = self.last_text_artifact_merge
+                            //     .is_some_and(|timestamp| {
+                            //         timestamp.elapsed()
+                            //             .as_secs_f32() > 3.0
+                            //     });
+
+                            // if should_merge {
+                            //     self.last_text_artifact_merge = Some(std::time::Instant::now());
+                            //     dbg!("should merge");
+                            // }
+
+                            let artifact = frame.act(Box::new(GridAction::Set(pos, cell)));
+                            // artifact.push(frame.act(Box::new(CursorAction::CharMoveTo(cursor::PreferredCharPosition::ForwardBy(char_inserted)))));
+                            self.cursor.move_to(pos, cursor::PreferredCharPosition::ForwardBy(char_inserted), &frame);
+
+                            artifact
+                        } else {
+                            Artifact::EMPTY
+                        }
                     }
 
                     Event::Key {
@@ -167,50 +215,58 @@ impl Editor {
                     } => {
                         match key {
                             Key::ArrowUp => {
-                                let char_pos = cursor::PreferredCharPosition::AtEnd;
-                                let action = CursorAction::GridStepInDirection(Direction::Up, char_pos);
-
-                                artifact.append_last(frame.act(Box::new(action)));
+                                // let action = CursorAction::GridStepInDirection(Direction::Up, char_pos);
+                                // frame.act(Box::new(action))
+                                self.cursor.grid_move_to(
+                                    PreferredGridPosition::InDirectionByOffset(Direction::Up, 1),
+                                    &frame
+                                );
                             },
                             Key::ArrowDown | Key::Enter => {
-                                let char_pos = cursor::PreferredCharPosition::AtEnd;
-                                let action = CursorAction::GridStepInDirection(Direction::Down, char_pos);
-
-                                artifact.append_last(frame.act(Box::new(action)));
+                                self.cursor.grid_move_to(
+                                    PreferredGridPosition::InDirectionByOffset(Direction::Down, 1),
+                                    &frame
+                                );
                             }
                             Key::Tab | Key::Space => {
-                                let char_pos = cursor::PreferredCharPosition::AtEnd;
-                                let action = CursorAction::GridStepInDirection(Direction::Right, char_pos);
-
-                                artifact.append_last(frame.act(Box::new(action)));
+                                self.cursor.grid_move_to(
+                                    PreferredGridPosition::InDirectionByOffset(Direction::Right, 1),
+                                    &frame
+                                );
                             }
                             Key::ArrowRight => {
-                                let current_cell_len = frame.grid.get(frame.editor.cursor.grid_position()).len();
+                                let current_cell_len = frame.grid.get(self.cursor.grid_position()).len();
 
                                 // if we are already at the end of this cell
-                                let action = if frame.editor.cursor.char_position() == current_cell_len {
-                                    let char_pos = cursor::PreferredCharPosition::AtStart;
-                                    CursorAction::GridStepInDirection(Direction::Right, char_pos)
+                                if self.cursor.char_position() == current_cell_len {
+                                    self.cursor.grid_move_to(
+                                        PreferredGridPosition::InDirectionByOffset(Direction::Right, 1),
+                                        &frame
+                                    );
                                 } else {
-                                    let char_pos = cursor::PreferredCharPosition::ForwardBy(1);
-                                    CursorAction::CharMoveTo(char_pos)
+                                    self.cursor.char_move_to(
+                                        PreferredCharPosition::ForwardBy(1),
+                                        &frame
+                                    );
                                 };
-
-                                artifact.append_last(frame.act(Box::new(action)));
                             },
                             Key::ArrowLeft => {
-                                let action = if frame.editor.cursor.char_position() == 0 {
-                                    let char_pos = cursor::PreferredCharPosition::AtEnd;
-                                    CursorAction::GridStepInDirection(Direction::Left, char_pos)
+                                if self.cursor.char_position() == 0 {
+                                    self.cursor.grid_move_to(
+                                        PreferredGridPosition::InDirectionByOffset(Direction::Left, 1),
+                                        &frame
+                                    );
                                 } else {
-                                    let char_pos = cursor::PreferredCharPosition::BackwardBy(1);
-                                    CursorAction::CharMoveTo(char_pos)
-                                };
-
-                                artifact.append_last(frame.act(Box::new(action)));
+                                    self.cursor.char_move_to(
+                                        PreferredCharPosition::BackwardBy(1),
+                                        &frame
+                                    );
+                                }
                             },
                             _ => unreachable!(),
                         }
+
+                        Artifact::EMPTY
                     },
 
                     Event::Key {
@@ -219,8 +275,8 @@ impl Editor {
                         modifiers,
                         ..
                     } => {
-                        let grid_pos = frame.editor.cursor.grid_position();
-                        let char_pos = frame.editor.cursor.char_position();
+                        let grid_pos = self.cursor.grid_position();
+                        let char_pos = self.cursor.char_position();
                         let mut cell = frame.grid.get(grid_pos);
 
                         if char_pos > 0 {
@@ -232,16 +288,21 @@ impl Editor {
 
                             let chars_deleted = cell.delete_char_range(char_range).unwrap_or(0);
 
-                            artifact.append_last(frame.act(Box::new(GridAction::Set(grid_pos, cell))));
+                            let artifact = frame.act(Box::new(GridAction::Set(grid_pos, cell)));
 
-                            let preferred_char_position = cursor::PreferredCharPosition::BackwardBy(chars_deleted);
-                            artifact.append_last(frame.act(Box::new(CursorAction::CharMoveTo(preferred_char_position))));
-                        } else {
-                            let action = CursorAction::GridStepInDirection(
-                                Direction::Left,
-                                cursor::PreferredCharPosition::AtEnd
+                            self.cursor.char_move_to(
+                                PreferredCharPosition::BackwardBy(chars_deleted),
+                                &frame
                             );
-                            artifact.append_last(frame.act(Box::new(action)));
+
+                            artifact
+                        } else {
+                            self.cursor.grid_move_to(
+                                PreferredGridPosition::InDirectionByOffset(Direction::Left, 1),
+                                &frame
+                            );
+
+                            Artifact::EMPTY
                         }
                     }
 
@@ -251,8 +312,8 @@ impl Editor {
                         modifiers,
                         ..
                     } => {
-                        let grid_pos = frame.editor.cursor.grid_position();
-                        let char_pos = frame.editor.cursor.char_position();
+                        let grid_pos = self.cursor.grid_position();
+                        let char_pos = self.cursor.char_position();
                         let mut cell = frame.grid.get(grid_pos);
 
                         if char_pos < cell.len() {
@@ -263,18 +324,22 @@ impl Editor {
                             };
 
                             let _ = cell.delete_char_range(range);
-                            artifact.append_last(frame.act(Box::new(GridAction::Set(grid_pos, cell))));
+                            frame.act(Box::new(GridAction::Set(grid_pos, cell)))
+                        } else {
+                            Artifact::EMPTY
                         }
                     }
-                    _ => {}
-                }
+                    _ => {
+                        Artifact::EMPTY
+                    }
+                });
             }
-        }
+        };
 
         ui.put(container_rect, GridWidget {
-            transform,
+            transform: self.screen_transform,
             has_focus: response.has_focus(),
-            cursor: frame.editor.cursor,
+            cursor: self.cursor,
             head: frame.head,
             grid: &frame.grid
         });

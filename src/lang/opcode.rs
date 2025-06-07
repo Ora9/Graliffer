@@ -2,7 +2,8 @@ use std::str::FromStr;
 use strum_macros::EnumString;
 
 use crate::{
-    artifact::Artifact, grid::{Cell, Direction, GridAction, Head, HeadAction}, stack::StackAction, Literal, Word
+    utils::Direction,
+    artifact::Artifact, grid::{Cell, GridAction, Head, HeadAction}, stack::StackAction, Literal, Word
 };
 
 use super::{Frame, Operand};
@@ -117,7 +118,7 @@ impl Opcode {
                 let mut artifact = frame.act(Box::new(StackAction::Pop));
 
                 if let Some(Ok(address)) = address_opt {
-                    artifact.append_last(frame.act(Box::new(HeadAction::MoveTo(address.as_position()))));
+                    artifact.push(frame.act(Box::new(HeadAction::MoveTo(address.as_position()))));
                 }
 
                 artifact
@@ -130,7 +131,7 @@ impl Opcode {
                 let lhs_opt = frame.stack.get_last().map(|ope| ope.to_owned());
                 let lhs_artifact = frame.act(Box::new(StackAction::Pop));
 
-                rhs_artifact.append_last(lhs_artifact);
+                rhs_artifact.push(lhs_artifact);
 
                 let result = if let (Some(rhs), Some(lhs)) = (&rhs_opt, &lhs_opt) {
                     match self {
@@ -148,7 +149,7 @@ impl Opcode {
 
                 let push_artifact = frame.act(Box::new(StackAction::Push(result_operand)));
 
-                rhs_artifact.append_last(push_artifact);
+                rhs_artifact.push(push_artifact);
 
                 rhs_artifact
             }
@@ -162,7 +163,7 @@ impl Opcode {
                     .map_or(0, |operand| operand.resolve_as_numeric(&frame.grid));
                 let lhs_artifact = frame.act(Box::new(StackAction::Pop));
 
-                rhs_artifact.append_last(lhs_artifact);
+                rhs_artifact.push(lhs_artifact);
 
                 let result = match self {
                     Grt => lhs.gt(&rhs),
@@ -178,7 +179,7 @@ impl Opcode {
 
                 let push_artifact = frame.act(Box::new(StackAction::Push(result_operand)));
 
-                rhs_artifact.append_last(push_artifact);
+                rhs_artifact.push(push_artifact);
 
                 rhs_artifact
             }
@@ -192,7 +193,7 @@ impl Opcode {
                     .map_or(0, |operand| operand.resolve_as_numeric(&frame.grid));
                 let lhs_artifact = frame.act(Box::new(StackAction::Pop));
 
-                rhs_artifact.append_last(lhs_artifact);
+                rhs_artifact.push(lhs_artifact);
 
                 let result = match self {
                     Add => lhs.checked_add(rhs).unwrap_or(0),
@@ -208,7 +209,7 @@ impl Opcode {
 
                 let push_artifact = frame.act(Box::new(StackAction::Push(result_operand)));
 
-                rhs_artifact.append_last(push_artifact);
+                rhs_artifact.push(push_artifact);
 
                 rhs_artifact
             }
@@ -222,10 +223,10 @@ impl Opcode {
                     .map(|operand| {
                         operand.resolve_to_literal(&frame.grid).as_cell()
                     });
-                artifact.append_last(frame.act(Box::new(StackAction::Pop)));
+                artifact.push(frame.act(Box::new(StackAction::Pop)));
 
                 if let (Some(Ok(address)), Some(cell)) = (address_opt, cell_opt) {
-                    artifact.append_last(frame.act(Box::new(GridAction::Set(address.as_position(), cell))));
+                    artifact.push(frame.act(Box::new(GridAction::Set(address.as_position(), cell))));
 
                     artifact
                 } else {
@@ -235,7 +236,7 @@ impl Opcode {
         };
 
         if !matches!(self, Jmp | Hlt) {
-            artifact.append_last(frame.act(Box::new(HeadAction::TakeStep())));
+            artifact.push(frame.act(Box::new(HeadAction::TakeStep())));
         }
 
         artifact

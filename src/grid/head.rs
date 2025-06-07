@@ -1,21 +1,9 @@
+use std::default;
+
 use anyhow::Context;
+use crate::utils::Direction;
 
 use crate::{artifact::{Action, Artifact}, grid::Position, Frame};
-
-/// A [`Head`] always has a direction
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Direction {
-    Up,
-    Right,
-    Down,
-    Left
-}
-
-impl Default for Direction {
-    fn default() -> Self {
-        Self::Right
-    }
-}
 
 /// An head travels in a [`Grid`] reading [`Operand`] and [`Opcodes`]
 ///
@@ -37,10 +25,19 @@ impl Default for Direction {
 /// head.take_step();
 /// assert_eq!(head.position, pos2);
 /// ```
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy)]
 pub struct Head {
     pub position: Position,
     pub direction: Direction,
+}
+
+impl Default for Head {
+    fn default() -> Self {
+        Self {
+            position: Default::default(),
+            direction: Direction::Right,
+        }
+    }
 }
 
 impl Head {
@@ -105,7 +102,7 @@ impl Head {
     /// assert_eq!(head.position, pos);
     /// ```
     fn take_step(&mut self) -> Result<(), anyhow::Error> {
-        use self::Direction::*;
+        use crate::utils::Direction::*;
         self.position = match self.direction {
             Up => self.position.checked_decrement_y(1),
             Right => self.position.checked_increment_x(1),
