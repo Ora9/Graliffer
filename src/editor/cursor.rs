@@ -1,5 +1,5 @@
 use crate::{
-    grid::{self, Grid, Position, PositionAxis}, utils::Direction, Frame
+    grid::Position, utils::Direction, Frame
 };
 
 #[derive(Clone, Copy)]
@@ -73,9 +73,9 @@ impl Cursor {
             InDirectionByOffset(direction, offset) => {
                 use Direction::*;
                 let result = match direction {
-                    Up => self.grid_position.checked_increment_y(offset as u32),
+                    Up => self.grid_position.checked_decrement_y(offset as u32),
                     Right => self.grid_position.checked_increment_x(offset as u32),
-                    Down => self.grid_position.checked_decrement_y(offset as u32),
+                    Down => self.grid_position.checked_increment_y(offset as u32),
                     Left => self.grid_position.checked_decrement_x(offset as u32),
                 };
 
@@ -155,93 +155,4 @@ impl Cursor {
         self.grid_position = grid_position;
         self.char_position = char_position;
     }
-
-    // pub fn char_move_to(&mut self, p)
-
-    // pub fn move_char_position_to(&mut self, char_position: usize) {
-    //     self.char_position = char_position;
-    // }
 }
-
-// #[derive(Debug, Clone)]
-// pub enum CursorAction {
-//     MoveTo(Position, PreferredCharPosition),
-//     CharMoveTo(PreferredCharPosition),
-//     GridStepInDirection(Direction, PreferredCharPosition),
-// }
-
-// impl Action for CursorAction {
-//     fn act(&self, frame: &mut Frame) -> Artifact {
-//         match self {
-//             Self::MoveTo(grid_position, preferred_char_position) => {
-//                 let old_grid_position = frame.editor.cursor.grid_position;
-//                 let old_char_position = frame.editor.cursor.char_position;
-
-//                 use PreferredCharPosition::*;
-//                 let char_position = match *preferred_char_position {
-//                     AtStart => 0,
-//                     AtEnd => frame.grid.get(*grid_position).len(),
-//                     At(char_position) => char_position,
-
-//                     // These don't really have a use in this context, but we implement them anyway
-//                     ForwardBy(offset) => old_char_position.saturating_add(offset),
-//                     BackwardBy(offset) => old_char_position.saturating_sub(offset),
-//                 };
-
-//                 frame.editor.cursor.move_to(*grid_position, char_position);
-
-//                 Artifact::from_redo_undo(
-//                     Box::new(self.to_owned()),
-//                     Box::new(Self::MoveTo(old_grid_position, *preferred_char_position))
-//                 )
-//             }
-//             Self::CharMoveTo(preferred_char_position) => {
-//                 let old_char_position = frame.editor.cursor.char_position;
-
-//                 use PreferredCharPosition::*;
-//                 let char_position = match *preferred_char_position {
-//                     AtStart => 0,
-//                     AtEnd => frame.grid.get(frame.editor.cursor.grid_position).len(),
-//                     At(char_position) => char_position,
-//                     ForwardBy(offset) => old_char_position.saturating_add(offset),
-//                     BackwardBy(offset) => old_char_position.saturating_sub(offset),
-//                 };
-
-//                 frame.editor.cursor.move_char_position_to(char_position);
-
-//                 Artifact::from_redo_undo(
-//                     Box::new(self.to_owned()),
-//                     Box::new(Self::CharMoveTo(PreferredCharPosition::At(old_char_position)))
-//                 )
-//             }
-//             Self::GridStepInDirection(direction, preferred_char_position) => {
-//                 let old_grid_position = frame.editor.cursor.grid_position;
-//                 let old_char_position = frame.editor.cursor.char_position;
-
-//                 use Direction::*;
-//                 if let Ok(grid_position) = match direction {
-//                     Right => old_grid_position.checked_increment_x(1),
-//                     Down => old_grid_position.checked_increment_y(1),
-//                     Left => old_grid_position.checked_decrement_x(1),
-//                     Up => old_grid_position.checked_decrement_y(1),
-//                 } {
-//                     use PreferredCharPosition::*;
-//                     let char_position = match *preferred_char_position {
-//                         AtStart => 0,
-//                         AtEnd => frame.grid.get(grid_position).len(),
-//                         At(char_position) => char_position,
-//                         BackwardBy(offset) => old_char_position.saturating_add(offset),
-//                         ForwardBy(offset) => old_char_position.saturating_sub(offset),
-//                     };
-
-//                     frame.editor.cursor.move_to(grid_position, char_position);
-//                 }
-
-//                 Artifact::from_redo_undo(
-//                     Box::new(self.to_owned()),
-//                     Box::new(Self::MoveTo(old_grid_position, PreferredCharPosition::At(old_char_position)))
-//                 )
-//             }
-//         }
-//     }
-// }

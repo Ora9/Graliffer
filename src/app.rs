@@ -57,17 +57,36 @@ impl eframe::App for GralifferApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
-                ui.menu_button("File", |ui| {
+                ui.menu_button("Graliffer", |ui| {
+                    if ui.button("About Graliffer").clicked() {
+                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                    }
                     if ui.button("Quit").clicked() {
                         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                     }
+                    ui.separator();
+                    egui::widgets::global_theme_preference_buttons(ui);
+                    ui.separator();
+                    ui.checkbox(&mut self.inspect, "Inspect");
+
                 });
+                ui.menu_button("File", |ui| {
+                    if ui.button("Open file").clicked() {
+                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                    }
+                    if ui.button("Open example").clicked() {
+                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                    }
+                });
+                ui.menu_button("Tools", |ui| {
+                    if ui.button("Ouais").clicked() {
+                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                    }
+                });
+                // ui.add_space(16.0);
+
                 ui.add_space(16.0);
 
-                egui::widgets::global_theme_preference_buttons(ui);
-                ui.add_space(16.0);
-
-                ui.checkbox(&mut self.inspect, "Inspect");
 
                 if self.inspect {
                     let since_last_frame = std::time::Duration::from_secs_f32(frame.info().cpu_usage.unwrap());
@@ -99,6 +118,9 @@ impl eframe::App for GralifferApp {
             egui::Window::new("insection ouais").show(ctx, |ui| {
                 ctx.inspection_ui(ui);
             });
+            egui::Window::new("settings ouais").show(ctx, |ui| {
+                ctx.settings_ui(ui);
+            });
             egui::Window::new("memory ouais").show(ctx, |ui| {
                 ctx.memory_ui(ui);
             });
@@ -115,9 +137,11 @@ impl eframe::App for GralifferApp {
             //     dbg!(&input_state);
             // });
 
-            let artifact = self.editor.show(ui, &mut self.frame);
+            // let artifact = self.editor.show(ui, &mut self.frame);
 
-            self.history.append(artifact);
+            self.editor.show(ui, &mut self.frame);
+
+            // self.history.append(artifact);
         });
 
    }

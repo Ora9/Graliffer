@@ -10,7 +10,7 @@ pub struct RunDescriptor {
 }
 
 /// A [`Frame`] represents a run
-// #[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Frame {
     pub head: Head,
     pub grid: Grid,
