@@ -127,21 +127,17 @@ impl eframe::App for GralifferApp {
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            // // Autofocus on app startup
-            // if self.first_frame {
-            //     ui.response().request_focus();
-            //     self.first_frame = false;
-            // }
+            // Autofocus on app startup
+            if self.first_frame {
+                ui.response().request_focus();
+                self.first_frame = false;
+            }
 
             // ctx.input(|input_state| {
             //     dbg!(&input_state);
-            // });
-
-            // let artifact = self.editor.show(ui, &mut self.frame);
+            // })
 
             self.editor.show(ui, &mut self.frame);
-
-            // self.history.append(artifact);
         });
 
    }

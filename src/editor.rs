@@ -6,7 +6,7 @@ use cursor::Cursor;
 mod grid_widget;
 use grid_widget::GridWidget;
 
-use crate::{artifact::{self, Artifact}, editor::cursor::{PreferredCharPosition, PreferredGridPosition}, grid::{GridAction, Position, PositionAxis}, utils::Direction, Frame};
+use crate::{artifact::Artifact, editor::cursor::{PreferredCharPosition, PreferredGridPosition}, grid::{GridAction, Position, PositionAxis}, utils::Direction, Frame};
 
 #[derive(Debug, Default)]
 pub struct Editor {
@@ -26,84 +26,79 @@ impl Editor {
     pub fn show(&mut self, ui: &mut egui::Ui, frame: &mut Frame) {
         let (container_id, container_rect) = ui.allocate_space(ui.available_size());
 
-        self.handle_inputs(ui, frame);
-
-        ui.put(container_rect, GridWidget {
-            transform: self.screen_transform,
-            // has_focus: response.has_focus(),
-            cursor: self.cursor,
-            head: frame.head,
-            grid: &frame.grid
-        });
-    }
-
-    fn handle_pointer(&mut self, ui: &mut egui::Ui) {
-
-    }
-
-    fn handle_inputs(&mut self, ui: &mut egui::Ui, frame: &mut Frame) {
-        let container_rect = ui.max_rect();
-        let container_id = ui.id();
-        let response = ui.interact(container_rect, container_id, egui::Sense::click_and_drag());
+        let response = self.handle_inputs(ui, frame);
 
         // Adjust the grid to follow the container position
         self.screen_transform =
             TSTransform::from_translation(ui.min_rect().left_top().to_vec2()) * self.grid_transform;
 
+        ui.put(container_rect, GridWidget {
+            transform: self.screen_transform,
+            cursor: self.cursor,
+            head: frame.head,
+            grid: &frame.grid,
+
+            has_focus: response.has_focus(),
+        });
+    }
+
+    fn handle_inputs(&mut self, ui: &mut egui::Ui, frame: &mut Frame) -> egui::Response {
+        let container_rect = ui.max_rect();
+        let container_id = ui.id();
+        let response = ui.interact(container_rect, container_id, egui::Sense::click_and_drag());
+
         if let Some(pointer_pos) = ui.ctx().input(|i| i.pointer.hover_pos()) {
-            if container_rect.contains(pointer_pos) {
-                if response.clicked_by(egui::PointerButton::Primary) {
-                    response.request_focus();
+            if container_rect.contains(pointer_pos)
+                && response.clicked_by(egui::PointerButton::Primary) {
 
-                    // from pointer position, figure out hovered cell rect and pos
-                    // *_t for translated, as in grid render coordinates
-                    let pointer_pos_t = self.screen_transform.inverse().mul_pos(pointer_pos);
-                    let hovered_cell_pos_t = Pos2 {
-                        x: (pointer_pos_t.x / GridWidget::CELL_FULL_SIZE).clamp(PositionAxis::MIN_NUMERIC as f32, PositionAxis::MAX_NUMERIC as f32),
-                        y: (pointer_pos_t.y / GridWidget::CELL_FULL_SIZE).clamp(PositionAxis::MIN_NUMERIC as f32, PositionAxis::MAX_NUMERIC as f32),
-                    };
+                response.request_focus();
 
-                    // Ceil implementation says in https://doc.rust-lang.org/std/primitive.f32.html#method.ceil :
-                    // « Returns the smallest integer greater than or equal to self. » wich mean that 62.0 is still 62.0 not 63.0
-                    // So we truncate and add 1.0 instead
-                    let hovered_cell_rect_t = Rect {
-                        min: hovered_cell_pos_t.floor() * GridWidget::CELL_FULL_SIZE,
-                        max: Pos2 {
-                            x: (hovered_cell_pos_t.x.trunc() + 1.0) * GridWidget::CELL_FULL_SIZE,
-                            y: (hovered_cell_pos_t.y.trunc() + 1.0) * GridWidget::CELL_FULL_SIZE,
-                        }
-                    };
+                // from pointer position, figure out hovered cell rect and pos
+                // *_t for translated, as in grid render coordinates
+                let pointer_pos_t = self.screen_transform.inverse().mul_pos(pointer_pos);
+                let hovered_cell_pos_t = Pos2 {
+                    x: (pointer_pos_t.x / GridWidget::CELL_FULL_SIZE).clamp(PositionAxis::MIN_NUMERIC as f32, PositionAxis::MAX_NUMERIC as f32),
+                    y: (pointer_pos_t.y / GridWidget::CELL_FULL_SIZE).clamp(PositionAxis::MIN_NUMERIC as f32, PositionAxis::MAX_NUMERIC as f32),
+                };
 
-                    let hovered_cell_x = hovered_cell_pos_t.x.floor() as u32;
-                    let hovered_cell_y = hovered_cell_pos_t.y.floor() as u32;
-                    // let hovered_cell_pos = self.screen_transform.mul_pos(hovered_cell_pos_t);
-                    let hovered_cell_rect = self.screen_transform.mul_rect(hovered_cell_rect_t);
+                // Ceil implementation says in https://doc.rust-lang.org/std/primitive.f32.html#method.ceil :
+                // « Returns the smallest integer greater than or equal to self. » wich mean that 62.0 is still 62.0 not 63.0
+                // So we truncate and add 1.0 instead
+                let hovered_cell_rect_t = Rect {
+                    min: hovered_cell_pos_t.floor() * GridWidget::CELL_FULL_SIZE,
+                    max: Pos2 {
+                        x: (hovered_cell_pos_t.x.trunc() + 1.0) * GridWidget::CELL_FULL_SIZE,
+                        y: (hovered_cell_pos_t.y.trunc() + 1.0) * GridWidget::CELL_FULL_SIZE,
+                    }
+                };
 
-                    dbg!(hovered_cell_x);
+                let hovered_cell_x = hovered_cell_pos_t.x.floor() as u32;
+                let hovered_cell_y = hovered_cell_pos_t.y.floor() as u32;
+                // let hovered_cell_pos = self.screen_transform.mul_pos(hovered_cell_pos_t);
+                let hovered_cell_rect = self.screen_transform.mul_rect(hovered_cell_rect_t);
 
-                    if hovered_cell_rect.contains(pointer_pos) {
-                        // TODO: move the cursor to the right spot when clicking on text
-                        // Should be possible if we work on Cursor with prefered position
-                        if let Ok(grid_pos) = Position::from_numeric(hovered_cell_x, hovered_cell_y) {
-                            self.cursor.move_to(grid_pos, cursor::PreferredCharPosition::AtEnd, frame);
-                        }
+                if hovered_cell_rect.contains(pointer_pos) {
+                    // TODO: move the cursor to the right spot when clicking on text
+                    // Should be possible if we work on Cursor with prefered position
+                    if let Ok(grid_pos) = Position::from_numeric(hovered_cell_x, hovered_cell_y) {
+                        self.cursor.move_to(cursor::PreferredGridPosition::At(grid_pos), cursor::PreferredCharPosition::AtEnd, frame);
                     }
                 }
-
-                let pointer_in_layer = self.screen_transform.inverse() * pointer_pos;
-                let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
-                let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta * 1.5);
-                // let multi_touch_info = ui.ctx().input(|i| i.multi_touch());
-
-                // Zoom in on pointer:
-                self.grid_transform = self.grid_transform
-                    * TSTransform::from_translation(pointer_in_layer.to_vec2())
-                    * TSTransform::from_scaling(zoom_delta)
-                    * TSTransform::from_translation(-pointer_in_layer.to_vec2());
-
-                // Pan:
-                self.grid_transform = TSTransform::from_translation(pan_delta * 2.0) * self.grid_transform;
             }
+
+            let pointer_in_layer = self.screen_transform.inverse() * pointer_pos;
+            let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
+            let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta * 1.5);
+            // let multi_touch_info = ui.ctx().input(|i| i.multi_touch());
+
+            // Zoom in on pointer:
+            self.grid_transform = self.grid_transform
+                * TSTransform::from_translation(pointer_in_layer.to_vec2())
+                * TSTransform::from_scaling(zoom_delta)
+                * TSTransform::from_translation(-pointer_in_layer.to_vec2());
+
+            // Pan:
+            self.grid_transform = TSTransform::from_translation(pan_delta * 2.0) * self.grid_transform;
         }
 
         let event_filter = egui::EventFilter {
@@ -111,7 +106,6 @@ impl Editor {
             vertical_arrows: true,
             escape: true,
             tab: true,
-            ..Default::default()
         };
 
         let mut artifact = Artifact::EMPTY;
@@ -143,7 +137,7 @@ impl Editor {
                             cell.clear();
 
                             let artifact = frame.act(Box::new(GridAction::Set(pos, cell)));
-                            self.cursor.move_to(pos, cursor::PreferredCharPosition::AtEnd, &frame);
+                            self.cursor.move_to(cursor::PreferredGridPosition::At(pos), cursor::PreferredCharPosition::AtEnd, &frame);
 
                             artifact
                         } else {
@@ -160,7 +154,7 @@ impl Editor {
                         if char_inserted > 0 {
                             let artifact = frame.act(Box::new(GridAction::Set(pos, cell)));
                             // artifact.push(frame.act(Box::new(CursorAction::CharMoveTo(cursor::PreferredCharPosition::ForwardBy(char_inserted)))));
-                            self.cursor.move_to(pos, cursor::PreferredCharPosition::ForwardBy(char_inserted), &frame);
+                            self.cursor.move_to(cursor::PreferredGridPosition::At(pos), cursor::PreferredCharPosition::ForwardBy(char_inserted), &frame);
 
 
                             artifact
@@ -190,7 +184,7 @@ impl Editor {
 
                             let artifact = frame.act(Box::new(GridAction::Set(pos, cell)));
                             // artifact.push(frame.act(Box::new(CursorAction::CharMoveTo(cursor::PreferredCharPosition::ForwardBy(char_inserted)))));
-                            self.cursor.move_to(pos, cursor::PreferredCharPosition::ForwardBy(char_inserted), &frame);
+                            self.cursor.move_to(cursor::PreferredGridPosition::At(pos), cursor::PreferredCharPosition::ForwardBy(char_inserted), &frame);
 
                             artifact
                         } else {
@@ -212,22 +206,23 @@ impl Editor {
                     } => {
                         match key {
                             Key::ArrowUp => {
-                                // let action = CursorAction::GridStepInDirection(Direction::Up, char_pos);
-                                // frame.act(Box::new(action))
-                                self.cursor.grid_move_to(
+                                self.cursor.move_to(
                                     PreferredGridPosition::InDirectionByOffset(Direction::Up, 1),
+                                    PreferredCharPosition::AtEnd,
                                     &frame
                                 );
                             },
                             Key::ArrowDown | Key::Enter => {
-                                self.cursor.grid_move_to(
+                                self.cursor.move_to(
                                     PreferredGridPosition::InDirectionByOffset(Direction::Down, 1),
+                                    PreferredCharPosition::AtEnd,
                                     &frame
                                 );
                             }
                             Key::Tab | Key::Space => {
-                                self.cursor.grid_move_to(
+                                self.cursor.move_to(
                                     PreferredGridPosition::InDirectionByOffset(Direction::Right, 1),
+                                    PreferredCharPosition::AtEnd,
                                     &frame
                                 );
                             }
@@ -236,8 +231,9 @@ impl Editor {
 
                                 // if we are already at the end of this cell
                                 if self.cursor.char_position() == current_cell_len {
-                                    self.cursor.grid_move_to(
+                                    self.cursor.move_to(
                                         PreferredGridPosition::InDirectionByOffset(Direction::Right, 1),
+                                        PreferredCharPosition::AtStart,
                                         &frame
                                     );
                                 } else {
@@ -249,8 +245,9 @@ impl Editor {
                             },
                             Key::ArrowLeft => {
                                 if self.cursor.char_position() == 0 {
-                                    self.cursor.grid_move_to(
+                                    self.cursor.move_to(
                                         PreferredGridPosition::InDirectionByOffset(Direction::Left, 1),
+                                        PreferredCharPosition::AtEnd,
                                         &frame
                                     );
                                 } else {
@@ -294,8 +291,9 @@ impl Editor {
 
                             artifact
                         } else {
-                            self.cursor.grid_move_to(
+                            self.cursor.move_to(
                                 PreferredGridPosition::InDirectionByOffset(Direction::Left, 1),
+                                PreferredCharPosition::AtEnd,
                                 &frame
                             );
 
@@ -332,5 +330,7 @@ impl Editor {
                 });
             }
         }
+
+        response
     }
 }

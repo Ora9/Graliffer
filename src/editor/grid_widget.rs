@@ -9,6 +9,8 @@ pub struct GridWidget<'a> {
     pub grid: &'a Grid,
 
     pub transform: TSTransform,
+
+    pub has_focus: bool,
 }
 
 impl<'a> GridWidget<'a> {
@@ -53,7 +55,6 @@ impl<'a> Widget for GridWidget<'a> {
 
         for cell_grid_pos_y in min_y..=max_y {
             for cell_grid_pos_x in min_x..=max_x {
-
                 let cell_screen_pos = Pos2 {
                     x: GridWidget::CELL_FULL_SIZE * (cell_grid_pos_x as f32),
                     y: GridWidget::CELL_FULL_SIZE * (cell_grid_pos_y as f32),
@@ -106,16 +107,16 @@ impl<'a> Widget for GridWidget<'a> {
                     egui::Color32::WHITE
                 );
 
+                // dbg!(self.cursor.grid_position() == cell_grid_pos);
 
-
-                if self.cursor.grid_position() == cell_grid_pos && response.has_focus() {
-                    // painter.text(
-                    //     screen_rect.left_top(),
-                    //     egui::Align2::LEFT_TOP,
-                    //     self.cursor.char_position,
-                    //     egui::FontId::monospace(self.transform.scaling * 9.0),
-                    //     egui::Color32::WHITE
-                    // );
+                if self.cursor.grid_position() == cell_grid_pos && self.has_focus {
+                    painter.text(
+                        cell_screen_rect.left_top(),
+                        egui::Align2::LEFT_TOP,
+                        self.cursor.char_position(),
+                        egui::FontId::monospace(self.transform.scaling * 9.0),
+                        egui::Color32::WHITE
+                    );
 
                     // Blocking
                     // (total, before_cursor)

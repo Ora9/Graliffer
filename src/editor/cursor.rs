@@ -44,6 +44,15 @@ impl Cursor {
         self.char_position
     }
 
+    pub fn move_to(
+        &mut self,
+        preferred_grid_position: PreferredGridPosition,
+        preferred_char_position: PreferredCharPosition,
+        frame: &Frame) {
+            self.grid_move_to(preferred_grid_position, frame);
+            self.char_move_to(preferred_char_position, frame);
+        }
+
     // todo: remove frame to pass just the cell content, or maybe in PreferredCharPosition::At(2, cell) ?
     pub fn char_move_to(&mut self, preferred_char_position: PreferredCharPosition, frame: &Frame) {
         use PreferredCharPosition::*;
@@ -66,7 +75,7 @@ impl Cursor {
         self.char_position = char_position;
     }
 
-    pub fn grid_move_to(&mut self, preferred_grid_position: PreferredGridPosition, frame: &Frame) {
+    fn grid_move_to(&mut self, preferred_grid_position: PreferredGridPosition, frame: &Frame) {
         use PreferredGridPosition::*;
         let grid_position = match preferred_grid_position {
             At(position) => {position},
@@ -133,26 +142,26 @@ impl Cursor {
         self.grid_position = grid_position;
     }
 
-    /// Move the cursor to new [`Position`] placing self.char_position after the last char of new cell.
-    pub fn move_to(&mut self, grid_position: Position, preferred_char_position: PreferredCharPosition, frame: &Frame) {
-        use PreferredCharPosition::*;
-        let char_position = match preferred_char_position {
-            AtStart => 0,
-            AtEnd => frame.grid.get(grid_position).len(),
-            At(char_position) => {
-                let max_length = frame.grid.get(grid_position).len();
-                char_position.min(max_length)
-            }
-            ForwardBy(offset) => {
-                let max_length = frame.grid.get(grid_position).len();
-                self.char_position
-                    .saturating_add(offset)
-                    .min(max_length)
-            }
-            BackwardBy(offset) => self.char_position.saturating_sub(offset),
-        };
+    // /// Move the cursor to new [`Position`] placing self.char_position after the last char of new cell.
+    // pub fn move_to(&mut self, grid_position: Position, preferred_char_position: PreferredCharPosition, frame: &Frame) {
+    //     use PreferredCharPosition::*;
+    //     let char_position = match preferred_char_position {
+    //         AtStart => 0,
+    //         AtEnd => frame.grid.get(grid_position).len(),
+    //         At(char_position) => {
+    //             let max_length = frame.grid.get(grid_position).len();
+    //             char_position.min(max_length)
+    //         }
+    //         ForwardBy(offset) => {
+    //             let max_length = frame.grid.get(grid_position).len();
+    //             self.char_position
+    //                 .saturating_add(offset)
+    //                 .min(max_length)
+    //         }
+    //         BackwardBy(offset) => self.char_position.saturating_sub(offset),
+    //     };
 
-        self.grid_position = grid_position;
-        self.char_position = char_position;
-    }
+    //     self.grid_position = grid_position;
+    //     self.char_position = char_position;
+    // }
 }
