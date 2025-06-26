@@ -1,4 +1,4 @@
-use egui::{emath::TSTransform, Pos2, Rect};
+use egui::{emath::TSTransform, Modifiers, Pos2, Rect};
 
 mod cursor;
 use cursor::Cursor;
@@ -121,6 +121,39 @@ impl Editor {
                 use {egui::Event, egui::Key};
 
                 artifact.push(match event {
+
+
+                    // Text input
+                    // TODO: better check to avoid whitespaces
+                    Event::Text(text) if text != " " => {
+                        let pos = self.cursor.grid_position();
+                        let mut cell = frame.grid.get(pos);
+
+                        let char_inserted = cell.insert_at(text, self.cursor.char_position()).unwrap_or(0);
+
+                        if char_inserted > 0 {
+                            // should_merge = self.last_text_artifact_merge
+                            //     .is_some_and(|timestamp| {
+                            //         timestamp.elapsed()
+                            //             .as_secs_f32() > 3.0
+                            //     });
+
+                            // if should_merge {
+                            //     self.last_text_artifact_merge = Some(std::time::Instant::now());
+                            //     dbg!("should merge");
+                            // }
+
+                            let artifact = frame.act(Box::new(GridAction::Set(pos, cell)));
+                            // artifact.push(frame.act(Box::new(CursorAction::CharMoveTo(cursor::PreferredCharPosition::ForwardBy(char_inserted)))));
+                            self.cursor.move_to(cursor::PreferredGridPosition::At(pos), cursor::PreferredCharPosition::ForwardBy(char_inserted), &frame);
+
+                            artifact
+                        } else {
+                            Artifact::EMPTY
+                        }
+                    }
+
+                    // Clipboard
                     Event::Copy => {
                         let cell = frame.grid.get(self.cursor.grid_position());
                         if !cell.is_empty() {
@@ -166,35 +199,30 @@ impl Editor {
                         }
                     }
 
-                    // TODO: better check to avoid whitespaces
-                    Event::Text(text) if text != " " => {
-                        let pos = self.cursor.grid_position();
-                        let mut cell = frame.grid.get(pos);
+                    // Undo redo
+                    Event::Key {
+                        key: Key::Z,
+                        pressed: true,
+                        modifiers,
+                        ..
+                    } if modifiers.ctrl => {
+                        self.history.undo(frame);
 
-                        let char_inserted = cell.insert_at(text, self.cursor.char_position()).unwrap_or(0);
-
-                        if char_inserted > 0 {
-                            // should_merge = self.last_text_artifact_merge
-                            //     .is_some_and(|timestamp| {
-                            //         timestamp.elapsed()
-                            //             .as_secs_f32() > 3.0
-                            //     });
-
-                            // if should_merge {
-                            //     self.last_text_artifact_merge = Some(std::time::Instant::now());
-                            //     dbg!("should merge");
-                            // }
-
-                            let artifact = frame.act(Box::new(GridAction::Set(pos, cell)));
-                            // artifact.push(frame.act(Box::new(CursorAction::CharMoveTo(cursor::PreferredCharPosition::ForwardBy(char_inserted)))));
-                            self.cursor.move_to(cursor::PreferredGridPosition::At(pos), cursor::PreferredCharPosition::ForwardBy(char_inserted), &frame);
-
-                            artifact
-                        } else {
-                            Artifact::EMPTY
-                        }
+                        Artifact::EMPTY
                     }
 
+                    Event::Key {
+                        key: Key::Y,
+                        pressed: true,
+                        modifiers,
+                        ..
+                    } if modifiers.ctrl => {
+                        self.history.redo(frame);
+
+                        Artifact::EMPTY
+                    }
+
+                    // Cursor movements
                     Event::Key {
                         key: key @ (
                             Key::ArrowRight

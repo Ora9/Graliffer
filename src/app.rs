@@ -96,17 +96,12 @@ impl eframe::App for GralifferApp {
                 }
 
                 if ui.button("Undo").clicked() {
-                    let artifact = self.editor.history.undo(&mut self.frame);
+                    self.editor.history.undo(&mut self.frame);
                 }
 
                 if ui.button("Redo").clicked() {
-                    let artifact = self.editor.history.redo(&mut self.frame);
+                    self.editor.history.redo(&mut self.frame);
                 }
-
-
-
-                // ui.centered_and_justified(add_contents)
-
             });
         });
 
