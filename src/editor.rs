@@ -6,11 +6,12 @@ use cursor::Cursor;
 mod grid_widget;
 use grid_widget::GridWidget;
 
-use crate::{artifact::Artifact, editor::cursor::{PreferredCharPosition, PreferredGridPosition}, grid::{GridAction, Position, PositionAxis}, utils::Direction, Frame};
+use crate::{artifact::{Artifact, History}, editor::cursor::{PreferredCharPosition, PreferredGridPosition}, grid::{GridAction, Position, PositionAxis}, utils::Direction, Frame};
 
 #[derive(Debug, Default)]
 pub struct Editor {
-    cursor: Cursor,
+    pub cursor: Cursor,
+    pub history: History,
 
     // grid transform relative to the egui grid's window
     grid_transform: TSTransform,
@@ -26,7 +27,9 @@ impl Editor {
     pub fn show(&mut self, ui: &mut egui::Ui, frame: &mut Frame) {
         let (container_id, container_rect) = ui.allocate_space(ui.available_size());
 
-        let response = self.handle_inputs(ui, frame);
+        let (response, artifact) = self.handle_inputs(ui, frame);
+
+        self.history.append(artifact);
 
         // Adjust the grid to follow the container position
         self.screen_transform =
@@ -42,7 +45,7 @@ impl Editor {
         });
     }
 
-    fn handle_inputs(&mut self, ui: &mut egui::Ui, frame: &mut Frame) -> egui::Response {
+    fn handle_inputs(&mut self, ui: &mut egui::Ui, frame: &mut Frame) -> (egui::Response, Artifact) {
         let container_rect = ui.max_rect();
         let container_id = ui.id();
         let response = ui.interact(container_rect, container_id, egui::Sense::click_and_drag());
@@ -331,6 +334,6 @@ impl Editor {
             }
         }
 
-        response
+        (response, artifact)
     }
 }

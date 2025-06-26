@@ -7,8 +7,6 @@ pub struct GralifferApp {
     editor: Editor,
     first_frame: bool,
     inspect: bool,
-
-    history: History,
 }
 
 impl GralifferApp {
@@ -47,8 +45,6 @@ impl GralifferApp {
 
             first_frame: true,
             inspect: false,
-
-            history: History::new(),
         }
     }
 }
@@ -96,15 +92,15 @@ impl eframe::App for GralifferApp {
                 if ui.button("Step").clicked() {
                     let artifact = self.frame.step();
 
-                    self.history.append(artifact);
+                    self.editor.history.append(artifact);
                 }
 
                 if ui.button("Undo").clicked() {
-                    let artifact = self.history.undo(&mut self.frame);
+                    let artifact = self.editor.history.undo(&mut self.frame);
                 }
 
                 if ui.button("Redo").clicked() {
-                    let artifact = self.history.redo(&mut self.frame);
+                    let artifact = self.editor.history.redo(&mut self.frame);
                 }
 
 

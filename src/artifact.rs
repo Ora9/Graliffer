@@ -64,7 +64,7 @@ impl Artifact {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct History {
     artifacts: Vec<Artifact>,
     cursor: usize,
