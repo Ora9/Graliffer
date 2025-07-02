@@ -137,11 +137,11 @@ impl History {
         self.cursor = self.artifacts.len() - 1;
     }
 
-    /// If no artifact is already present in the list, it will be pushed
     pub fn merge_with_last(&mut self, artifact: Artifact) {
         // Don't merge empty artifacts
         if artifact.actions.is_empty() { return; }
 
+        // If no artifact is already present in the list, it will be pushed
         if let Some(last_artifact) = self.artifacts.last_mut() {
             last_artifact.push(artifact);
         } else {
@@ -154,11 +154,9 @@ impl History {
             artifact.undo(frame);
 
             // Append the action of undoing
-            self.append(artifact.invert_actions());
+            self.artifacts.push(artifact.invert_actions());
 
             self.cursor = self.cursor.saturating_sub(1);
-
-            dbg!(self);
         }
     }
 
