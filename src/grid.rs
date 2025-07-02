@@ -1,6 +1,6 @@
 //! Grid represent the Graliffer grid, it hold the data
 
-use std::{collections::HashMap, ops::Range};
+use std::{collections::HashMap, fmt::Debug, ops::Range};
 use egui::TextBuffer;
 use serde::Serialize;
 use unicode_segmentation::UnicodeSegmentation;
@@ -198,7 +198,7 @@ impl Grid {
     // }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum GridAction {
     Set(Position, Cell),
 }
@@ -215,6 +215,16 @@ impl Action for GridAction {
                     Box::new(self.to_owned()),
                     Box::new(Self::Set(*position, previous_cell))
                 )
+            }
+        }
+    }
+}
+
+impl Debug for GridAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Set(position, cell) => {
+                write!(f, "GridAction::Set ({:?} at {:?}", cell, position)
             }
         }
     }

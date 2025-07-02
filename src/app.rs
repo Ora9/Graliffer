@@ -1,5 +1,5 @@
 use crate::{
-	artifact::History, editor::Editor, grid::{Cell, Grid, Position}, Frame, RunDescriptor
+	artifact::History, editor::Editor, grid::{Cell, Grid, Position, PositionAxis}, Frame, RunDescriptor
 };
 
 pub struct GralifferApp {
@@ -37,7 +37,7 @@ impl GralifferApp {
         // 	frame.step();
         // }
 
-        println!("last pos: {:?}", frame.head.position.as_textual());
+        println!("{:?}", frame.head);
 
         Self {
             frame,
@@ -124,12 +124,7 @@ impl eframe::App for GralifferApp {
                 self.first_frame = false;
             }
 
-            // ctx.input(|input_state| {
-            //     dbg!(&input_state);
-            // })
-
             self.editor.show(ui, &mut self.frame);
         });
-
    }
 }

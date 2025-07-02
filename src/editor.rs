@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use egui::{emath::TSTransform, Modifiers, Pos2, Rect};
 
 mod cursor;
@@ -17,6 +19,13 @@ pub struct Editor {
     grid_transform: TSTransform,
     // grid transform relative to the whole egui viewport
     screen_transform: TSTransform,
+
+    // A timeout for the next acceptable text input that would be
+    // merged in undo history. This is used to merge close
+    // text input (timewise), and make undo/redo a bit less granular
+    // `None` or any already passed timestamp would mean to create a new
+    // history entry
+    undo_merging_text_input_timeout: Option<Instant>,
 }
 
 impl Editor {
@@ -27,9 +36,7 @@ impl Editor {
     pub fn show(&mut self, ui: &mut egui::Ui, frame: &mut Frame) {
         let (container_id, container_rect) = ui.allocate_space(ui.available_size());
 
-        let (response, artifact) = self.handle_inputs(ui, frame);
-
-        self.history.append(artifact);
+        let response = self.handle_inputs(ui, frame);
 
         // Adjust the grid to follow the container position
         self.screen_transform =
@@ -45,7 +52,7 @@ impl Editor {
         });
     }
 
-    fn handle_inputs(&mut self, ui: &mut egui::Ui, frame: &mut Frame) -> (egui::Response, Artifact) {
+    fn handle_inputs(&mut self, ui: &mut egui::Ui, frame: &mut Frame) -> egui::Response {
         let container_rect = ui.max_rect();
         let container_id = ui.id();
         let response = ui.interact(container_rect, container_id, egui::Sense::click_and_drag());
@@ -112,6 +119,7 @@ impl Editor {
         };
 
         let mut artifact = Artifact::EMPTY;
+        let mut should_merge_artifact = false;
 
         if response.has_focus() {
             ui.memory_mut(|mem| mem.set_focus_lock_filter(container_id, event_filter));
@@ -120,9 +128,7 @@ impl Editor {
             for event in &events {
                 use {egui::Event, egui::Key};
 
-                artifact.push(match event {
-
-
+                match event {
                     // Text input
                     // TODO: better check to avoid whitespaces
                     Event::Text(text) if text != " " => {
@@ -132,24 +138,23 @@ impl Editor {
                         let char_inserted = cell.insert_at(text, self.cursor.char_position()).unwrap_or(0);
 
                         if char_inserted > 0 {
-                            // should_merge = self.last_text_artifact_merge
-                            //     .is_some_and(|timestamp| {
-                            //         timestamp.elapsed()
-                            //             .as_secs_f32() > 3.0
-                            //     });
-
-                            // if should_merge {
-                            //     self.last_text_artifact_merge = Some(std::time::Instant::now());
-                            //     dbg!("should merge");
-                            // }
-
                             let artifact = frame.act(Box::new(GridAction::Set(pos, cell)));
-                            // artifact.push(frame.act(Box::new(CursorAction::CharMoveTo(cursor::PreferredCharPosition::ForwardBy(char_inserted)))));
                             self.cursor.move_to(cursor::PreferredGridPosition::At(pos), cursor::PreferredCharPosition::ForwardBy(char_inserted), &frame);
 
-                            artifact
-                        } else {
-                            Artifact::EMPTY
+                            should_merge_artifact = self.undo_merging_text_input_timeout
+                                .is_some_and(|timestamp| {
+                                    timestamp.elapsed()
+                                        .as_secs_f32() < 3.0
+                                });
+
+                            if should_merge_artifact {
+                                dbg!("Merging !");
+                                self.history.merge_with_last(artifact);
+                            } else {
+                                self.history.append(artifact);
+                            }
+
+                            self.undo_merging_text_input_timeout = Some(std::time::Instant::now());
                         }
                     }
 
@@ -159,8 +164,6 @@ impl Editor {
                         if !cell.is_empty() {
                             ui.ctx().copy_text(cell.content());
                         }
-
-                        Artifact::EMPTY
                     }
 
                     Event::Cut => {
@@ -174,10 +177,9 @@ impl Editor {
 
                             let artifact = frame.act(Box::new(GridAction::Set(pos, cell)));
                             self.cursor.move_to(cursor::PreferredGridPosition::At(pos), cursor::PreferredCharPosition::AtEnd, &frame);
+                            self.undo_merging_text_input_timeout = None;
 
-                            artifact
-                        } else {
-                            Artifact::EMPTY
+                            self.history.append(artifact);
                         }
                     }
 
@@ -191,11 +193,9 @@ impl Editor {
                             let artifact = frame.act(Box::new(GridAction::Set(pos, cell)));
                             // artifact.push(frame.act(Box::new(CursorAction::CharMoveTo(cursor::PreferredCharPosition::ForwardBy(char_inserted)))));
                             self.cursor.move_to(cursor::PreferredGridPosition::At(pos), cursor::PreferredCharPosition::ForwardBy(char_inserted), &frame);
+                            self.undo_merging_text_input_timeout = None;
 
-
-                            artifact
-                        } else {
-                            Artifact::EMPTY
+                            self.history.append(artifact);
                         }
                     }
 
@@ -207,8 +207,15 @@ impl Editor {
                         ..
                     } if modifiers.ctrl => {
                         self.history.undo(frame);
+                    }
 
-                        Artifact::EMPTY
+                    Event::Key {
+                        key: Key::U,
+                        pressed: true,
+                        modifiers,
+                        ..
+                    } if modifiers.ctrl => {
+                        dbg!(&self.history);
                     }
 
                     Event::Key {
@@ -218,8 +225,6 @@ impl Editor {
                         ..
                     } if modifiers.ctrl => {
                         self.history.redo(frame);
-
-                        Artifact::EMPTY
                     }
 
                     // Cursor movements
@@ -235,6 +240,9 @@ impl Editor {
                         pressed: true,
                         ..
                     } => {
+
+                        self.undo_merging_text_input_timeout = None;
+
                         match key {
                             Key::ArrowUp => {
                                 self.cursor.move_to(
@@ -290,8 +298,6 @@ impl Editor {
                             },
                             _ => unreachable!(),
                         }
-
-                        Artifact::EMPTY
                     },
 
                     Event::Key {
@@ -320,15 +326,15 @@ impl Editor {
                                 &frame
                             );
 
-                            artifact
+                            self.history.append(artifact);
+                            self.undo_merging_text_input_timeout = None;
                         } else {
                             self.cursor.move_to(
                                 PreferredGridPosition::InDirectionByOffset(Direction::Left, 1),
                                 PreferredCharPosition::AtEnd,
                                 &frame
                             );
-
-                            Artifact::EMPTY
+                            self.undo_merging_text_input_timeout = None;
                         }
                     }
 
@@ -350,18 +356,21 @@ impl Editor {
                             };
 
                             let _ = cell.delete_char_range(range);
-                            frame.act(Box::new(GridAction::Set(grid_pos, cell)))
-                        } else {
-                            Artifact::EMPTY
+                            let artifact = frame.act(Box::new(GridAction::Set(grid_pos, cell)));
+                            self.undo_merging_text_input_timeout = None;
+                            self.history.append(artifact);
                         }
                     }
-                    _ => {
-                        Artifact::EMPTY
-                    }
-                });
+                    _ => {}
+                };
             }
         }
 
-        (response, artifact)
+        // if should_merge_artifact {
+        //     self.history.merge_with_last(artifact);
+        // } else {
+        // }
+
+        response
     }
 }

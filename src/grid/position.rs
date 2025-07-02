@@ -1,3 +1,5 @@
+use std::fmt::{Debug};
+
 use anyhow::{Context, bail};
 use serde::{Serialize, Serializer};
 
@@ -18,7 +20,7 @@ use serde::{Serialize, Serializer};
 /// let pos = PositionAxis::from_numeric(51).unwrap();
 /// assert_eq!(pos.as_textual(), 'z');
 /// ```
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PositionAxis(u8);
 
 impl PositionAxis {
@@ -361,6 +363,13 @@ impl Serialize for PositionAxis {
     }
 }
 
+impl Debug for PositionAxis {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "PositionAxis (`{}` ({}))", self.as_textual(), self.as_numeric())
+    }
+}
+
+
 /// A `Position` represents a 2d coordinate in the [Grid](crate::grid::Grid). A `Position` is made of two [`PositionAxis`]
 ///
 /// # Representation
@@ -380,7 +389,7 @@ impl Serialize for PositionAxis {
 /// let pos = Position::from_textual('a', '/').unwrap();
 /// assert_eq!(pos.as_numeric(), (26, 63));
 /// ```
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Position {
     x: PositionAxis,
     y: PositionAxis,
@@ -471,6 +480,10 @@ impl Position {
             self.x.as_textual(),
             self.y.as_textual(),
         )
+    }
+
+    pub fn as_textual_string(self) -> String {
+        format!("{}{}", self.x.as_textual(), self.y.as_textual())
     }
 
     /// Returns the numeric representation of a `Position` as tuple in form `(x, y)`
@@ -604,3 +617,13 @@ impl Serialize for Position {
 //     where
 //         D: Deserializer<'de>;
 // }
+
+/// ```
+/// use graliffer::grid::Position;
+/// dbg!(Position::from_numeric(5, 8).unwrap());
+/// ```
+impl Debug for Position {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Position (`{}` ({}, {}))", self.as_textual_string(), self.x(), self.y())
+    }
+}

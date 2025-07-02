@@ -1,19 +1,56 @@
 //! Artifact is the actions system of Graliffer, it is used to manipulate data in a centralized way, enabling to go back in time like an undo-redo system
 //!
 
+use std::fmt::Debug;
+
 use crate::Frame;
 
-pub trait Action: std::fmt::Debug {
+pub trait Action: std::fmt::Debug + CloneAction {
     fn act(&self, frame: &mut Frame) -> Artifact;
 }
 
-#[derive(Debug)]
+trait CloneAction {
+    fn clone_action<'a>(&self) -> Box<dyn Action>;
+}
+
+impl<T> CloneAction for T
+where
+    T: Action + Clone + 'static,
+{
+    fn clone_action(&self) -> Box<dyn Action> {
+        Box::new(self.clone())
+    }
+}
+
+impl Clone for Box<dyn Action> {
+    fn clone(&self) -> Self {
+        self.clone_action()
+    }
+}
+
+#[derive(Clone)]
 struct ReciprocalAction {
-    redo: Box<dyn Action>,
+    redo: Option<Box<dyn Action>>,
     undo: Option<Box<dyn Action>>,
 }
 
-#[derive(Debug)]
+impl ReciprocalAction {
+    fn invert_actions(self) -> Self {
+        Self {
+            redo: self.undo,
+            undo: self.redo,
+        }
+    }
+}
+
+impl Debug for ReciprocalAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ReciprocalAction (\n    undo: {:?},\n    redo: {:?}\n)", self.undo, self.redo)
+    }
+}
+
+
+#[derive(Clone)]
 pub struct Artifact {
     actions: Vec<ReciprocalAction>,
 }
@@ -23,8 +60,7 @@ impl Artifact {
         actions: Vec::new(),
     };
 
-
-    fn new(redo: Box<dyn Action>, undo: Option<Box<dyn Action>>) -> Self {
+    fn new(redo: Option<Box<dyn Action>>, undo: Option<Box<dyn Action>>) -> Self {
         Self {
             actions: vec![ReciprocalAction {
                 redo,
@@ -34,11 +70,11 @@ impl Artifact {
     }
 
     pub fn from_redo(redo: Box<dyn Action>) -> Self {
-        Self::new(redo, None)
+        Self::new(Some(redo), None)
     }
 
     pub fn from_redo_undo(redo: Box<dyn Action>, undo: Box<dyn Action>) -> Self {
-        Self::new(redo, Some(undo))
+        Self::new(Some(redo), Some(undo))
     }
 
     pub fn push(&mut self, other: Self) {
@@ -51,7 +87,9 @@ impl Artifact {
 
     fn redo(&self, frame: &mut Frame) {
         for action in self.actions.iter() {
-            let _ = frame.act_by_ref(&*action.redo);
+            if let Some(redo) = &action.redo {
+                let _ = frame.act_by_ref(&**redo);
+            }
         }
     }
 
@@ -62,9 +100,22 @@ impl Artifact {
             }
         }
     }
+
+    fn invert_actions(&self) -> Self {
+        Self {
+            actions: self.to_owned().actions.into_iter().map(|action| action.invert_actions()).collect()
+        }
+    }
 }
 
-#[derive(Debug, Default)]
+impl Debug for Artifact {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Artifact {:#?}", self.actions)
+    }
+}
+
+
+#[derive(Default)]
 pub struct History {
     artifacts: Vec<Artifact>,
     cursor: usize,
@@ -79,37 +130,49 @@ impl History {
     }
 
     pub fn append(&mut self, artifact: Artifact) {
-        if !artifact.actions.is_empty() {
-            self.artifacts.push(artifact);
-            self.cursor = self.artifacts.len() - 1;
-        }
+        // Don't append empty artifacts
+        if artifact.actions.is_empty() { return; }
+
+        self.artifacts.push(artifact);
+        self.cursor = self.artifacts.len() - 1;
     }
 
+    /// If no artifact is already present in the list, it will be pushed
     pub fn merge_with_last(&mut self, artifact: Artifact) {
-        let last_index = self.artifacts.len();
+        // Don't merge empty artifacts
+        if artifact.actions.is_empty() { return; }
 
-        if !artifact.actions.is_empty() {
-            if let Some(last_artifact) = self.artifacts.get_mut(last_index) {
-                last_artifact.push(artifact);
-            }
+        if let Some(last_artifact) = self.artifacts.last_mut() {
+            last_artifact.push(artifact);
+        } else {
+            self.artifacts.push(artifact);
         }
     }
 
     pub fn undo(&mut self, frame: &mut Frame) {
-        // skip empty artifacts
         if let Some(artifact) = self.artifacts.get(self.cursor) {
-            dbg!(&self);
             artifact.undo(frame);
+
+            // Append the action of undoing
+            self.append(artifact.invert_actions());
+
             self.cursor = self.cursor.saturating_sub(1);
+
+            dbg!(self);
         }
     }
 
     pub fn redo(&mut self, frame: &mut Frame) {
         // skip empty artifacts
         if let Some(artifact) = self.artifacts.get(self.cursor) {
-            dbg!(&self);
             artifact.redo(frame);
             self.cursor = self.cursor.saturating_add(1);
         }
+    }
+}
+
+impl Debug for History {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "History (\n    cursor: {},\n    artifacts: {:#?})", self.cursor, self.artifacts)
     }
 }

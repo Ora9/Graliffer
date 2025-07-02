@@ -1,4 +1,5 @@
 use std::default;
+use std::fmt::Debug;
 
 use anyhow::Context;
 use crate::utils::Direction;
@@ -25,7 +26,7 @@ use crate::{artifact::{Action, Artifact}, grid::Position, Frame};
 /// head.take_step();
 /// assert_eq!(head.position, pos2);
 /// ```
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct Head {
     pub position: Position,
     pub direction: Direction,
@@ -155,5 +156,11 @@ impl Action for HeadAction {
                 )
             }
         }
+    }
+}
+
+impl Debug for Head {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Head ({:?}, {:?}))", self.position, self.direction)
     }
 }

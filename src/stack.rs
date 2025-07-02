@@ -2,6 +2,8 @@
 //! The grid holds the code, and data
 //! The stack hold execution data
 
+use std::fmt::Debug;
+
 use crate::{artifact::{Action, Artifact}, Frame, Operand};
 
 #[derive(Default, Debug)]
@@ -35,7 +37,7 @@ impl Stack {
     // }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum StackAction {
     Pop,
     Push(Operand)
@@ -63,6 +65,19 @@ impl Action for StackAction {
                         Box::new(self.to_owned())
                     )
                 }
+            }
+        }
+    }
+}
+
+impl Debug for StackAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Push(operand) => {
+                write!(f, "StackAction::Push ({:?})", operand)
+            },
+            Self::Pop => {
+                write!(f, "StackAction::Push ()")
             }
         }
     }

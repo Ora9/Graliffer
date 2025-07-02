@@ -95,7 +95,7 @@ impl Opcode {
             }
             Dbg => {
                 println!("---- DEBUG INFO : Frame dump ----");
-                // println!("{:?}", frame);
+                println!("{:?}", frame);
                 println!("---- DEBUG INFO END ----");
                 Artifact::EMPTY
             }
