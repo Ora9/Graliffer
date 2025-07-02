@@ -1,7 +1,7 @@
 //! Artifact is the actions system of Graliffer, it is used to manipulate data in a centralized way, enabling to go back in time like an undo-redo system
 //!
 
-use std::fmt::Debug;
+use std::{fmt::Debug, ops::Range};
 
 use crate::Frame;
 
@@ -103,7 +103,7 @@ impl Artifact {
 
     fn invert_actions(&self) -> Self {
         Self {
-            actions: self.to_owned().actions.into_iter().map(|action| action.invert_actions()).collect()
+            actions: self.to_owned().actions.into_iter().rev().map(|action| action.invert_actions()).collect()
         }
     }
 }
@@ -133,39 +133,56 @@ impl History {
         // Don't append empty artifacts
         if artifact.actions.is_empty() { return; }
 
+        self.artifacts.truncate(self.cursor);
         self.artifacts.push(artifact);
-        self.cursor = self.artifacts.len() - 1;
+        self.cursor = self.cursor.saturating_add(1);
+
+        // self.cursor = self.artifacts.len();
     }
 
     pub fn merge_with_last(&mut self, artifact: Artifact) {
         // Don't merge empty artifacts
         if artifact.actions.is_empty() { return; }
 
-        // If no artifact is already present in the list, it will be pushed
         if let Some(last_artifact) = self.artifacts.last_mut() {
             last_artifact.push(artifact);
         } else {
-            self.artifacts.push(artifact);
+            self.append(artifact);
         }
     }
 
     pub fn undo(&mut self, frame: &mut Frame) {
-        if let Some(artifact) = self.artifacts.get(self.cursor) {
+
+        let Some(last_artifact) = self.cursor.checked_sub(1) else {
+            return;
+        };
+
+        if let Some(artifact) = self.artifacts.get(last_artifact) {
             artifact.undo(frame);
 
             // Append the action of undoing
-            self.artifacts.push(artifact.invert_actions());
-
-            self.cursor = self.cursor.saturating_sub(1);
+            // self.artifacts.push(artifact.invert_actions());
+            self.cursor = last_artifact;
         }
     }
 
     pub fn redo(&mut self, frame: &mut Frame) {
-        // skip empty artifacts
         if let Some(artifact) = self.artifacts.get(self.cursor) {
             artifact.redo(frame);
+
+            // Append the action of redoing
+            // self.artifacts.push(artifact.to_owned());
             self.cursor = self.cursor.saturating_add(1);
         }
+
+        // // skip empty artifacts
+        // if self.cursor == self.artifacts.len().saturating_sub(1) { return; }
+
+
+        // if let Some(artifact) = self.artifacts.get(self.cursor) {
+        //     artifact.redo(frame);
+        //     self.cursor = self.cursor.saturating_add(1);
+        // }
     }
 }
 
