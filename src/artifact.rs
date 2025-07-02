@@ -1,7 +1,7 @@
 //! Artifact is the actions system of Graliffer, it is used to manipulate data in a centralized way, enabling to go back in time like an undo-redo system
 //!
 
-use std::{fmt::Debug, ops::Range};
+use std::fmt::Debug;
 
 use crate::Frame;
 
@@ -9,7 +9,7 @@ pub trait Action: std::fmt::Debug + CloneAction {
     fn act(&self, frame: &mut Frame) -> Artifact;
 }
 
-trait CloneAction {
+pub trait CloneAction {
     fn clone_action<'a>(&self) -> Box<dyn Action>;
 }
 
@@ -35,12 +35,12 @@ struct ReciprocalAction {
 }
 
 impl ReciprocalAction {
-    fn invert_actions(self) -> Self {
-        Self {
-            redo: self.undo,
-            undo: self.redo,
-        }
-    }
+    // fn invert_actions(self) -> Self {
+    //     Self {
+    //         redo: self.undo,
+    //         undo: self.redo,
+    //     }
+    // }
 }
 
 impl Debug for ReciprocalAction {
@@ -81,9 +81,9 @@ impl Artifact {
         self.actions.extend(other.actions);
     }
 
-    fn add_action(&mut self, action: ReciprocalAction) {
-        self.actions.push(action);
-    }
+    // fn add_action(&mut self, action: ReciprocalAction) {
+    //     self.actions.push(action);
+    // }
 
     fn redo(&self, frame: &mut Frame) {
         for action in self.actions.iter() {
@@ -101,11 +101,11 @@ impl Artifact {
         }
     }
 
-    fn invert_actions(&self) -> Self {
-        Self {
-            actions: self.to_owned().actions.into_iter().rev().map(|action| action.invert_actions()).collect()
-        }
-    }
+    // fn invert_actions(&self) -> Self {
+    //     Self {
+    //         actions: self.to_owned().actions.into_iter().rev().map(|action| action.invert_actions()).collect()
+    //     }
+    // }
 }
 
 impl Debug for Artifact {
@@ -122,12 +122,12 @@ pub struct History {
 }
 
 impl History {
-    pub fn new() -> Self {
-        Self {
-            artifacts: Vec::new(),
-            cursor: 0,
-        }
-    }
+    // pub fn new() -> Self {
+    //     Self {
+    //         artifacts: Vec::new(),
+    //         cursor: 0,
+    //     }
+    // }
 
     pub fn append(&mut self, artifact: Artifact) {
         // Don't append empty artifacts

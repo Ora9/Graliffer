@@ -1,5 +1,5 @@
 use egui::{emath::TSTransform, Pos2, Rect, Vec2, Widget};
-use crate::grid::{Grid, Head, Position, PositionAxis};
+use crate::grid::{Grid, Head, Position};
 
 use super::cursor::Cursor;
 
@@ -18,23 +18,23 @@ impl<'a> GridWidget<'a> {
     pub const CELL_PADDING: f32 = 1.5;
     pub const CELL_FULL_SIZE: f32 = Self::CELL_SIZE + Self::CELL_PADDING;
 
-    pub fn screen_to_grid_position(pos: Pos2, rect: Rect, transform: TSTransform) -> Position {
-        let rect_t = transform.inverse().mul_rect(rect);
+    // pub fn screen_to_grid_position(pos: Pos2, rect: Rect, transform: TSTransform) -> Position {
+    //     let rect_t = transform.inverse().mul_rect(rect);
 
-        let grid_x = PositionAxis::clamp_numeric((pos.x / GridWidget::CELL_FULL_SIZE).floor() as u32);
-        let grid_y = PositionAxis::clamp_numeric((rect_t.min.y / GridWidget::CELL_FULL_SIZE).floor() as u32);
+    //     let grid_x = PositionAxis::clamp_numeric((pos.x / GridWidget::CELL_FULL_SIZE).floor() as u32);
+    //     let grid_y = PositionAxis::clamp_numeric((rect_t.min.y / GridWidget::CELL_FULL_SIZE).floor() as u32);
 
-        Position::from_numeric(grid_x, grid_y).unwrap()
-    }
+    //     Position::from_numeric(grid_x, grid_y).unwrap()
+    // }
 
-    pub fn grid_to_screen_position(pos: Position, rect: Rect, transform: TSTransform) {
+    // pub fn grid_to_screen_position(pos: Position, rect: Rect, transform: TSTransform) {
 
-    }
+    // }
 }
 
 impl<'a> Widget for GridWidget<'a> {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
-        let container_id = ui.id();
+        let _container_id = ui.id();
         let container_rect = ui.max_rect();
         let response = ui.response();
 

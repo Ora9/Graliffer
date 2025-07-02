@@ -29,12 +29,12 @@ pub struct Cursor {
 }
 
 impl Cursor {
-    fn new(grid_position: Position) -> Self {
-        Self {
-            grid_position,
-            char_position: 0
-        }
-    }
+    // fn new(grid_position: Position) -> Self {
+    //     Self {
+    //         grid_position,
+    //         char_position: 0
+    //     }
+    // }
 
     pub fn grid_position(&self) -> Position {
         self.grid_position

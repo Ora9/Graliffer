@@ -1,5 +1,5 @@
 use crate::{
-    artifact::{Action, Artifact}, editor::Editor, grid::{Cell, Grid, Head, HeadAction, Position}, stack::{Stack, StackAction}, Address, Opcode, Operand, Word
+    artifact::{Action, Artifact}, grid::{Grid, Head, HeadAction}, stack::{Stack, StackAction}, Word
 };
 
 #[derive(Default)]

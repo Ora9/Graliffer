@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use egui::{emath::TSTransform, Modifiers, Pos2, Rect};
+use egui::{emath::TSTransform, Pos2, Rect};
 
 mod cursor;
 use cursor::Cursor;
@@ -8,7 +8,7 @@ use cursor::Cursor;
 mod grid_widget;
 use grid_widget::GridWidget;
 
-use crate::{artifact::{Artifact, History}, editor::cursor::{PreferredCharPosition, PreferredGridPosition}, grid::{GridAction, Position, PositionAxis}, utils::Direction, Frame};
+use crate::{artifact::{History}, editor::cursor::{PreferredCharPosition, PreferredGridPosition}, grid::{GridAction, Position, PositionAxis}, utils::Direction, Frame};
 
 #[derive(Debug, Default)]
 pub struct Editor {
@@ -72,12 +72,12 @@ impl HistoryMerge {
 }
 
 impl Editor {
-    pub fn new() -> Self {
-        Self::default()
-    }
+    // pub fn new() -> Self {
+    //     Self::default()
+    // }
 
     pub fn show(&mut self, ui: &mut egui::Ui, frame: &mut Frame) {
-        let (container_id, container_rect) = ui.allocate_space(ui.available_size());
+        let (_container_id, container_rect) = ui.allocate_space(ui.available_size());
 
         let response = self.handle_inputs(ui, frame);
 
@@ -160,9 +160,6 @@ impl Editor {
             escape: true,
             tab: true,
         };
-
-        let mut artifact = Artifact::EMPTY;
-        let mut should_merge_artifact = false;
 
         if response.has_focus() {
             ui.memory_mut(|mem| mem.set_focus_lock_filter(container_id, event_filter));

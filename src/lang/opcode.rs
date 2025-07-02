@@ -3,7 +3,7 @@ use strum_macros::EnumString;
 
 use crate::{
     utils::Direction,
-    artifact::Artifact, grid::{Cell, GridAction, Head, HeadAction}, stack::StackAction, Literal, Word
+    artifact::Artifact, grid::{Cell, GridAction, HeadAction}, stack::StackAction, Literal
 };
 
 use super::{Frame, Operand};

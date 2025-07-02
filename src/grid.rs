@@ -17,7 +17,7 @@ pub use head::{
     HeadAction,
 };
 
-use crate::{utils::Direction, artifact::{Action, Artifact}, Frame};
+use crate::{artifact::{Action, Artifact}, Frame};
 
 /// A `Cell` represents a unit of a [`Grid`], it holds a string of 3 chars (more precislely unicode graphems)
 #[derive(Default, Serialize, Debug, Clone, PartialEq, Eq)]
@@ -140,7 +140,7 @@ impl egui::TextBuffer for Cell {
         let byte_end = byte_index_from_char_index(self.as_str(), char_range.end);
 
         // Then drain all characters within this range
-        self.delete_char_range(byte_start..byte_end);
+        let _ = self.delete_char_range(byte_start..byte_end);
     }
 }
 

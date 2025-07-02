@@ -1,4 +1,3 @@
-use std::default;
 use std::fmt::Debug;
 
 use anyhow::Context;
@@ -148,7 +147,7 @@ impl Action for HeadAction {
             Self::TakeStep() => {
                 let old_position = frame.head.position;
 
-                frame.head.take_step();
+                let _ = frame.head.take_step();
 
                 Artifact::from_redo_undo(
                     Box::new(self.to_owned()),
