@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use egui::{emath::TSTransform, Modifiers, Pos2, Rect};
 
@@ -25,7 +25,50 @@ pub struct Editor {
     // text input (timewise), and make undo/redo a bit less granular
     // `None` or any already passed timestamp would mean to create a new
     // history entry
-    undo_merging_text_input_timeout: Option<Instant>,
+    history_merge: HistoryMerge,
+}
+
+#[derive(Debug, Default)]
+struct HistoryMerge {
+    input_timeout: Option<Instant>,
+    deletion_timeout: Option<Instant>,
+}
+
+impl HistoryMerge {
+    const MERGE_TIMEOUT: Duration = Duration::from_secs(3);
+
+    fn should_merge_input(&self) -> bool {
+        self.input_timeout.is_some_and(|timeout| {
+            Instant::now().checked_duration_since(timeout).is_none()
+        })
+    }
+
+    fn should_merge_deletion(&self) -> bool {
+        self.deletion_timeout.is_some_and(|timeout| {
+            Instant::now().checked_duration_since(timeout).is_none()
+        })
+    }
+
+    fn update_input_timeout(&mut self) {
+        self.input_timeout = Instant::now().checked_add(HistoryMerge::MERGE_TIMEOUT);
+    }
+
+    fn update_deletion_timeout(&mut self) {
+        self.deletion_timeout = Instant::now().checked_add(HistoryMerge::MERGE_TIMEOUT);
+    }
+
+    fn cancel_input_merge(&mut self) {
+        self.input_timeout = None;
+    }
+
+    fn cancel_deletion_merge(&mut self) {
+        self.deletion_timeout = None;
+    }
+
+    fn cancel_all_merge(&mut self) {
+        self.cancel_input_merge();
+        self.cancel_deletion_merge();
+    }
 }
 
 impl Editor {
@@ -141,20 +184,15 @@ impl Editor {
                             let artifact = frame.act(Box::new(GridAction::Set(pos, cell)));
                             self.cursor.move_to(cursor::PreferredGridPosition::At(pos), cursor::PreferredCharPosition::ForwardBy(char_inserted), &frame);
 
-                            should_merge_artifact = self.undo_merging_text_input_timeout
-                                .is_some_and(|timestamp| {
-                                    timestamp.elapsed()
-                                        .as_secs_f32() < 3.0
-                                });
-
-                            if should_merge_artifact {
+                            if self.history_merge.should_merge_input() {
                                 dbg!("Merging !");
                                 self.history.merge_with_last(artifact);
                             } else {
                                 self.history.append(artifact);
                             }
 
-                            self.undo_merging_text_input_timeout = Some(std::time::Instant::now());
+                            self.history_merge.update_input_timeout();
+                            self.history_merge.cancel_deletion_merge();
                         }
                     }
 
@@ -177,7 +215,7 @@ impl Editor {
 
                             let artifact = frame.act(Box::new(GridAction::Set(pos, cell)));
                             self.cursor.move_to(cursor::PreferredGridPosition::At(pos), cursor::PreferredCharPosition::AtEnd, &frame);
-                            self.undo_merging_text_input_timeout = None;
+                            self.history_merge.cancel_all_merge();
 
                             self.history.append(artifact);
                         }
@@ -193,7 +231,7 @@ impl Editor {
                             let artifact = frame.act(Box::new(GridAction::Set(pos, cell)));
                             // artifact.push(frame.act(Box::new(CursorAction::CharMoveTo(cursor::PreferredCharPosition::ForwardBy(char_inserted)))));
                             self.cursor.move_to(cursor::PreferredGridPosition::At(pos), cursor::PreferredCharPosition::ForwardBy(char_inserted), &frame);
-                            self.undo_merging_text_input_timeout = None;
+                            self.history_merge.cancel_all_merge();
 
                             self.history.append(artifact);
                         }
@@ -207,6 +245,7 @@ impl Editor {
                         ..
                     } if modifiers.ctrl => {
                         self.history.undo(frame);
+                        self.history_merge.cancel_all_merge();
                     }
 
                     Event::Key {
@@ -225,6 +264,7 @@ impl Editor {
                         ..
                     } if modifiers.ctrl => {
                         self.history.redo(frame);
+                        self.history_merge.cancel_all_merge();
                     }
 
                     // Cursor movements
@@ -241,7 +281,7 @@ impl Editor {
                         ..
                     } => {
 
-                        self.undo_merging_text_input_timeout = None;
+                        self.history_merge.cancel_all_merge();
 
                         match key {
                             Key::ArrowUp => {
@@ -308,9 +348,10 @@ impl Editor {
                     } => {
                         let grid_pos = self.cursor.grid_position();
                         let char_pos = self.cursor.char_position();
-                        let mut cell = frame.grid.get(grid_pos);
 
                         if char_pos > 0 {
+                            let mut cell = frame.grid.get(grid_pos);
+
                             let char_range = if modifiers.ctrl {
                                 0..char_pos
                             } else {
@@ -326,15 +367,20 @@ impl Editor {
                                 &frame
                             );
 
-                            self.history.append(artifact);
-                            self.undo_merging_text_input_timeout = None;
+                            if self.history_merge.should_merge_deletion() {
+                                self.history.merge_with_last(artifact);
+                            } else {
+                                self.history.append(artifact);
+                            }
+                            self.history_merge.update_deletion_timeout();
+                            self.history_merge.cancel_input_merge();
                         } else {
                             self.cursor.move_to(
                                 PreferredGridPosition::InDirectionByOffset(Direction::Left, 1),
                                 PreferredCharPosition::AtEnd,
                                 &frame
                             );
-                            self.undo_merging_text_input_timeout = None;
+                            self.history_merge.cancel_all_merge();
                         }
                     }
 
@@ -357,7 +403,7 @@ impl Editor {
 
                             let _ = cell.delete_char_range(range);
                             let artifact = frame.act(Box::new(GridAction::Set(grid_pos, cell)));
-                            self.undo_merging_text_input_timeout = None;
+                            self.history_merge.cancel_all_merge();
                             self.history.append(artifact);
                         }
                     }
