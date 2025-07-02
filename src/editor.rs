@@ -179,7 +179,7 @@ impl Editor {
 
                         if char_inserted > 0 {
                             let artifact = frame.act(Box::new(GridAction::Set(pos, cell)));
-                            self.cursor.move_to(cursor::PreferredGridPosition::At(pos), cursor::PreferredCharPosition::ForwardBy(char_inserted), &frame);
+                            self.cursor.move_to(cursor::PreferredGridPosition::At(pos), cursor::PreferredCharPosition::ForwardBy(char_inserted), frame);
 
                             if self.history_merge.should_merge_input() {
                                 dbg!("Merging !");
@@ -211,7 +211,7 @@ impl Editor {
                             cell.clear();
 
                             let artifact = frame.act(Box::new(GridAction::Set(pos, cell)));
-                            self.cursor.move_to(cursor::PreferredGridPosition::At(pos), cursor::PreferredCharPosition::AtEnd, &frame);
+                            self.cursor.move_to(cursor::PreferredGridPosition::At(pos), cursor::PreferredCharPosition::AtEnd, frame);
                             self.history_merge.cancel_all_merge();
 
                             self.history.append(artifact);
@@ -227,7 +227,7 @@ impl Editor {
                         if char_inserted > 0 {
                             let artifact = frame.act(Box::new(GridAction::Set(pos, cell)));
                             // artifact.push(frame.act(Box::new(CursorAction::CharMoveTo(cursor::PreferredCharPosition::ForwardBy(char_inserted)))));
-                            self.cursor.move_to(cursor::PreferredGridPosition::At(pos), cursor::PreferredCharPosition::ForwardBy(char_inserted), &frame);
+                            self.cursor.move_to(cursor::PreferredGridPosition::At(pos), cursor::PreferredCharPosition::ForwardBy(char_inserted), frame);
                             self.history_merge.cancel_all_merge();
 
                             self.history.append(artifact);
@@ -285,21 +285,21 @@ impl Editor {
                                 self.cursor.move_to(
                                     PreferredGridPosition::InDirectionByOffset(Direction::Up, 1),
                                     PreferredCharPosition::AtEnd,
-                                    &frame
+                                    frame
                                 );
                             },
                             Key::ArrowDown | Key::Enter => {
                                 self.cursor.move_to(
                                     PreferredGridPosition::InDirectionByOffset(Direction::Down, 1),
                                     PreferredCharPosition::AtEnd,
-                                    &frame
+                                    frame
                                 );
                             }
                             Key::Tab | Key::Space => {
                                 self.cursor.move_to(
                                     PreferredGridPosition::InDirectionByOffset(Direction::Right, 1),
                                     PreferredCharPosition::AtEnd,
-                                    &frame
+                                    frame
                                 );
                             }
                             Key::ArrowRight => {
@@ -310,12 +310,12 @@ impl Editor {
                                     self.cursor.move_to(
                                         PreferredGridPosition::InDirectionByOffset(Direction::Right, 1),
                                         PreferredCharPosition::AtStart,
-                                        &frame
+                                        frame
                                     );
                                 } else {
                                     self.cursor.char_move_to(
                                         PreferredCharPosition::ForwardBy(1),
-                                        &frame
+                                        frame
                                     );
                                 };
                             },
@@ -324,12 +324,12 @@ impl Editor {
                                     self.cursor.move_to(
                                         PreferredGridPosition::InDirectionByOffset(Direction::Left, 1),
                                         PreferredCharPosition::AtEnd,
-                                        &frame
+                                        frame
                                     );
                                 } else {
                                     self.cursor.char_move_to(
                                         PreferredCharPosition::BackwardBy(1),
-                                        &frame
+                                        frame
                                     );
                                 }
                             },
@@ -361,7 +361,7 @@ impl Editor {
 
                             self.cursor.char_move_to(
                                 PreferredCharPosition::BackwardBy(chars_deleted),
-                                &frame
+                                frame
                             );
 
                             if self.history_merge.should_merge_deletion() {
@@ -375,7 +375,7 @@ impl Editor {
                             self.cursor.move_to(
                                 PreferredGridPosition::InDirectionByOffset(Direction::Left, 1),
                                 PreferredCharPosition::AtEnd,
-                                &frame
+                                frame
                             );
                             self.history_merge.cancel_all_merge();
                         }

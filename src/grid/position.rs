@@ -77,10 +77,7 @@ impl PositionAxis {
     /// assert!(!PositionAxis::is_valid_textual('-'));
     /// ```
     pub fn is_valid_textual(value: char) -> bool {
-        match value {
-            'A'..='Z' | 'a'..='z' | '0'..='9' | '+' | '/' => true,
-            _ => false,
-        }
+        matches!(value, 'A'..='Z' | 'a'..='z' | '0'..='9' | '+' | '/')
     }
 
     /// Return a textual representation from a given numeric representation
@@ -278,7 +275,7 @@ impl PositionAxis {
         {
             let sum = (self.0 as u32).checked_add(value)
                 .ok_or(anyhow::anyhow!("adding these would overflow"))?;
-            Self::from_numeric(sum.into())
+            Self::from_numeric(sum)
         }.context(format!("could not increment further, attempted to increment {:?} by {}, but result must be in range [0-63]", self, value))
     }
 
@@ -307,7 +304,7 @@ impl PositionAxis {
         {
             let diff = (self.0 as u32).checked_sub(value)
                 .ok_or(anyhow::anyhow!("adding these would underflow"))?;
-            Self::from_numeric(diff.into())
+            Self::from_numeric(diff)
         }.context(format!("could not decrement further, attempted to decrement {:?} by {}, but result must be in range [0-63]", self, value))
     }
 }

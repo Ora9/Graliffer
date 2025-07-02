@@ -59,9 +59,9 @@ impl Address {
 
     pub fn as_cell(&self) -> Cell {
         let (x, y) = self.position.as_textual();
-        let cell = Cell::new(format!("{}{}{}", Self::IDENTIFIER, x, y).as_str()).expect("A Position must always have a valid Cell representation");
-
-        cell
+        Cell::new(
+            format!("{}{}{}", Self::IDENTIFIER, x, y).as_str()
+        ).expect("A Position must always have a valid Cell representation")
     }
 
     pub fn as_position(&self) -> Position {
@@ -138,9 +138,9 @@ impl Pointer {
 
     pub fn as_cell(&self) -> Cell {
         let (x, y) = self.position.as_textual();
-        let cell = Cell::new(format!("{}{}{}", Self::IDENTIFIER, x, y).as_str()).expect("A Position must always have a valid Cell representation");
-
-        cell
+        Cell::new(
+            format!("{}{}{}", Self::IDENTIFIER, x, y).as_str()
+        ).expect("A Position must always have a valid Cell representation")
     }
 
     pub fn as_literal(&self) -> Literal {

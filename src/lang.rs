@@ -25,7 +25,6 @@ pub enum Word {
 impl Word {
     /// Return a `Word` given a valid [`Cell`]
     /// cell is a valid [`Operand`] return `Self::Operand` variant, containing the parsed
-
     pub fn from_cell(cell: Cell) -> Self {
         if Opcode::is_cell_valid(&cell) {
             Self::Opcode(Opcode::from_cell(cell).unwrap())

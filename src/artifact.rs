@@ -10,7 +10,7 @@ pub trait Action: std::fmt::Debug + CloneAction {
 }
 
 pub trait CloneAction {
-    fn clone_action<'a>(&self) -> Box<dyn Action>;
+    fn clone_action(&self) -> Box<dyn Action>;
 }
 
 impl<T> CloneAction for T

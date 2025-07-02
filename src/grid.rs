@@ -80,7 +80,7 @@ impl Cell {
         let byte_start = byte_index_from_char_index(self.as_str(), char_range.start);
         let byte_end = byte_index_from_char_index(self.as_str(), char_range.end);
 
-        Ok(self.0.drain(byte_start..byte_end).count() as usize)
+        Ok(self.0.drain(byte_start..byte_end).count())
     }
 
     /// Remove all character from the `Cell`
@@ -111,7 +111,7 @@ impl Cell {
 
     /// Return true if self is empty
     pub fn is_empty(&self) -> bool {
-        self.0 == ""
+        self.0.is_empty()
     }
 
     pub fn content(&self) -> String {
@@ -125,7 +125,7 @@ impl egui::TextBuffer for Cell {
     }
 
     fn as_str(&self) -> &str {
-        &self.0.as_str()
+        self.0.as_str()
     }
 
     fn insert_text(&mut self, text: &str, char_index: usize) -> usize {
