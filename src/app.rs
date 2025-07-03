@@ -25,8 +25,8 @@ impl GralifferApp {
         // initial_grid.set(Position::from_textual('D', 'A').unwrap(), Cell::new("").unwrap());
         initial_grid.set(Position::from_textual('E', 'A').unwrap(), Cell::new("20").unwrap());
         initial_grid.set(Position::from_textual('F', 'A').unwrap(), Cell::new("sub").unwrap());
-        initial_grid.set(Position::from_textual('H', 'A').unwrap(), Cell::new("@AA").unwrap());
-        initial_grid.set(Position::from_textual('I', 'A').unwrap(), Cell::new("jmp").unwrap());
+        initial_grid.set(Position::from_textual('H', 'A').unwrap(), Cell::new("@AB").unwrap());
+        initial_grid.set(Position::from_textual('I', 'A').unwrap(), Cell::new("set").unwrap());
 
         let frame = Frame::new(RunDescriptor {
             grid: initial_grid,
