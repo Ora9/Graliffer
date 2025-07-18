@@ -1,4 +1,7 @@
-use graliffer::GralifferApp;
+mod app;
+use app::{
+    GralifferApp,
+};
 
 fn main() {
     let native_options = eframe::NativeOptions::default();

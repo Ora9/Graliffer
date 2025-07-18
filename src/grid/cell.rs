@@ -105,6 +105,10 @@ impl Cell {
 }
 
 impl egui::TextBuffer for Cell {
+    fn type_id(&self) -> std::any::TypeId {
+        std::any::TypeId::of::<Self>()
+    }
+
     fn is_mutable(&self) -> bool {
         true
     }

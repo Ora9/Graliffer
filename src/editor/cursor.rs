@@ -94,8 +94,11 @@ impl Cursor {
                     self.grid_position()
                 }
             },
-            InDirectionUntilNonEmpty(direction) => {
-                unimplemented!()
+            InDirectionUntilNonEmpty(_direction) => {
+
+                Position::from_numeric(5, 5).unwrap()
+
+                // unimplemented!()
             }
 
                 // let (search_range, perpendicular_origin) = match preferred_grid_position {

@@ -26,9 +26,4 @@ pub use frame::{
 
 mod artifact;
 
-mod app;
-pub use app::{
-    GralifferApp,
-};
-
-mod editor;
+pub mod editor;

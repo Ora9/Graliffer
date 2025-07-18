@@ -2,7 +2,7 @@
 //! The grid holds the code, and data
 //! The stack hold execution data
 
-use std::fmt::Debug;
+use std::{fmt::Debug, slice::Iter};
 
 use crate::{artifact::{Action, Artifact}, Frame, Operand};
 
@@ -35,6 +35,10 @@ impl Stack {
     // pub fn get_last_err(&self) -> Result<&Operand, anyhow::Error> {
     //     self.data.last().ok_or(anyhow::anyhow!("Could not pop an element from the stack"))
     // }
+
+    pub fn iter(&self) -> Iter<Operand> {
+        self.data.iter()
+    }
 }
 
 #[derive(Clone)]

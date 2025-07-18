@@ -1,12 +1,13 @@
 use std::time::{Duration, Instant};
 
-use egui::{emath::TSTransform, Pos2, Rect};
+use egui::{emath::TSTransform, Color32, FontFamily, Pos2, Rect, RichText, Widget};
 
 mod cursor;
 use cursor::Cursor;
 
 mod grid_widget;
 use grid_widget::GridWidget;
+use strum_macros::AsRefStr;
 
 use crate::{artifact::{History}, editor::cursor::{PreferredCharPosition, PreferredGridPosition}, grid::{GridAction, Position, PositionAxis}, utils::Direction, Frame};
 
@@ -76,7 +77,7 @@ impl Editor {
     //     Self::default()
     // }
 
-    pub fn show(&mut self, ui: &mut egui::Ui, frame: &mut Frame) {
+    pub fn grid_ui(&mut self, ui: &mut egui::Ui, frame: &mut Frame) {
         let (_container_id, container_rect) = ui.allocate_space(ui.available_size());
 
         let response = self.handle_inputs(ui, frame);
@@ -95,63 +96,94 @@ impl Editor {
         });
     }
 
+    pub fn stack_ui(&mut self, ui: &mut egui::Ui, frame: &mut Frame) {
+        egui::ScrollArea::vertical()
+            .stick_to_bottom(true)
+            .show(ui, |ui| {
+                egui::Frame::new()
+                    .inner_margin(egui::Vec2 { x: 20.0, y: 10.0})
+                    .show(ui, |ui| {
+                        egui::Grid::new("stack_ui")
+                            .striped(false)
+                            .spacing((5.0, 0.0))
+                            .num_columns(2)
+                            .show(ui, |ui| {
+                                for (i, operand) in frame.stack.iter().enumerate() {
+                                    ui.label(
+                                        RichText::new(format!("{i}: "))
+                                            .size(15.0)
+                                            .family(FontFamily::Monospace)
+                                    );
+
+                                    ui.label(
+                                        RichText::new(format!("{}", operand.as_cell().content()))
+                                            .size(15.0)
+                                            .family(FontFamily::Monospace)
+                                    );
+                                    ui.end_row();
+                                }
+                            });
+                    });
+            });
+    }
+
     fn handle_inputs(&mut self, ui: &mut egui::Ui, frame: &mut Frame) -> egui::Response {
         let container_rect = ui.max_rect();
         let container_id = ui.id();
         let response = ui.interact(container_rect, container_id, egui::Sense::click_and_drag());
 
         if let Some(pointer_pos) = ui.ctx().input(|i| i.pointer.hover_pos()) {
-            if container_rect.contains(pointer_pos)
-                && response.clicked_by(egui::PointerButton::Primary) {
+            if container_rect.contains(pointer_pos) {
+                if response.clicked_by(egui::PointerButton::Primary) {
+                    response.request_focus();
 
-                response.request_focus();
+                    // from pointer position, figure out hovered cell rect and pos
+                    // *_t for translated, as in grid render coordinates
+                    let pointer_pos_t = self.screen_transform.inverse().mul_pos(pointer_pos);
+                    let hovered_cell_pos_t = Pos2 {
+                        x: (pointer_pos_t.x / GridWidget::CELL_FULL_SIZE).clamp(PositionAxis::MIN_NUMERIC as f32, PositionAxis::MAX_NUMERIC as f32),
+                        y: (pointer_pos_t.y / GridWidget::CELL_FULL_SIZE).clamp(PositionAxis::MIN_NUMERIC as f32, PositionAxis::MAX_NUMERIC as f32),
+                    };
 
-                // from pointer position, figure out hovered cell rect and pos
-                // *_t for translated, as in grid render coordinates
-                let pointer_pos_t = self.screen_transform.inverse().mul_pos(pointer_pos);
-                let hovered_cell_pos_t = Pos2 {
-                    x: (pointer_pos_t.x / GridWidget::CELL_FULL_SIZE).clamp(PositionAxis::MIN_NUMERIC as f32, PositionAxis::MAX_NUMERIC as f32),
-                    y: (pointer_pos_t.y / GridWidget::CELL_FULL_SIZE).clamp(PositionAxis::MIN_NUMERIC as f32, PositionAxis::MAX_NUMERIC as f32),
-                };
+                    // Ceil implementation says in https://doc.rust-lang.org/std/primitive.f32.html#method.ceil :
+                    // « Returns the smallest integer greater than or equal to self. » wich mean that 62.0 is still 62.0 not 63.0
+                    // So we truncate and add 1.0 instead
+                    let hovered_cell_rect_t = Rect {
+                        min: hovered_cell_pos_t.floor() * GridWidget::CELL_FULL_SIZE,
+                        max: Pos2 {
+                            x: (hovered_cell_pos_t.x.trunc() + 1.0) * GridWidget::CELL_FULL_SIZE,
+                            y: (hovered_cell_pos_t.y.trunc() + 1.0) * GridWidget::CELL_FULL_SIZE,
+                        }
+                    };
 
-                // Ceil implementation says in https://doc.rust-lang.org/std/primitive.f32.html#method.ceil :
-                // « Returns the smallest integer greater than or equal to self. » wich mean that 62.0 is still 62.0 not 63.0
-                // So we truncate and add 1.0 instead
-                let hovered_cell_rect_t = Rect {
-                    min: hovered_cell_pos_t.floor() * GridWidget::CELL_FULL_SIZE,
-                    max: Pos2 {
-                        x: (hovered_cell_pos_t.x.trunc() + 1.0) * GridWidget::CELL_FULL_SIZE,
-                        y: (hovered_cell_pos_t.y.trunc() + 1.0) * GridWidget::CELL_FULL_SIZE,
-                    }
-                };
+                    let hovered_cell_x = hovered_cell_pos_t.x.floor() as u32;
+                    let hovered_cell_y = hovered_cell_pos_t.y.floor() as u32;
+                    // let hovered_cell_pos = self.screen_transform.mul_pos(hovered_cell_pos_t);
+                    let hovered_cell_rect = self.screen_transform.mul_rect(hovered_cell_rect_t);
 
-                let hovered_cell_x = hovered_cell_pos_t.x.floor() as u32;
-                let hovered_cell_y = hovered_cell_pos_t.y.floor() as u32;
-                // let hovered_cell_pos = self.screen_transform.mul_pos(hovered_cell_pos_t);
-                let hovered_cell_rect = self.screen_transform.mul_rect(hovered_cell_rect_t);
-
-                if hovered_cell_rect.contains(pointer_pos) {
-                    // TODO: move the cursor to the right spot when clicking on text
-                    // Should be possible if we work on Cursor with prefered position
-                    if let Ok(grid_pos) = Position::from_numeric(hovered_cell_x, hovered_cell_y) {
-                        self.cursor.move_to(cursor::PreferredGridPosition::At(grid_pos), cursor::PreferredCharPosition::AtEnd, frame);
+                    if hovered_cell_rect.contains(pointer_pos) {
+                        // TODO: move the cursor to the right spot when clicking on text
+                        // Should be possible if we work on Cursor with prefered position
+                        if let Ok(grid_pos) = Position::from_numeric(hovered_cell_x, hovered_cell_y) {
+                            self.cursor.move_to(cursor::PreferredGridPosition::At(grid_pos), cursor::PreferredCharPosition::AtEnd, frame);
+                        }
                     }
                 }
+
+                let pointer_in_layer = self.screen_transform.inverse() * pointer_pos;
+                let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
+                let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta * 1.5);
+                // let multi_touch_info = ui.ctx().input(|i| i.multi_touch());
+
+                // Zoom in on pointer:
+                self.grid_transform = self.grid_transform
+                    * TSTransform::from_translation(pointer_in_layer.to_vec2())
+                    * TSTransform::from_scaling(zoom_delta)
+                    * TSTransform::from_translation(-pointer_in_layer.to_vec2());
+
+                // Pan:
+                self.grid_transform = TSTransform::from_translation(pan_delta * 2.0) * self.grid_transform;
             }
-
-            let pointer_in_layer = self.screen_transform.inverse() * pointer_pos;
-            let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
-            let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta * 1.5);
-            // let multi_touch_info = ui.ctx().input(|i| i.multi_touch());
-
-            // Zoom in on pointer:
-            self.grid_transform = self.grid_transform
-                * TSTransform::from_translation(pointer_in_layer.to_vec2())
-                * TSTransform::from_scaling(zoom_delta)
-                * TSTransform::from_translation(-pointer_in_layer.to_vec2());
-
-            // Pan:
-            self.grid_transform = TSTransform::from_translation(pan_delta * 2.0) * self.grid_transform;
         }
 
         let event_filter = egui::EventFilter {
@@ -275,6 +307,7 @@ impl Editor {
                             | Key::ArrowLeft
                             | Key::ArrowUp),
                         pressed: true,
+                        modifiers,
                         ..
                     } => {
 
@@ -282,6 +315,13 @@ impl Editor {
 
                         match key {
                             Key::ArrowUp => {
+                                if modifiers.ctrl {
+
+
+                                } else {
+
+                                }
+
                                 self.cursor.move_to(
                                     PreferredGridPosition::InDirectionByOffset(Direction::Up, 1),
                                     PreferredCharPosition::AtEnd,
@@ -304,33 +344,62 @@ impl Editor {
                             }
                             Key::ArrowRight => {
                                 let current_cell_len = frame.grid.get(self.cursor.grid_position()).len();
-
                                 // if we are already at the end of this cell
                                 if self.cursor.char_position() == current_cell_len {
-                                    self.cursor.move_to(
-                                        PreferredGridPosition::InDirectionByOffset(Direction::Right, 1),
-                                        PreferredCharPosition::AtStart,
-                                        frame
-                                    );
+                                    if modifiers.ctrl {
+                                        self.cursor.move_to(
+                                            PreferredGridPosition::InDirectionUntilNonEmpty(Direction::Right),
+                                            PreferredCharPosition::AtStart,
+                                            frame
+                                        );
+                                    } else {
+                                        self.cursor.move_to(
+                                            PreferredGridPosition::InDirectionByOffset(Direction::Right, 1),
+                                            PreferredCharPosition::AtStart,
+                                            frame
+                                        );
+                                    }
                                 } else {
-                                    self.cursor.char_move_to(
-                                        PreferredCharPosition::ForwardBy(1),
-                                        frame
-                                    );
+                                    if modifiers.ctrl {
+                                        self.cursor.char_move_to(
+                                            PreferredCharPosition::AtEnd,
+                                            frame
+                                        );
+                                    } else {
+                                        self.cursor.char_move_to(
+                                            PreferredCharPosition::ForwardBy(1),
+                                            frame
+                                        );
+                                    }
                                 };
                             },
                             Key::ArrowLeft => {
                                 if self.cursor.char_position() == 0 {
-                                    self.cursor.move_to(
-                                        PreferredGridPosition::InDirectionByOffset(Direction::Left, 1),
-                                        PreferredCharPosition::AtEnd,
-                                        frame
-                                    );
+                                    if modifiers.ctrl {
+                                        self.cursor.move_to(
+                                            PreferredGridPosition::InDirectionUntilNonEmpty(Direction::Left),
+                                            PreferredCharPosition::AtStart,
+                                            frame
+                                        );
+                                    } else {
+                                        self.cursor.move_to(
+                                            PreferredGridPosition::InDirectionByOffset(Direction::Left, 1),
+                                            PreferredCharPosition::AtEnd,
+                                            frame
+                                        );
+                                    }
                                 } else {
-                                    self.cursor.char_move_to(
-                                        PreferredCharPosition::BackwardBy(1),
-                                        frame
-                                    );
+                                    if modifiers.ctrl {
+                                        self.cursor.char_move_to(
+                                            PreferredCharPosition::AtStart,
+                                            frame
+                                        );
+                                    } else {
+                                        self.cursor.char_move_to(
+                                            PreferredCharPosition::BackwardBy(1),
+                                            frame
+                                        );
+                                    }
                                 }
                             },
                             _ => unreachable!(),

@@ -59,7 +59,6 @@ impl Frame {
                     artifact
                 }
             }
-            // println!(" - {:?}", self.stack);
         }
     }
 
