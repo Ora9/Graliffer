@@ -1,4 +1,4 @@
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 
 use crate::grid::{Grid, Cell, Position};
 
@@ -26,6 +26,24 @@ impl Literal {
         Self::new(cell)
     }
 
+    /// Get a `Literal` from a `bool`, where :
+    /// - `false` equals `0`
+    /// - `true` equals `1`
+    pub fn from_bool(value: bool) -> Self {
+        Self::from_cell(Cell::new_trim(
+            match value {
+                true => "1",
+                false => "0"
+            }
+        ))
+    }
+
+    pub fn from_number(value: u32) -> Self {
+        Self::from_cell(Cell::new_trim(
+            value.to_string().as_str()
+        ))
+    }
+
     /// Get a [`Cell`] from a `Literal`
     pub fn as_cell(&self) -> Cell {
         self.value.clone()
@@ -33,14 +51,14 @@ impl Literal {
 
     /// Return a boolean evaluation of a `Literal` :
     ///
-    /// - `0` return `Some(false)`
-    /// - `1` return `Some(true)`
-    /// - Anything else return `None`
-    pub fn as_bool(&self) -> Option<bool> {
+    /// - `0` return `Ok(false)`
+    /// - `1` return `Ok(true)`
+    /// - Anything else return an `Err`
+    pub fn as_bool(&self) -> Result<bool, anyhow::Error> {
         match self.value.content().as_str() {
-            "0" => Some(false),
-            "1" => Some(true),
-            _ => None,
+            "0" => Ok(false),
+            "1" => Ok(true),
+            _ => Err(anyhow!("Could not parse the operand as a bool")),
         }
     }
 
@@ -54,9 +72,11 @@ impl Literal {
 
     /// Return a numeric evaluation of a `Literal`
     ///
-    /// Return `None` if contained value couldn't be parsed a numeric
-    pub fn as_numeric(&self) -> Option<u32> {
-        self.value.content().parse().ok()
+    /// Return an `Err` if contained value couldn't be parsed a numeric
+    pub fn as_numeric(&self) -> Result<u32, anyhow::Error> {
+        self.value.content()
+            .parse()
+            .context("Could not parse the operand as a number")
     }
 
     /// Return a numeric evaluation of a `Literal`, with a default to `0`
@@ -65,6 +85,7 @@ impl Literal {
     pub fn as_numeric_with_default(&self) -> u32 {
         self.value.content().parse().unwrap_or(0)
     }
+
 }
 
 /// An `Address` contain a [`Position`] and can be used by operations in
@@ -344,4 +365,22 @@ impl Operand {
     // pub fn resolve_as_numeric(&self, grid: &Grid) -> u32 {
     //     self.resolve_to_literal(grid).as_numeric()
     // }
+}
+
+impl From<Literal> for Operand {
+    fn from(value : Literal) -> Self {
+        Self::Literal(value)
+    }
+}
+
+impl From<Address> for Operand {
+    fn from(value: Address) -> Self {
+        Self::Address(value)
+    }
+}
+
+impl From<Pointer> for Operand {
+    fn from(value: Pointer) -> Self {
+        Self::Pointer(value)
+    }
 }

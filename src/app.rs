@@ -1,9 +1,10 @@
-use graliffer::{
-	editor::Editor, grid::{Cell, Grid, Position}, Frame, RunDescriptor
-};
 use egui_tiles::{TileId, Tiles, Tree};
+use graliffer::{
+    Frame, RunDescriptor,
+    editor::Editor,
+    grid::{Cell, Grid, Position},
+};
 use strum_macros::AsRefStr;
-
 
 pub struct GralifferApp {
     layout_tree: egui_tiles::Tree<Pane>,
@@ -26,7 +27,7 @@ impl GralifferApp {
 
         Self {
             layout_tree: Self::create_layout_tree(),
-            state
+            state,
         }
     }
 
@@ -92,7 +93,6 @@ impl eframe::App for GralifferApp {
                     egui::widgets::global_theme_preference_buttons(ui);
                     ui.separator();
                     ui.checkbox(&mut self.state.inspect, "Inspect");
-
                 });
                 ui.menu_button("File", |ui| {
                     if ui.button("Open file").clicked() {
@@ -111,9 +111,9 @@ impl eframe::App for GralifferApp {
 
                 ui.add_space(16.0);
 
-
                 if self.state.inspect {
-                    let since_last_frame = std::time::Duration::from_secs_f32(frame.info().cpu_usage.unwrap());
+                    let since_last_frame =
+                        std::time::Duration::from_secs_f32(frame.info().cpu_usage.unwrap());
                     ui.label(format!("{:?}", since_last_frame));
                 }
 
@@ -160,17 +160,44 @@ pub struct GralifferState {
 
 impl GralifferState {
     pub fn new() -> Self {
-       	let mut initial_grid = Grid::new();
-        initial_grid.set(Position::from_textual('A', 'A').unwrap(), Cell::new("100").unwrap());
-        initial_grid.set(Position::from_textual('B', 'A').unwrap(), Cell::new("&BB").unwrap());
-        initial_grid.set(Position::from_textual('C', 'A').unwrap(), Cell::new("div").unwrap());
-        initial_grid.set(Position::from_textual('B', 'B').unwrap(), Cell::new("@CB").unwrap());
-        initial_grid.set(Position::from_textual('C', 'B').unwrap(), Cell::new("3").unwrap());
+        let mut initial_grid = Grid::new();
+        initial_grid.set(
+            Position::from_textual('A', 'A').unwrap(),
+            Cell::new("100").unwrap(),
+        );
+        initial_grid.set(
+            Position::from_textual('B', 'A').unwrap(),
+            Cell::new("&BB").unwrap(),
+        );
+        initial_grid.set(
+            Position::from_textual('C', 'A').unwrap(),
+            Cell::new("div").unwrap(),
+        );
+        initial_grid.set(
+            Position::from_textual('B', 'B').unwrap(),
+            Cell::new("@CB").unwrap(),
+        );
+        initial_grid.set(
+            Position::from_textual('C', 'B').unwrap(),
+            Cell::new("3").unwrap(),
+        );
         // initial_grid.set(Position::from_textual('D', 'A').unwrap(), Cell::new("").unwrap());
-        initial_grid.set(Position::from_textual('E', 'A').unwrap(), Cell::new("20").unwrap());
-        initial_grid.set(Position::from_textual('F', 'A').unwrap(), Cell::new("sub").unwrap());
-        initial_grid.set(Position::from_textual('H', 'A').unwrap(), Cell::new("@AB").unwrap());
-        initial_grid.set(Position::from_textual('I', 'A').unwrap(), Cell::new("set").unwrap());
+        initial_grid.set(
+            Position::from_textual('E', 'A').unwrap(),
+            Cell::new("20").unwrap(),
+        );
+        initial_grid.set(
+            Position::from_textual('F', 'A').unwrap(),
+            Cell::new("sub").unwrap(),
+        );
+        initial_grid.set(
+            Position::from_textual('H', 'A').unwrap(),
+            Cell::new("@AB").unwrap(),
+        );
+        initial_grid.set(
+            Position::from_textual('I', 'A').unwrap(),
+            Cell::new("set").unwrap(),
+        );
 
         let frame = Frame::new(RunDescriptor {
             grid: initial_grid,
@@ -190,8 +217,6 @@ impl GralifferState {
 }
 
 impl<'a> egui_tiles::Behavior<Pane> for GralifferState {
-
-
     fn tab_title_for_pane(&mut self, pane: &Pane) -> egui::WidgetText {
         pane.as_ref().into()
     }

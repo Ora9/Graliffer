@@ -22,6 +22,12 @@ impl Cell {
         }
     }
 
+    /// Get a `Cell` from a `&str`, trimming any excess (more than 3 graphems)
+    pub fn new_trim(string: &str) -> Self {
+        let string = UnicodeSegmentation::graphemes(string, true).take(2).collect::<String>();
+        Self (string)
+    }
+
     /// Try to insert `string` into the `Cell` at the specified `char_index`
     ///
     /// # Notes
