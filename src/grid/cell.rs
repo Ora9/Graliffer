@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 use egui::TextBuffer;
-use serde::Serialize;
+use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
 use unicode_segmentation::UnicodeSegmentation;
 
 /// A `Cell` represents a unit of a [`Grid`], it holds a string of 3 chars (more precislely unicode graphems)
@@ -24,7 +24,7 @@ impl Cell {
 
     /// Get a `Cell` from a `&str`, trimming any excess (more than 3 graphems)
     pub fn new_trim(string: &str) -> Self {
-        let string = UnicodeSegmentation::graphemes(string, true).take(2).collect::<String>();
+        let string = UnicodeSegmentation::graphemes(string, true).take(3).collect::<String>();
         Self (string)
     }
 
@@ -147,4 +147,31 @@ pub fn byte_index_from_char_index(s: &str, char_index: usize) -> usize {
         }
     }
     s.len()
+}
+
+impl<'de> Deserialize<'de> for Cell {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct PositionVisitor;
+
+        impl<'de> Visitor<'de> for PositionVisitor {
+
+            type Value = Cell;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("valid cell")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+                where
+                    E: serde::de::Error, {
+
+                        Ok(Cell::new_trim(v))
+            }
+        }
+
+        deserializer.deserialize_str(PositionVisitor)
+    }
 }

@@ -1,5 +1,6 @@
 use std::time::{Duration, Instant};
 
+use anyhow::Context;
 use egui::{emath::TSTransform, Color32, FontFamily, Pos2, Rect, RichText, Widget};
 
 mod cursor;
@@ -7,6 +8,7 @@ use cursor::Cursor;
 
 mod grid_widget;
 use grid_widget::GridWidget;
+use serde::{Deserialize, Serialize};
 use strum_macros::AsRefStr;
 
 use crate::{artifact::{History}, editor::cursor::{PreferredCharPosition, PreferredGridPosition}, grid::{GridAction, Position, PositionAxis}, utils::Direction, Frame};
@@ -125,6 +127,13 @@ impl Editor {
                             });
                     });
             });
+    }
+
+    pub fn console_ui(&mut self, ui: &mut egui::Ui, frame: &mut Frame) {
+        // ui.add_sized(ui.available_size(), |ui| {
+        //     egui::Label::new(frame.console.buffer.to_owned())
+        //         .ui(ui)
+        // });
     }
 
     fn handle_inputs(&mut self, ui: &mut egui::Ui, frame: &mut Frame) -> egui::Response {
@@ -283,7 +292,10 @@ impl Editor {
                         modifiers,
                         ..
                     } if modifiers.ctrl => {
-                        dbg!(&self.history);
+                        let file_out = serde_json::to_string_pretty(&frame).unwrap();
+
+                        let file_in = serde_json::from_str::<Frame>(&file_out);
+                        dbg!(file_in);
                     }
 
                     Event::Key {

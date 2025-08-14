@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Context};
+use serde::{Deserialize, Serialize};
 
 use crate::grid::{Grid, Cell, Position};
 
@@ -8,7 +9,7 @@ use crate::grid::{Grid, Cell, Position};
 /// - as string
 /// - as number, parsed as
 /// - as boolean, can either be `false` when the cell's content strictly equal `0`, anything other is considered `true`, a common
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Literal {
     value: Cell,
 }
@@ -113,7 +114,7 @@ impl Literal {
 /// [position representation](Position#representation) for more information
 ///
 /// Example : `@AB` or `@Q+`
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Address {
     pub position: Position
 }
@@ -183,7 +184,7 @@ impl Address {
 /// [position representation](Position#representation) for more information
 ///
 /// Example : `&AB` or `&Q+`
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Pointer {
     position: Position,
 }
@@ -279,7 +280,7 @@ impl Pointer {
 /// - [`Pointer`] : a way to designate another cell's operand, that will then
 /// be interpreted. Multiples pointers can be chained to allow complex
 /// data references
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum Operand {
     Literal(Literal),
     Address(Address),

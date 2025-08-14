@@ -1,7 +1,8 @@
 use std::fmt::Debug;
+use serde::{Deserialize, Serialize};
 use strum_macros::AsRefStr;
 
-#[derive(AsRefStr, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, AsRefStr, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
     Up,
     Right,

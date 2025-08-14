@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 
 use anyhow::Context;
+use serde::{Deserialize, Serialize};
 use crate::utils::Direction;
 
 use crate::{artifact::{Action, Artifact}, grid::Position, Frame};
@@ -25,7 +26,7 @@ use crate::{artifact::{Action, Artifact}, grid::Position, Frame};
 /// head.take_step();
 /// assert_eq!(head.position, pos2);
 /// ```
-#[derive(Clone, Copy)]
+#[derive(Serialize, Deserialize, Clone, Copy)]
 pub struct Head {
     pub position: Position,
     pub direction: Direction,

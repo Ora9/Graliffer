@@ -5,8 +5,9 @@
 mod utils;
 
 pub mod grid;
-
 pub mod stack;
+
+pub mod console;
 
 mod lang;
 pub use lang::{
@@ -20,7 +21,6 @@ pub use lang::{
 
 mod frame;
 pub use frame::{
-    RunDescriptor,
     Frame,
 };
 

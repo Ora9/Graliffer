@@ -3,7 +3,7 @@ use anyhow::anyhow;
 use strum_macros::EnumString;
 
 use crate::{
-    artifact::Artifact, grid::{Cell, GridAction, HeadAction}, stack::StackAction, utils::Direction, Address, Literal
+    artifact::Artifact, console::ConsoleAction, grid::{Cell, GridAction, HeadAction}, stack::StackAction, utils::Direction, Address, Literal
 };
 
 use super::{Frame, Operand};
@@ -131,7 +131,11 @@ pub enum Opcode {
     Grq,
     Lsq,
 
+    // Grid manipulation
     Set,
+
+    // Console output
+    Prt,
 }
 
 
@@ -286,6 +290,17 @@ impl Opcode {
                 if let (Ok(address), Ok(literal)) = (address_res, literal_res) {
                     let set_artifact = frame.act(Box::new(GridAction::Set(address.position, literal.as_cell())));
                     artifact.push(set_artifact);
+                }
+
+                artifact
+            }
+
+            Prt => {
+                let (operand_res, mut artifact) = pop_operand(frame);
+
+                if let Ok(operand) = operand_res {
+                    let prt_artifact = frame.act(Box::new(ConsoleAction::Print(operand.as_cell().content())));
+                    artifact.push(prt_artifact);
                 }
 
                 artifact

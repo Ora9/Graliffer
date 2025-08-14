@@ -4,9 +4,11 @@
 
 use std::{fmt::Debug, slice::Iter};
 
+use serde::{Deserialize, Serialize};
+
 use crate::{artifact::{Action, Artifact}, Frame, Operand};
 
-#[derive(Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Stack {
     data: Vec<Operand>,
 }

@@ -1,7 +1,7 @@
 //! Grid represent the Graliffer grid, it hold the data
 
 use std::{collections::HashMap, fmt::Debug};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 mod position;
 pub use position::{
@@ -22,7 +22,7 @@ use crate::{artifact::{Action, Artifact}, Frame};
 
 /// A `Grid` represents a 2d space filled with [`Cell`]s, theses cells are positioned by a [`Position`]
 ///
-#[derive(Default, Debug, Serialize)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Grid(HashMap<Position, Cell>);
 
 impl Grid {

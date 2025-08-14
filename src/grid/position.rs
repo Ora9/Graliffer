@@ -1,7 +1,7 @@
 use std::fmt::{Debug};
 
-use anyhow::{Context, bail};
-use serde::{Serialize, Serializer};
+use anyhow::{bail, Context};
+use serde::{de::Visitor, Deserialize, Deserializer, Serialize, Serializer};
 
 /// `PositionAxis` represents a coordinate axis in the [Grid](crate::grid::Grid). A combination of two `PositionAxis` makes a [`Position`]
 ///
@@ -351,15 +351,6 @@ impl TryFrom<char> for PositionAxis {
     }
 }
 
-impl Serialize for PositionAxis {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_char(self.as_textual())
-    }
-}
-
 impl Debug for PositionAxis {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "PositionAxis (`{}` ({}))", self.as_textual(), self.as_numeric())
@@ -609,6 +600,33 @@ impl Serialize for Position {
     }
 }
 
+impl<'de> Deserialize<'de> for Position {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct PositionVisitor;
+
+        impl<'de> Visitor<'de> for PositionVisitor {
+
+            type Value = Position;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("valid position (`A-Za-z+/`)")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+                where
+                    E: serde::de::Error, {
+                        Position::try_from(v).map_err(|error| {
+                            serde::de::Error::custom(error)
+                        })
+            }
+        }
+
+        deserializer.deserialize_str(PositionVisitor)
+    }
+}
 // pub trait Deserialize<'de>: Sized {
 //     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 //     where

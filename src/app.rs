@@ -1,6 +1,6 @@
 use egui_tiles::{TileId, Tiles, Tree};
 use graliffer::{
-    Frame, RunDescriptor,
+    Frame,
     editor::Editor,
     grid::{Cell, Grid, Position},
 };
@@ -83,6 +83,35 @@ impl eframe::App for GralifferApp {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("Graliffer", |ui| {
+
+                    if ui.button("Open file").clicked() {
+
+                        use rfd::AsyncFileDialog;
+
+                        let future = async {
+                            let file = AsyncFileDialog::new()
+                                .add_filter("text", &["txt", "rs"])
+                                .add_filter("rust", &["rs", "toml"])
+                                .set_directory("/")
+                                .pick_file()
+                                .await;
+
+                            let data = file.unwrap().read().await;
+                        };
+
+                        // use rfd::FileDialog;
+
+                        // let files = FileDialog::new()
+                        //     .
+                        //     // .add_filter("text", &["txt", "rs"])
+                        //     // .add_filter("rust", &["rs", "toml"])
+                        //     .set_directory("/")
+                        //     .pick_file();
+
+
+                        // dbg!(files);
+                    }
+
                     if ui.button("About Graliffer").clicked() {
                         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                     }
@@ -199,10 +228,10 @@ impl GralifferState {
             Cell::new("set").unwrap(),
         );
 
-        let frame = Frame::new(RunDescriptor {
+        let frame = Frame {
             grid: initial_grid,
             ..Default::default()
-        });
+        };
 
         let editor = Editor::default();
 
@@ -233,6 +262,9 @@ impl<'a> egui_tiles::Behavior<Pane> for GralifferState {
             }
             Pane::Stack => {
                 self.editor.stack_ui(ui, &mut self.frame);
+            }
+            Pane::Console => {
+                self.editor.console_ui(ui, &mut self.frame);
             }
             _ => {
                 ui.label(format!("{}", pane.as_ref()));

@@ -1,30 +1,37 @@
+use serde::{Deserialize, Serialize};
+
 use crate::{
-    artifact::{Action, Artifact}, grid::{Grid, Head, HeadAction}, stack::{Stack, StackAction}, Word
+    artifact::{Action, Artifact}, console::Console, grid::{Grid, Head, HeadAction}, stack::{Stack, StackAction}, Word
 };
 
-#[derive(Default)]
-pub struct RunDescriptor {
-    pub head: Head,
-    pub grid: Grid,
-    pub stack: Stack,
-}
+// #[derive(Default)]
+// pub struct RunDescriptor {
+//     pub head: Head,
+//     pub grid: Grid,
+//     pub stack: Stack,
+// }
 
 /// A [`Frame`] represents a run
-#[derive(Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Frame {
     pub head: Head,
     pub grid: Grid,
     pub stack: Stack,
+
+    #[serde(skip)]
+    pub console: Console,
 }
 
 impl Frame {
-    pub fn new(descriptor: RunDescriptor) -> Self {
-        Self {
-            head: descriptor.head,
-            grid: descriptor.grid,
-            stack: descriptor.stack,
-        }
-    }
+    // pub fn new() -> Self {
+    //     Self {
+    //         head: descriptor.head,
+    //         grid: descriptor.grid,
+    //         stack: descriptor.stack,
+
+    //         console: descriptor.console,
+    //     }
+    // }
 
     /// Make a step, the minimal unit of a Graliffer execution :
     /// - Move head 1 cell in its direction
