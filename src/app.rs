@@ -1,3 +1,6 @@
+use std::{sync::{Arc, Mutex}, thread};
+
+use egui::Widget;
 use egui_tiles::{TileId, Tiles, Tree};
 use graliffer::{
     Frame,
@@ -85,31 +88,7 @@ impl eframe::App for GralifferApp {
                 ui.menu_button("Graliffer", |ui| {
 
                     if ui.button("Open file").clicked() {
-
-                        use rfd::AsyncFileDialog;
-
-                        let future = async {
-                            let file = AsyncFileDialog::new()
-                                .add_filter("text", &["txt", "rs"])
-                                .add_filter("rust", &["rs", "toml"])
-                                .set_directory("/")
-                                .pick_file()
-                                .await;
-
-                            let data = file.unwrap().read().await;
-                        };
-
-                        // use rfd::FileDialog;
-
-                        // let files = FileDialog::new()
-                        //     .
-                        //     // .add_filter("text", &["txt", "rs"])
-                        //     // .add_filter("rust", &["rs", "toml"])
-                        //     .set_directory("/")
-                        //     .pick_file();
-
-
-                        // dbg!(files);
+                        self.state.load_file();
                     }
 
                     if ui.button("About Graliffer").clicked() {
@@ -147,17 +126,18 @@ impl eframe::App for GralifferApp {
                 }
 
                 if ui.button("Step").clicked() {
-                    let artifact = self.state.frame.step();
+                    let mut frame_guard = self.state.frame.lock().unwrap();
+                    let artifact = frame_guard.step();
 
                     self.state.editor.history.append(artifact);
                 }
 
                 if ui.button("Undo").clicked() {
-                    self.state.editor.history.undo(&mut self.state.frame);
+                    self.state.editor.history.undo(&mut self.state.frame.lock().unwrap());
                 }
 
                 if ui.button("Redo").clicked() {
-                    self.state.editor.history.redo(&mut self.state.frame);
+                    self.state.editor.history.redo(&mut self.state.frame.lock().unwrap());
                 }
             });
         });
@@ -183,8 +163,9 @@ impl eframe::App for GralifferApp {
 pub struct GralifferState {
     inspect: bool,
     first_frame: bool,
-    frame: Frame,
+    // frame: Frame,
     editor: Editor,
+    frame: Arc<Mutex<Frame>>
 }
 
 impl GralifferState {
@@ -233,15 +214,41 @@ impl GralifferState {
             ..Default::default()
         };
 
-        let editor = Editor::default();
+        let frame_arc = Arc::new(Mutex::new(frame));
 
         Self {
-            frame,
-            editor,
+            editor: Editor::new(),
+
+            frame: frame_arc,
 
             first_frame: true,
             inspect: false,
         }
+    }
+
+    pub fn load_file(&self) {
+        use rfd::FileDialog;
+
+        println!("Open File!");
+
+        let frame_arc = self.frame.clone();
+
+        thread::spawn(async move || {
+            dbg!("in thread");
+            let files = FileDialog::new()
+                .add_filter("text", &["txt", "rs"])
+                .add_filter("rust", &["rs", "toml"])
+                .set_directory("/")
+                .pick_file()
+                .unwrap();
+
+            dbg!(files);
+            // let data = files.read();
+            // dbg!(frame_arc.lock().unwrap());
+            let mut frame = frame_arc.lock().unwrap();
+
+            frame.act(Box::new(graliffer::grid::GridAction::Set(Position::from_numeric(5, 5).unwrap(), Cell::new_trim("OUI"))));
+        });
     }
 }
 
@@ -256,15 +263,17 @@ impl<'a> egui_tiles::Behavior<Pane> for GralifferState {
         _tile_id: egui_tiles::TileId,
         pane: &mut Pane,
     ) -> egui_tiles::UiResponse {
+        let frame = self.frame.clone();
+
         match pane {
             Pane::Grid => {
-                self.editor.grid_ui(ui, &mut self.frame);
+                self.editor.grid_ui(ui, frame);
             }
             Pane::Stack => {
-                self.editor.stack_ui(ui, &mut self.frame);
+                self.editor.stack_ui(ui, frame);
             }
             Pane::Console => {
-                self.editor.console_ui(ui, &mut self.frame);
+                self.editor.console_ui(ui, frame);
             }
             _ => {
                 ui.label(format!("{}", pane.as_ref()));

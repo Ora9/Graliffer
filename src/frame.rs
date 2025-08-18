@@ -4,13 +4,6 @@ use crate::{
     artifact::{Action, Artifact}, console::Console, grid::{Grid, Head, HeadAction}, stack::{Stack, StackAction}, Word
 };
 
-// #[derive(Default)]
-// pub struct RunDescriptor {
-//     pub head: Head,
-//     pub grid: Grid,
-//     pub stack: Stack,
-// }
-
 /// A [`Frame`] represents a run
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Frame {

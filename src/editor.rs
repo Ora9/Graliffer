@@ -1,4 +1,4 @@
-use std::time::{Duration, Instant};
+use std::{sync::{Arc, Mutex}, time::{Duration, Instant}};
 
 use anyhow::Context;
 use egui::{emath::TSTransform, Color32, FontFamily, Pos2, Rect, RichText, Widget};
@@ -8,6 +8,10 @@ use cursor::Cursor;
 
 mod grid_widget;
 use grid_widget::GridWidget;
+
+mod console_widget;
+pub use console_widget::ConsoleWidget;
+
 use serde::{Deserialize, Serialize};
 use strum_macros::AsRefStr;
 
@@ -75,65 +79,73 @@ impl HistoryMerge {
 }
 
 impl Editor {
-    // pub fn new() -> Self {
-    //     Self::default()
-    // }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
-    pub fn grid_ui(&mut self, ui: &mut egui::Ui, frame: &mut Frame) {
+    pub fn grid_ui(&mut self, ui: &mut egui::Ui, frame: Arc<Mutex<Frame>>) {
         let (_container_id, container_rect) = ui.allocate_space(ui.available_size());
 
-        let response = self.handle_inputs(ui, frame);
+        if let Ok(mut frame) = frame.try_lock() {
 
-        // Adjust the grid to follow the container position
-        self.screen_transform =
-            TSTransform::from_translation(ui.min_rect().left_top().to_vec2()) * self.grid_transform;
+            let response = self.handle_inputs(ui, &mut *frame);
 
-        ui.put(container_rect, GridWidget {
-            transform: self.screen_transform,
-            cursor: self.cursor,
-            head: frame.head,
-            grid: &frame.grid,
+            // Adjust the grid to follow the container position
+            self.screen_transform =
+                TSTransform::from_translation(ui.min_rect().left_top().to_vec2()) * self.grid_transform;
 
-            has_focus: response.has_focus(),
-        });
-    }
+            ui.put(container_rect, GridWidget {
+                transform: self.screen_transform,
+                cursor: self.cursor,
+                head: frame.head,
+                grid: &frame.grid,
 
-    pub fn stack_ui(&mut self, ui: &mut egui::Ui, frame: &mut Frame) {
-        egui::ScrollArea::vertical()
-            .stick_to_bottom(true)
-            .show(ui, |ui| {
-                egui::Frame::new()
-                    .inner_margin(egui::Vec2 { x: 20.0, y: 10.0})
-                    .show(ui, |ui| {
-                        egui::Grid::new("stack_ui")
-                            .striped(false)
-                            .spacing((5.0, 0.0))
-                            .num_columns(2)
-                            .show(ui, |ui| {
-                                for (i, operand) in frame.stack.iter().enumerate() {
-                                    ui.label(
-                                        RichText::new(format!("{i}: "))
-                                            .size(15.0)
-                                            .family(FontFamily::Monospace)
-                                    );
-
-                                    ui.label(
-                                        RichText::new(format!("{}", operand.as_cell().content()))
-                                            .size(15.0)
-                                            .family(FontFamily::Monospace)
-                                    );
-                                    ui.end_row();
-                                }
-                            });
-                    });
+                has_focus: response.has_focus(),
             });
+        } else {
+            ui.label("Could not show the grid");
+        }
     }
 
-    pub fn console_ui(&mut self, ui: &mut egui::Ui, frame: &mut Frame) {
-        // ui.add_sized(ui.available_size(), |ui| {
-        //     egui::Label::new(frame.console.buffer.to_owned())
-        //         .ui(ui)
-        // });
+    pub fn console_ui(&self, ui: &mut egui::Ui, frame: Arc<Mutex<Frame>>) {
+        ConsoleWidget::new(frame).ui(ui);
+    }
+
+    pub fn stack_ui(&mut self, ui: &mut egui::Ui, frame: Arc<Mutex<Frame>>) {
+
+        if let Ok(mut frame) = frame.try_lock() {
+            egui::ScrollArea::vertical()
+                .stick_to_bottom(true)
+                .show(ui, |ui| {
+                    egui::Frame::new()
+                        .inner_margin(egui::Vec2 { x: 20.0, y: 10.0})
+                        .show(ui, |ui| {
+                            egui::Grid::new("stack_ui")
+                                .striped(false)
+                                .spacing((5.0, 0.0))
+                                .num_columns(2)
+                                .show(ui, |ui| {
+                                    for (i, operand) in frame.stack.iter().enumerate() {
+                                        ui.label(
+                                            RichText::new(format!("{i}: "))
+                                                .size(15.0)
+                                                .family(FontFamily::Monospace)
+                                        );
+
+                                        ui.label(
+                                            RichText::new(format!("{}", operand.as_cell().content()))
+                                                .size(15.0)
+                                                .family(FontFamily::Monospace)
+                                        );
+                                        ui.end_row();
+                                    }
+                                });
+                        });
+                });
+        } else {
+            ui.label("Could not show the stack");
+        }
+
     }
 
     fn handle_inputs(&mut self, ui: &mut egui::Ui, frame: &mut Frame) -> egui::Response {
@@ -232,6 +244,15 @@ impl Editor {
                             self.history_merge.update_input_timeout();
                             self.history_merge.cancel_deletion_merge();
                         }
+                    }
+
+                    // Open file
+                    Event::Key {
+                        key: Key::O,
+                        pressed: true,
+                        modifiers,
+                        ..
+                    } if modifiers.ctrl => {
                     }
 
                     // Clipboard
