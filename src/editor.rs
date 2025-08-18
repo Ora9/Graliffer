@@ -10,7 +10,10 @@ mod grid_widget;
 use grid_widget::GridWidget;
 
 mod console_widget;
-pub use console_widget::ConsoleWidget;
+use console_widget::ConsoleWidget;
+
+mod stack_widget;
+use stack_widget::StackWidget;
 
 use serde::{Deserialize, Serialize};
 use strum_macros::AsRefStr;
@@ -112,40 +115,7 @@ impl Editor {
     }
 
     pub fn stack_ui(&mut self, ui: &mut egui::Ui, frame: Arc<Mutex<Frame>>) {
-
-        if let Ok(mut frame) = frame.try_lock() {
-            egui::ScrollArea::vertical()
-                .stick_to_bottom(true)
-                .show(ui, |ui| {
-                    egui::Frame::new()
-                        .inner_margin(egui::Vec2 { x: 20.0, y: 10.0})
-                        .show(ui, |ui| {
-                            egui::Grid::new("stack_ui")
-                                .striped(false)
-                                .spacing((5.0, 0.0))
-                                .num_columns(2)
-                                .show(ui, |ui| {
-                                    for (i, operand) in frame.stack.iter().enumerate() {
-                                        ui.label(
-                                            RichText::new(format!("{i}: "))
-                                                .size(15.0)
-                                                .family(FontFamily::Monospace)
-                                        );
-
-                                        ui.label(
-                                            RichText::new(format!("{}", operand.as_cell().content()))
-                                                .size(15.0)
-                                                .family(FontFamily::Monospace)
-                                        );
-                                        ui.end_row();
-                                    }
-                                });
-                        });
-                });
-        } else {
-            ui.label("Could not show the stack");
-        }
-
+        StackWidget::new(frame).ui(ui);
     }
 
     fn handle_inputs(&mut self, ui: &mut egui::Ui, frame: &mut Frame) -> egui::Response {
