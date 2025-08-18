@@ -1,5 +1,5 @@
 use crate::{
-    grid::{Grid, Position}, utils::Direction, Frame
+    grid::{Grid, Position}, utils::Direction
 };
 
 #[derive(Clone, Copy)]

@@ -1,7 +1,6 @@
 use std::{sync::{Arc, Mutex}, thread};
 
-use egui::Widget;
-use egui_tiles::{TileId, Tiles, Tree};
+use egui_tiles::{Tiles, Tree};
 use graliffer::{
     Frame,
     editor::Editor,

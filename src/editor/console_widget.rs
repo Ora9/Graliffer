@@ -20,7 +20,7 @@ impl ConsoleWidget {
 impl Widget for ConsoleWidget {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
 
-        if let Ok(frame_guard) = self.frame.try_lock() {
+        if let Ok(_frame_guard) = self.frame.try_lock() {
             ui.label("Console! Bip boup");
         } else {
             ui.label("Could not open console :'(");

@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use egui::{emath::TSTransform, Context, Id, Pos2, Rect, Vec2, Widget};
-use crate::{editor::cursor, grid::{Grid, Head, Position, PositionAxis}, Frame};
+use crate::{editor::cursor, grid::{Position, PositionAxis}, Frame};
 
 use super::cursor::Cursor;
 
@@ -16,6 +16,10 @@ pub struct GridWidgetState {
 }
 
 impl GridWidgetState {
+    fn new() -> Self {
+        Self::default()
+    }
+
     fn load(ctx: &Context, id: Id) -> Option<Self> {
         ctx.data_mut(|d| d.get_persisted(id))
     }
@@ -125,7 +129,7 @@ impl Widget for GridWidget {
         let (container_id, container_rect) = ui.allocate_space(ui.available_size());
 
         let mut state = GridWidgetState::load(ui.ctx(), container_id)
-            .unwrap_or(GridWidgetState::default());
+            .unwrap_or(GridWidgetState::new());
 
         let response = self.handle_inputs(&mut state, ui);
 
@@ -161,10 +165,7 @@ impl Widget for GridWidget {
 
                 let cell_grid_pos = Position::from_numeric(cell_grid_pos_x, cell_grid_pos_y).unwrap();
 
-
-
                 let (cell, head_pos) = {
-
                     let frame = self.frame.lock().expect("Frame should be available at this point");
 
                     (

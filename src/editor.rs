@@ -1,7 +1,6 @@
 use std::{sync::{Arc, Mutex}, time::{Duration, Instant}};
 
-use anyhow::Context;
-use egui::{emath::TSTransform, Color32, FontFamily, Pos2, Rect, RichText, Widget};
+use egui::Widget;
 
 mod cursor;
 use cursor::Cursor;
@@ -15,10 +14,8 @@ use console_widget::ConsoleWidget;
 mod stack_widget;
 use stack_widget::StackWidget;
 
-use serde::{Deserialize, Serialize};
-use strum_macros::AsRefStr;
 
-use crate::{artifact::{History}, editor::cursor::{PreferredCharPosition, PreferredGridPosition}, grid::{GridAction, Position, PositionAxis}, utils::Direction, Frame};
+use crate::{artifact::{History}, Frame};
 
 #[derive(Debug, Default)]
 pub struct Editor {
