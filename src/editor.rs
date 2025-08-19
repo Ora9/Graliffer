@@ -78,15 +78,15 @@ impl Editor {
         Self::default()
     }
 
-    pub fn grid_ui(&mut self, ui: &mut egui::Ui, frame: Arc<Mutex<Frame>>) {
+    pub fn grid_ui(ui: &mut egui::Ui, frame: Arc<Mutex<Frame>>) {
         GridWidget::new(frame).ui(ui);
     }
 
-    pub fn console_ui(&self, ui: &mut egui::Ui, frame: Arc<Mutex<Frame>>) {
+    pub fn console_ui(ui: &mut egui::Ui, frame: Arc<Mutex<Frame>>) {
         ConsoleWidget::new(frame).ui(ui);
     }
 
-    pub fn stack_ui(&mut self, ui: &mut egui::Ui, frame: Arc<Mutex<Frame>>) {
+    pub fn stack_ui(ui: &mut egui::Ui, frame: Arc<Mutex<Frame>>) {
         StackWidget::new(frame).ui(ui);
     }
 
