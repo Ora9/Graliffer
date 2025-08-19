@@ -1,4 +1,7 @@
-use std::{sync::{Arc, Mutex}, thread};
+use std::{
+    sync::{Arc, Mutex},
+    thread,
+};
 
 use egui_tiles::{Tiles, Tree};
 use graliffer::{
@@ -81,6 +84,7 @@ impl GralifferApp {
             tile_behavior: GralifferTilesBehavior::new(frame_arc.clone()),
             layout_tree: Self::create_layout_tree(),
 
+            // actions_registry:
             frame: frame_arc,
             editor: Editor::new(),
             first_frame: true,
@@ -109,10 +113,14 @@ impl GralifferApp {
             // dbg!(frame_arc.lock().unwrap());
             let mut frame = frame_arc.lock().unwrap();
 
-            frame.act(Box::new(graliffer::grid::GridAction::Set(Position::from_numeric(5, 5).unwrap(), Cell::new_trim("OUI"))));
+            frame.act(Box::new(graliffer::grid::GridAction::Set(
+                Position::from_numeric(5, 5).unwrap(),
+                Cell::new_trim("OUI"),
+            )));
         });
     }
 
+    /// Create the default tile layout
     fn create_layout_tree() -> Tree<Pane> {
         let mut tiles = Tiles::default();
 
@@ -165,7 +173,6 @@ impl eframe::App for GralifferApp {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("Graliffer", |ui| {
-
                     if ui.button("Open file").clicked() {
                         self.load_file();
                     }
@@ -239,16 +246,13 @@ impl eframe::App for GralifferApp {
     }
 }
 
-
 struct GralifferTilesBehavior {
     frame: Arc<Mutex<Frame>>,
 }
 
 impl GralifferTilesBehavior {
     fn new(frame: Arc<Mutex<Frame>>) -> Self {
-        Self {
-            frame,
-        }
+        Self { frame }
     }
 }
 

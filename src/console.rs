@@ -1,6 +1,9 @@
 use std::fmt::Debug;
 
-use crate::{artifact::{Action, Artifact}, Frame};
+use crate::{
+    Frame,
+    action::{Action, Artifact},
+};
 
 #[derive(Default, Debug)]
 pub struct Console {
@@ -33,9 +36,7 @@ impl Action for ConsoleAction {
             Self::Print(string) => {
                 frame.console.print(string);
 
-                Artifact::from_redo(
-                    Box::new(self.to_owned()),
-                )
+                Artifact::from_redo(Box::new(self.to_owned()))
             }
         }
     }
@@ -46,7 +47,7 @@ impl Debug for ConsoleAction {
         match self {
             Self::Print(string) => {
                 write!(f, "ConsoleAction::Print ({:?})", string)
-            },
+            }
         }
     }
 }

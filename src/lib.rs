@@ -10,20 +10,11 @@ pub mod stack;
 pub mod console;
 
 mod lang;
-pub use lang::{
-    Word,
-    Opcode,
-    Operand,
-    Literal,
-    Address,
-    Pointer,
-};
+pub use lang::{Address, Literal, Opcode, Operand, Pointer, Word};
 
 mod frame;
-pub use frame::{
-    Frame,
-};
+pub use frame::Frame;
 
-mod artifact;
+mod action;
 
 pub mod editor;

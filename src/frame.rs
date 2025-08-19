@@ -1,7 +1,11 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    artifact::{Action, Artifact}, console::Console, grid::{Grid, Head, HeadAction}, stack::{Stack, StackAction}, Word
+    Word,
+    action::{Action, Artifact},
+    console::Console,
+    grid::{Grid, Head, HeadAction},
+    stack::{Stack, StackAction},
 };
 
 /// A [`Frame`] represents a run

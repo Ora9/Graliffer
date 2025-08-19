@@ -1,7 +1,7 @@
-use std::fmt::{Debug};
+use std::fmt::Debug;
 
-use anyhow::{bail, Context};
-use serde::{de::Visitor, Deserialize, Deserializer, Serialize, Serializer};
+use anyhow::{Context, bail};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Visitor};
 
 /// `PositionAxis` represents a coordinate axis in the [Grid](crate::grid::Grid). A combination of two `PositionAxis` makes a [`Position`]
 ///
@@ -49,7 +49,6 @@ impl PositionAxis {
         (Self::MIN_NUMERIC..=Self::MAX_NUMERIC).contains(&value)
     }
 
-
     /// Restrict a value to the limit of the numeric representation of `PositionAxis`.
     ///
     /// # Examples
@@ -96,7 +95,10 @@ impl PositionAxis {
     /// ```
     pub fn numeric_to_textual(coordinate: u32) -> Result<char, anyhow::Error> {
         if !PositionAxis::is_valid_numeric(coordinate) {
-            bail!(format!("The given coordinate is out of bound, expected to be in range [0-63], found `{}`", coordinate));
+            bail!(format!(
+                "The given coordinate is out of bound, expected to be in range [0-63], found `{}`",
+                coordinate
+            ));
         }
 
         let coordinate = u8::try_from(coordinate).unwrap();
@@ -107,7 +109,10 @@ impl PositionAxis {
             52..=61 => Ok((coordinate - 52 + 48) as char), // 0-9
             62 => Ok(43 as char),                          // +
             63 => Ok(47 as char),                          // /
-            _ => bail!(format!("The given coordinate is out of bound, expected to be in range [0-63], found `{}`", coordinate)),
+            _ => bail!(format!(
+                "The given coordinate is out of bound, expected to be in range [0-63], found `{}`",
+                coordinate
+            )),
         }
     }
 
@@ -129,12 +134,15 @@ impl PositionAxis {
         let coordinate_u32 = coordinate as u32;
 
         match coordinate_u32 {
-            65..=90 => Ok(coordinate_u32 - 65),         // A-Z
-            97..=122 => Ok(coordinate_u32 - 97 + 26),   // a-z
-            48..=57 => Ok(coordinate_u32 - 48 + 52),    // 0-9
-            43 => Ok(62),                               // +
-            47 => Ok(63),                               // /
-            _ => bail!(format!("The given coordinate is out of bound, expected to be in character set [A-Za-z0-9/+], found `{}`", coordinate)),
+            65..=90 => Ok(coordinate_u32 - 65),       // A-Z
+            97..=122 => Ok(coordinate_u32 - 97 + 26), // a-z
+            48..=57 => Ok(coordinate_u32 - 48 + 52),  // 0-9
+            43 => Ok(62),                             // +
+            47 => Ok(63),                             // /
+            _ => bail!(format!(
+                "The given coordinate is out of bound, expected to be in character set [A-Za-z0-9/+], found `{}`",
+                coordinate
+            )),
         }
     }
 
@@ -158,7 +166,10 @@ impl PositionAxis {
     /// ```
     pub fn from_numeric(coordinate: u32) -> Result<Self, anyhow::Error> {
         if !PositionAxis::is_valid_numeric(coordinate) {
-            bail!(format!("The given coordinate is out of bound, expected to be in range [0-63], found `{}`", coordinate))
+            bail!(format!(
+                "The given coordinate is out of bound, expected to be in range [0-63], found `{}`",
+                coordinate
+            ))
         } else {
             Ok(Self(u8::try_from(coordinate).unwrap()))
         }
@@ -217,10 +228,13 @@ impl PositionAxis {
     #[must_use = "this returns the result of the operation, without modifying the original"]
     pub fn checked_add(&self, other: Self) -> Result<Self, anyhow::Error> {
         {
-            let sum = self.0.checked_add(other.0)
+            let sum = self
+                .0
+                .checked_add(other.0)
                 .ok_or(anyhow::anyhow!("adding these would overflow"))?;
             Self::from_numeric(sum.into())
-        }.context("could not add these two `PositionAxis`s")
+        }
+        .context("could not add these two `PositionAxis`s")
     }
 
     /// Performs a substraction between two [`PostionAxis`]
@@ -246,10 +260,13 @@ impl PositionAxis {
     #[must_use = "this returns the result of the operation, without modifying the original"]
     pub fn checked_sub(&self, other: Self) -> Result<Self, anyhow::Error> {
         {
-            let diff = self.0.checked_sub(other.0)
+            let diff = self
+                .0
+                .checked_sub(other.0)
                 .ok_or(anyhow::anyhow!("subtracting these would underflow"))?;
             Self::from_numeric(diff.into())
-        }.context("could not add these two `PositionAxis`s")
+        }
+        .context("could not add these two `PositionAxis`s")
     }
 
     /// Perform an addition between a [`PositionAxis`] and a `u32`
@@ -353,10 +370,14 @@ impl TryFrom<char> for PositionAxis {
 
 impl Debug for PositionAxis {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "PositionAxis (`{}` ({}))", self.as_textual(), self.as_numeric())
+        write!(
+            f,
+            "PositionAxis (`{}` ({}))",
+            self.as_textual(),
+            self.as_numeric()
+        )
     }
 }
-
 
 /// A `Position` represents a 2d coordinate in the [Grid](crate::grid::Grid). A `Position` is made of two [`PositionAxis`]
 ///
@@ -406,10 +427,7 @@ impl Position {
     /// assert_eq!(pos.as_numeric(), (5, 10));
     /// ```
     pub fn from_position_axis(x: PositionAxis, y: PositionAxis) -> Self {
-        Self {
-            x,
-            y,
-        }
+        Self { x, y }
     }
 
     /// Returns a `Position` given two valid numeric representations
@@ -464,10 +482,7 @@ impl Position {
 
     /// Returns the textual representation of a `Position` as tuple in form `(x, y)`
     pub fn as_textual(self) -> (char, char) {
-        (
-            self.x.as_textual(),
-            self.y.as_textual(),
-        )
+        (self.x.as_textual(), self.y.as_textual())
     }
 
     pub fn as_textual_string(self) -> String {
@@ -476,10 +491,7 @@ impl Position {
 
     /// Returns the numeric representation of a `Position` as tuple in form `(x, y)`
     pub fn as_numeric(self) -> (u32, u32) {
-        (
-            self.x.as_numeric(),
-            self.y.as_numeric(),
-        )
+        (self.x.as_numeric(), self.y.as_numeric())
     }
 
     /// Return the numeric representation of the `x` (horizontal) component of a `Position`
@@ -509,8 +521,14 @@ impl Position {
     /// assert_eq!(zero.checked_add(five_ten).unwrap(), five_ten);
     /// assert!(ten_twenty.checked_add(too_big).is_err());
     pub fn checked_add(&self, other: Self) -> Result<Self, anyhow::Error> {
-        let x = self.x.checked_add(other.x).context("`x` coordinate is invalid")?;
-        let y = self.y.checked_add(other.y).context("`y` coordinate is invalid")?;
+        let x = self
+            .x
+            .checked_add(other.x)
+            .context("`x` coordinate is invalid")?;
+        let y = self
+            .y
+            .checked_add(other.y)
+            .context("`y` coordinate is invalid")?;
 
         Ok(Self::from_position_axis(x, y))
     }
@@ -534,8 +552,14 @@ impl Position {
     /// assert!(five_ten.checked_sub(ten_twenty).is_err());
     /// assert!(ten_twenty.checked_sub(too_big).is_err());
     pub fn checked_sub(&self, other: Self) -> Result<Self, anyhow::Error> {
-        let x = self.x.checked_sub(other.x).context("`x` coordinate is invalid")?;
-        let y = self.y.checked_sub(other.y).context("`y` coordinate is invalid")?;
+        let x = self
+            .x
+            .checked_sub(other.x)
+            .context("`x` coordinate is invalid")?;
+        let y = self
+            .y
+            .checked_sub(other.y)
+            .context("`y` coordinate is invalid")?;
 
         Ok(Self::from_position_axis(x, y))
     }
@@ -584,11 +608,13 @@ impl TryFrom<&str> for Position {
         if let (Some(x), Some(y)) = (x, y) {
             Position::from_textual(x, y)
         } else {
-            bail!(format!("The string given does not respect the format, expected to be in format 'XX' with 'X' being a base64 character, found `{}`", string))
+            bail!(format!(
+                "The string given does not respect the format, expected to be in format 'XX' with 'X' being a base64 character, found `{}`",
+                string
+            ))
         }
     }
 }
-
 
 impl Serialize for Position {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -608,7 +634,6 @@ impl<'de> Deserialize<'de> for Position {
         struct PositionVisitor;
 
         impl<'de> Visitor<'de> for PositionVisitor {
-
             type Value = Position;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -616,11 +641,10 @@ impl<'de> Deserialize<'de> for Position {
             }
 
             fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-                where
-                    E: serde::de::Error, {
-                        Position::try_from(v).map_err(|error| {
-                            serde::de::Error::custom(error)
-                        })
+            where
+                E: serde::de::Error,
+            {
+                Position::try_from(v).map_err(|error| serde::de::Error::custom(error))
             }
         }
 
@@ -639,6 +663,12 @@ impl<'de> Deserialize<'de> for Position {
 /// ```
 impl Debug for Position {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Position (`{}` ({}, {}))", self.as_textual_string(), self.x(), self.y())
+        write!(
+            f,
+            "Position (`{}` ({}, {}))",
+            self.as_textual_string(),
+            self.x(),
+            self.y()
+        )
     }
 }

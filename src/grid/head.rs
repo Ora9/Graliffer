@@ -1,10 +1,14 @@
 use std::fmt::Debug;
 
+use crate::utils::Direction;
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
-use crate::utils::Direction;
 
-use crate::{artifact::{Action, Artifact}, grid::Position, Frame};
+use crate::{
+    Frame,
+    action::{Action, Artifact},
+    grid::Position,
+};
 
 /// An head travels in a [`Grid`] reading [`Operand`] and [`Opcodes`]
 ///
@@ -109,7 +113,8 @@ impl Head {
             Right => self.position.checked_increment_x(1),
             Down => self.position.checked_increment_y(1),
             Left => self.position.checked_decrement_x(1),
-        }.context("could not step into darkness, the position is invalid")?;
+        }
+        .context("could not step into darkness, the position is invalid")?;
 
         Ok(())
     }
@@ -119,7 +124,7 @@ impl Head {
 pub enum HeadAction {
     MoveTo(Position),
     DirectTo(Direction),
-    TakeStep()
+    TakeStep(),
 }
 
 impl Action for HeadAction {
@@ -132,7 +137,7 @@ impl Action for HeadAction {
 
                 Artifact::from_redo_undo(
                     Box::new(self.to_owned()),
-                    Box::new(Self::MoveTo(old_position))
+                    Box::new(Self::MoveTo(old_position)),
                 )
             }
             Self::DirectTo(direction) => {
@@ -142,7 +147,7 @@ impl Action for HeadAction {
 
                 Artifact::from_redo_undo(
                     Box::new(self.to_owned()),
-                    Box::new(Self::DirectTo(old_direction))
+                    Box::new(Self::DirectTo(old_direction)),
                 )
             }
             Self::TakeStep() => {
@@ -152,7 +157,7 @@ impl Action for HeadAction {
 
                 Artifact::from_redo_undo(
                     Box::new(self.to_owned()),
-                    Box::new(Self::MoveTo(old_position))
+                    Box::new(Self::MoveTo(old_position)),
                 )
             }
         }

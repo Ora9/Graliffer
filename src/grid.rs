@@ -1,24 +1,21 @@
 //! Grid represent the Graliffer grid, it hold the data
 
-use std::{collections::HashMap, fmt::Debug};
 use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, fmt::Debug};
 
 mod position;
-pub use position::{
-    PositionAxis,
-    Position,
-};
+pub use position::{Position, PositionAxis};
 
 mod head;
-pub use head::{
-    Head,
-    HeadAction,
-};
+pub use head::{Head, HeadAction};
 
 mod cell;
 pub use cell::Cell;
 
-use crate::{artifact::{Action, Artifact}, Frame};
+use crate::{
+    Frame,
+    action::{Action, Artifact},
+};
 
 /// A `Grid` represents a 2d space filled with [`Cell`]s, theses cells are positioned by a [`Position`]
 ///
@@ -81,7 +78,7 @@ impl Action for GridAction {
 
                 Artifact::from_redo_undo(
                     Box::new(self.to_owned()),
-                    Box::new(Self::Set(*position, previous_cell))
+                    Box::new(Self::Set(*position, previous_cell)),
                 )
             }
         }

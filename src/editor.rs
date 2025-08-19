@@ -1,4 +1,7 @@
-use std::{sync::{Arc, Mutex}, time::{Duration, Instant}};
+use std::{
+    sync::{Arc, Mutex},
+    time::{Duration, Instant},
+};
 
 use egui::Widget;
 
@@ -14,8 +17,7 @@ use console_widget::ConsoleWidget;
 mod stack_widget;
 use stack_widget::StackWidget;
 
-
-use crate::{artifact::{History}, Frame};
+use crate::{Frame, action::History};
 
 #[derive(Debug, Default)]
 pub struct Editor {
@@ -40,15 +42,13 @@ impl HistoryMerge {
     const MERGE_TIMEOUT: Duration = Duration::from_secs(3);
 
     fn should_merge_input(&self) -> bool {
-        self.input_timeout.is_some_and(|timeout| {
-            Instant::now().checked_duration_since(timeout).is_none()
-        })
+        self.input_timeout
+            .is_some_and(|timeout| Instant::now().checked_duration_since(timeout).is_none())
     }
 
     fn should_merge_deletion(&self) -> bool {
-        self.deletion_timeout.is_some_and(|timeout| {
-            Instant::now().checked_duration_since(timeout).is_none()
-        })
+        self.deletion_timeout
+            .is_some_and(|timeout| Instant::now().checked_duration_since(timeout).is_none())
     }
 
     fn update_input_timeout(&mut self) {
@@ -291,7 +291,6 @@ impl Editor {
     //                     match key {
     //                         Key::ArrowUp => {
     //                             if modifiers.ctrl {
-
 
     //                             } else {
 

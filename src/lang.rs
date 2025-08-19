@@ -1,12 +1,12 @@
 //! Graliffer words are either an Opcode or an Operand
 
-use crate::{grid::Cell, Frame};
+use crate::{Frame, grid::Cell};
 
 mod opcode;
 pub use opcode::Opcode;
 
 mod operand;
-pub use operand::{Operand, Literal, Address, Pointer};
+pub use operand::{Address, Literal, Operand, Pointer};
 
 /// A `Word` is the broadest language element in Graliffer
 ///

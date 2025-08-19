@@ -1,7 +1,11 @@
 use std::sync::{Arc, Mutex};
 
-use egui::{emath::TSTransform, Context, Id, Pos2, Rect, Vec2, Widget};
-use crate::{editor::cursor, grid::{Position, PositionAxis}, Frame};
+use crate::{
+    Frame,
+    editor::cursor,
+    grid::{Position, PositionAxis},
+};
+use egui::{Context, Id, Pos2, Rect, Vec2, Widget, emath::TSTransform};
 
 use super::cursor::Cursor;
 
@@ -52,9 +56,7 @@ impl GridWidget {
     // }
 
     pub fn new(frame: Arc<Mutex<Frame>>) -> Self {
-        Self {
-            frame,
-        }
+        Self { frame }
     }
 
     fn handle_inputs(&mut self, state: &mut GridWidgetState, ui: &mut egui::Ui) -> egui::Response {
@@ -71,8 +73,14 @@ impl GridWidget {
                     // *_t for translated, as in grid render coordinates
                     let pointer_pos_t = state.screen_transform.inverse().mul_pos(pointer_pos);
                     let hovered_cell_pos_t = Pos2 {
-                        x: (pointer_pos_t.x / GridWidget::CELL_FULL_SIZE).clamp(PositionAxis::MIN_NUMERIC as f32, PositionAxis::MAX_NUMERIC as f32),
-                        y: (pointer_pos_t.y / GridWidget::CELL_FULL_SIZE).clamp(PositionAxis::MIN_NUMERIC as f32, PositionAxis::MAX_NUMERIC as f32),
+                        x: (pointer_pos_t.x / GridWidget::CELL_FULL_SIZE).clamp(
+                            PositionAxis::MIN_NUMERIC as f32,
+                            PositionAxis::MAX_NUMERIC as f32,
+                        ),
+                        y: (pointer_pos_t.y / GridWidget::CELL_FULL_SIZE).clamp(
+                            PositionAxis::MIN_NUMERIC as f32,
+                            PositionAxis::MAX_NUMERIC as f32,
+                        ),
                     };
 
                     // Ceil implementation says in https://doc.rust-lang.org/std/primitive.f32.html#method.ceil :
@@ -83,7 +91,7 @@ impl GridWidget {
                         max: Pos2 {
                             x: (hovered_cell_pos_t.x.trunc() + 1.0) * GridWidget::CELL_FULL_SIZE,
                             y: (hovered_cell_pos_t.y.trunc() + 1.0) * GridWidget::CELL_FULL_SIZE,
-                        }
+                        },
                     };
 
                     let hovered_cell_x = hovered_cell_pos_t.x.floor() as u32;
@@ -96,8 +104,14 @@ impl GridWidget {
                         // Should be possible if we work on Cursor with prefered position
 
                         if let Ok(frame_guard) = self.frame.try_lock() {
-                            if let Ok(grid_pos) = Position::from_numeric(hovered_cell_x, hovered_cell_y) {
-                                state.cursor.move_to(cursor::PreferredGridPosition::At(grid_pos), cursor::PreferredCharPosition::AtEnd, &frame_guard.grid);
+                            if let Ok(grid_pos) =
+                                Position::from_numeric(hovered_cell_x, hovered_cell_y)
+                            {
+                                state.cursor.move_to(
+                                    cursor::PreferredGridPosition::At(grid_pos),
+                                    cursor::PreferredCharPosition::AtEnd,
+                                    &frame_guard.grid,
+                                );
                             }
                         }
                     }
@@ -115,7 +129,8 @@ impl GridWidget {
                     * TSTransform::from_translation(-pointer_in_layer.to_vec2());
 
                 // Pan:
-                state.grid_transform = TSTransform::from_translation(pan_delta * 2.0) * state.grid_transform;
+                state.grid_transform =
+                    TSTransform::from_translation(pan_delta * 2.0) * state.grid_transform;
             }
         }
 
@@ -125,26 +140,33 @@ impl GridWidget {
 
 impl Widget for GridWidget {
     fn ui(mut self, ui: &mut egui::Ui) -> egui::Response {
-
         let (container_id, container_rect) = ui.allocate_space(ui.available_size());
 
-        let mut state = GridWidgetState::load(ui.ctx(), container_id)
-            .unwrap_or(GridWidgetState::new());
+        let mut state =
+            GridWidgetState::load(ui.ctx(), container_id).unwrap_or(GridWidgetState::new());
 
         let response = self.handle_inputs(&mut state, ui);
 
-        state.screen_transform =
-            TSTransform::from_translation(ui.min_rect().left_top().to_vec2()) * state.grid_transform;
+        state.screen_transform = TSTransform::from_translation(ui.min_rect().left_top().to_vec2())
+            * state.grid_transform;
 
         let (min_x, max_x, min_y, max_y) = {
             use crate::grid::PositionAxis;
 
             let rect_t = state.screen_transform.inverse().mul_rect(container_rect);
 
-            let min_x = PositionAxis::clamp_numeric((rect_t.min.x / GridWidget::CELL_FULL_SIZE).floor() as u32);
-            let max_x = PositionAxis::clamp_numeric((rect_t.max.x / GridWidget::CELL_FULL_SIZE).ceil() as u32);
-            let min_y = PositionAxis::clamp_numeric((rect_t.min.y / GridWidget::CELL_FULL_SIZE).floor() as u32);
-            let max_y = PositionAxis::clamp_numeric((rect_t.max.y / GridWidget::CELL_FULL_SIZE).ceil() as u32);
+            let min_x = PositionAxis::clamp_numeric(
+                (rect_t.min.x / GridWidget::CELL_FULL_SIZE).floor() as u32,
+            );
+            let max_x = PositionAxis::clamp_numeric(
+                (rect_t.max.x / GridWidget::CELL_FULL_SIZE).ceil() as u32,
+            );
+            let min_y = PositionAxis::clamp_numeric(
+                (rect_t.min.y / GridWidget::CELL_FULL_SIZE).floor() as u32,
+            );
+            let max_y = PositionAxis::clamp_numeric(
+                (rect_t.max.y / GridWidget::CELL_FULL_SIZE).ceil() as u32,
+            );
 
             (min_x, max_x, min_y, max_y)
         };
@@ -163,15 +185,16 @@ impl Widget for GridWidget {
                     max: cell_screen_pos + Vec2::splat(GridWidget::CELL_SIZE),
                 });
 
-                let cell_grid_pos = Position::from_numeric(cell_grid_pos_x, cell_grid_pos_y).unwrap();
+                let cell_grid_pos =
+                    Position::from_numeric(cell_grid_pos_x, cell_grid_pos_y).unwrap();
 
                 let (cell, head_pos) = {
-                    let frame = self.frame.lock().expect("Frame should be available at this point");
+                    let frame = self
+                        .frame
+                        .lock()
+                        .expect("Frame should be available at this point");
 
-                    (
-                        frame.grid.get(cell_grid_pos),
-                        frame.head.position,
-                    )
+                    (frame.grid.get(cell_grid_pos), frame.head.position)
                 };
 
                 let bg_color = /*if state.has_focus && state.cursor.grid_position == grid_pos {
@@ -184,12 +207,18 @@ impl Widget for GridWidget {
 
                 let (stroke, stroke_kind) = if state.cursor.grid_position() == cell_grid_pos {
                     (
-                        egui::Stroke::new(state.screen_transform.scaling * 2.0, egui::Color32::from_gray(45)),
+                        egui::Stroke::new(
+                            state.screen_transform.scaling * 2.0,
+                            egui::Color32::from_gray(45),
+                        ),
                         egui::StrokeKind::Outside,
                     )
                 } else {
                     (
-                        egui::Stroke::new(state.screen_transform.scaling * 1.0, egui::Color32::from_gray(45)),
+                        egui::Stroke::new(
+                            state.screen_transform.scaling * 1.0,
+                            egui::Color32::from_gray(45),
+                        ),
                         egui::StrokeKind::Inside,
                     )
                 };
@@ -209,7 +238,7 @@ impl Widget for GridWidget {
                     egui::Align2::CENTER_CENTER,
                     cell.content(),
                     egui::FontId::monospace(state.screen_transform.scaling * 12.0),
-                    egui::Color32::WHITE
+                    egui::Color32::WHITE,
                 );
 
                 // dbg!(state.cursor.grid_position() == cell_grid_pos);
@@ -220,37 +249,48 @@ impl Widget for GridWidget {
                         egui::Align2::LEFT_TOP,
                         state.cursor.char_position(),
                         egui::FontId::monospace(state.screen_transform.scaling * 9.0),
-                        egui::Color32::WHITE
+                        egui::Color32::WHITE,
                     );
 
                     // Blocking
                     // (total, before_cursor)
-                    let (content_total_width, content_pre_cursor_width) = ui.fonts(move |fonts| {
-                        cell.content().chars().enumerate().map(|(index, char)| {
-                            let width = fonts.glyph_width(
-                                &egui::FontId::monospace(state.screen_transform.scaling * 12.0),
-                                char
-                            );
+                    let (content_total_width, content_pre_cursor_width) = ui
+                        .fonts(move |fonts| {
+                            cell.content()
+                                .chars()
+                                .enumerate()
+                                .map(|(index, char)| {
+                                    let width = fonts.glyph_width(
+                                        &egui::FontId::monospace(
+                                            state.screen_transform.scaling * 12.0,
+                                        ),
+                                        char,
+                                    );
 
-                            if state.cursor.char_position() > index {
-                                (width, width)
-                            } else {
-                                (width, 0.0)
-                            }
-                        }).reduce(|acc, e| (acc.0 + e.0, acc.1 + e.1))
-                    }).unwrap_or((0.0, 0.0));
+                                    if state.cursor.char_position() > index {
+                                        (width, width)
+                                    } else {
+                                        (width, 0.0)
+                                    }
+                                })
+                                .reduce(|acc, e| (acc.0 + e.0, acc.1 + e.1))
+                        })
+                        .unwrap_or((0.0, 0.0));
 
                     use std::ops::Neg;
                     let center_offset = Vec2 {
                         x: (content_total_width * 0.5).neg() + content_pre_cursor_width,
-                        y: 0.0
+                        y: 0.0,
                     };
 
                     painter.rect_filled(
-                        Rect::from_center_size(cell_screen_rect.center() + center_offset, Vec2 {
-                            x: state.screen_transform.scaling * 0.8,
-                            y: state.screen_transform.scaling * 13.0
-                        }),
+                        Rect::from_center_size(
+                            cell_screen_rect.center() + center_offset,
+                            Vec2 {
+                                x: state.screen_transform.scaling * 0.8,
+                                y: state.screen_transform.scaling * 13.0,
+                            },
+                        ),
                         2.0,
                         egui::Color32::WHITE,
                     );

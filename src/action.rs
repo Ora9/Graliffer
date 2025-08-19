@@ -45,10 +45,13 @@ impl ReciprocalAction {
 
 impl Debug for ReciprocalAction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ReciprocalAction (\n    undo: {:?},\n    redo: {:?}\n)", self.undo, self.redo)
+        write!(
+            f,
+            "ReciprocalAction (\n    undo: {:?},\n    redo: {:?}\n)",
+            self.undo, self.redo
+        )
     }
 }
-
 
 #[derive(Clone)]
 pub struct Artifact {
@@ -62,10 +65,7 @@ impl Artifact {
 
     fn new(redo: Option<Box<dyn Action>>, undo: Option<Box<dyn Action>>) -> Self {
         Self {
-            actions: vec![ReciprocalAction {
-                redo,
-                undo
-            }]
+            actions: vec![ReciprocalAction { redo, undo }],
         }
     }
 
@@ -114,7 +114,6 @@ impl Debug for Artifact {
     }
 }
 
-
 #[derive(Default)]
 pub struct History {
     artifacts: Vec<Artifact>,
@@ -131,7 +130,9 @@ impl History {
 
     pub fn append(&mut self, artifact: Artifact) {
         // Don't append empty artifacts
-        if artifact.actions.is_empty() { return; }
+        if artifact.actions.is_empty() {
+            return;
+        }
 
         self.artifacts.truncate(self.cursor);
         self.artifacts.push(artifact);
@@ -142,7 +143,9 @@ impl History {
 
     pub fn merge_with_last(&mut self, artifact: Artifact) {
         // Don't merge empty artifacts
-        if artifact.actions.is_empty() { return; }
+        if artifact.actions.is_empty() {
+            return;
+        }
 
         if let Some(last_artifact) = self.artifacts.last_mut() {
             last_artifact.push(artifact);
@@ -152,7 +155,6 @@ impl History {
     }
 
     pub fn undo(&mut self, frame: &mut Frame) {
-
         let Some(last_artifact) = self.cursor.checked_sub(1) else {
             return;
         };
@@ -178,7 +180,6 @@ impl History {
         // // skip empty artifacts
         // if self.cursor == self.artifacts.len().saturating_sub(1) { return; }
 
-
         // if let Some(artifact) = self.artifacts.get(self.cursor) {
         //     artifact.redo(frame);
         //     self.cursor = self.cursor.saturating_add(1);
@@ -188,6 +189,10 @@ impl History {
 
 impl Debug for History {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "History (\n    cursor: {},\n    artifacts: {:#?})", self.cursor, self.artifacts)
+        write!(
+            f,
+            "History (\n    cursor: {},\n    artifacts: {:#?})",
+            self.cursor, self.artifacts
+        )
     }
 }

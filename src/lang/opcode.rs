@@ -1,19 +1,21 @@
-use std::str::FromStr;
 use anyhow::anyhow;
+use std::str::FromStr;
 use strum_macros::EnumString;
 
 use crate::{
-    artifact::Artifact, console::ConsoleAction, grid::{Cell, GridAction, HeadAction}, stack::StackAction, utils::Direction, Address, Literal
+    Address, Literal,
+    action::Artifact,
+    console::ConsoleAction,
+    grid::{Cell, GridAction, HeadAction},
+    stack::StackAction,
+    utils::Direction,
 };
 
 use super::{Frame, Operand};
 
 fn pop_operand(frame: &mut Frame) -> (Result<Operand, anyhow::Error>, Artifact) {
     if let Some(popped) = frame.stack.get_last() {
-        (
-            Ok(popped.to_owned()),
-            frame.act(Box::new(StackAction::Pop)),
-        )
+        (Ok(popped.to_owned()), frame.act(Box::new(StackAction::Pop)))
     } else {
         (
             Err(anyhow!("Could not pop the stack further")),
@@ -26,9 +28,7 @@ fn pop_literal(frame: &mut Frame) -> (Result<Literal, anyhow::Error>, Artifact) 
     let (operand_res, artifact) = pop_operand(frame);
 
     (
-        operand_res.map(|operand| {
-            operand.resolve_to_literal(&frame.grid)
-        }),
+        operand_res.map(|operand| operand.resolve_to_literal(&frame.grid)),
         artifact,
     )
 }
@@ -39,9 +39,9 @@ fn pop_address(frame: &mut Frame) -> (Result<Address, anyhow::Error>, Artifact) 
     (
         match operand_res {
             Ok(operand) => operand.resolve_to_address(&frame.grid),
-            Err(err) => Err(err)
+            Err(err) => Err(err),
         },
-        artifact
+        artifact,
     )
 }
 
@@ -50,7 +50,9 @@ fn pop_as_numeric_with_default(frame: &mut Frame) -> (u32, Artifact) {
 
     (
         operand_res.map_or(0, |operand| {
-            operand.resolve_to_literal(&frame.grid).as_numeric_with_default()
+            operand
+                .resolve_to_literal(&frame.grid)
+                .as_numeric_with_default()
         }),
         artifact,
     )
@@ -86,12 +88,13 @@ fn pop_as_bool_with_default(frame: &mut Frame) -> (bool, Artifact) {
 
     (
         operand_res.map_or(true, |operand| {
-            operand.resolve_to_literal(&frame.grid).as_bool_with_default()
+            operand
+                .resolve_to_literal(&frame.grid)
+                .as_bool_with_default()
         }),
         artifact,
     )
 }
-
 
 #[derive(Debug, Clone, Copy, EnumString)]
 #[strum(serialize_all = "lowercase")]
@@ -138,7 +141,6 @@ pub enum Opcode {
     Prt,
 }
 
-
 impl Opcode {
     pub fn from_cell(cell: Cell) -> Result<Opcode, anyhow::Error> {
         Opcode::from_str(&cell.content())
@@ -152,9 +154,7 @@ impl Opcode {
     pub fn evaluate(self, frame: &mut Frame) -> Artifact {
         use Opcode::*;
         let mut artifact = match self {
-            Nop => {
-                Artifact::EMPTY
-            }
+            Nop => Artifact::EMPTY,
             Hlt => {
                 unimplemented!();
             }
@@ -178,7 +178,9 @@ impl Opcode {
             }
 
             Jmp => {
-                let address_opt = frame.stack.get_last()
+                let address_opt = frame
+                    .stack
+                    .get_last()
                     .map(|operand| operand.resolve_to_address(&frame.grid));
                 let mut artifact = frame.act(Box::new(StackAction::Pop));
 
@@ -193,7 +195,8 @@ impl Opcode {
                 let (value_res, mut artifact) = pop_as_bool(frame);
 
                 if let Ok(value) = value_res
-                    && value {
+                    && value
+                {
                     let direction = match self {
                         Igu => Direction::Up,
                         Igr => Direction::Right,
@@ -213,7 +216,9 @@ impl Opcode {
                 let (operand, ope_artifact) = pop_as_bool_with_default(frame);
                 artifact.push(ope_artifact);
 
-                if let Ok(address) = address_res && operand {
+                if let Ok(address) = address_res
+                    && operand
+                {
                     artifact.push(frame.act(Box::new(HeadAction::MoveTo(address.position))));
                 }
 
@@ -288,7 +293,10 @@ impl Opcode {
                 artifact.push(lit_artifact);
 
                 if let (Ok(address), Ok(literal)) = (address_res, literal_res) {
-                    let set_artifact = frame.act(Box::new(GridAction::Set(address.position, literal.as_cell())));
+                    let set_artifact = frame.act(Box::new(GridAction::Set(
+                        address.position,
+                        literal.as_cell(),
+                    )));
                     artifact.push(set_artifact);
                 }
 
@@ -299,7 +307,8 @@ impl Opcode {
                 let (operand_res, mut artifact) = pop_operand(frame);
 
                 if let Ok(operand) = operand_res {
-                    let prt_artifact = frame.act(Box::new(ConsoleAction::Print(operand.as_cell().content())));
+                    let prt_artifact =
+                        frame.act(Box::new(ConsoleAction::Print(operand.as_cell().content())));
                     artifact.push(prt_artifact);
                 }
 

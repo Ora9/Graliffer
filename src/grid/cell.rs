@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 use egui::TextBuffer;
-use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de::Visitor};
 use unicode_segmentation::UnicodeSegmentation;
 
 /// A `Cell` represents a unit of a [`Grid`], it holds a string of 3 chars (more precislely unicode graphems)
@@ -16,7 +16,9 @@ impl Cell {
     pub fn new(string: &str) -> Result<Self, anyhow::Error> {
         // Todo : make an empty content be a no op
         if string.graphemes(true).count() > 3 {
-            Err(anyhow::anyhow!("invalid cell content : the given content is more than 3 graphems long"))
+            Err(anyhow::anyhow!(
+                "invalid cell content : the given content is more than 3 graphems long"
+            ))
         } else {
             Ok(Self(string.to_string()))
         }
@@ -24,8 +26,10 @@ impl Cell {
 
     /// Get a `Cell` from a `&str`, trimming any excess (more than 3 graphems)
     pub fn new_trim(string: &str) -> Self {
-        let string = UnicodeSegmentation::graphemes(string, true).take(3).collect::<String>();
-        Self (string)
+        let string = UnicodeSegmentation::graphemes(string, true)
+            .take(3)
+            .collect::<String>();
+        Self(string)
     }
 
     /// Try to insert `string` into the `Cell` at the specified `char_index`
@@ -92,8 +96,7 @@ impl Cell {
         self.0[byte_start..byte_end].to_string()
     }
 
-
-    pub fn set(&mut self, content: &str) -> Result<&Self, anyhow::Error>{
+    pub fn set(&mut self, content: &str) -> Result<&Self, anyhow::Error> {
         // TODO: just a test please code : be better
         let intern = Self::new(content)?;
         self.0 = intern.0;
@@ -157,7 +160,6 @@ impl<'de> Deserialize<'de> for Cell {
         struct PositionVisitor;
 
         impl<'de> Visitor<'de> for PositionVisitor {
-
             type Value = Cell;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -165,10 +167,10 @@ impl<'de> Deserialize<'de> for Cell {
             }
 
             fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-                where
-                    E: serde::de::Error, {
-
-                        Ok(Cell::new_trim(v))
+            where
+                E: serde::de::Error,
+            {
+                Ok(Cell::new_trim(v))
             }
         }
 

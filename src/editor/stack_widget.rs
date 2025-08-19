@@ -5,14 +5,12 @@ use egui::{FontFamily, RichText, Widget};
 use crate::Frame;
 
 pub struct StackWidget {
-    frame: Arc<Mutex<Frame>>
+    frame: Arc<Mutex<Frame>>,
 }
 
 impl StackWidget {
     pub fn new(frame: Arc<Mutex<Frame>>) -> Self {
-        Self {
-            frame
-        }
+        Self { frame }
     }
 }
 
@@ -23,7 +21,7 @@ impl Widget for StackWidget {
                 .stick_to_bottom(true)
                 .show(ui, |ui| {
                     egui::Frame::new()
-                        .inner_margin(egui::Vec2 { x: 20.0, y: 10.0})
+                        .inner_margin(egui::Vec2 { x: 20.0, y: 10.0 })
                         .show(ui, |ui| {
                             egui::Grid::new("stack_ui")
                                 .striped(false)
@@ -34,13 +32,16 @@ impl Widget for StackWidget {
                                         ui.label(
                                             RichText::new(format!("{i}: "))
                                                 .size(15.0)
-                                                .family(FontFamily::Monospace)
+                                                .family(FontFamily::Monospace),
                                         );
 
                                         ui.label(
-                                            RichText::new(format!("{}", operand.as_cell().content()))
-                                                .size(15.0)
-                                                .family(FontFamily::Monospace)
+                                            RichText::new(format!(
+                                                "{}",
+                                                operand.as_cell().content()
+                                            ))
+                                            .size(15.0)
+                                            .family(FontFamily::Monospace),
                                         );
                                         ui.end_row();
                                     }
@@ -52,6 +53,5 @@ impl Widget for StackWidget {
         }
 
         ui.response()
-
     }
 }

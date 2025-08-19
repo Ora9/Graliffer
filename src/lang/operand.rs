@@ -1,7 +1,7 @@
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use serde::{Deserialize, Serialize};
 
-use crate::grid::{Grid, Cell, Position};
+use crate::grid::{Cell, Grid, Position};
 
 /// A `Literal` is a string of character that represents data
 /// It can contain any unicode characters
@@ -17,9 +17,7 @@ pub struct Literal {
 impl Literal {
     /// Get a `Literal` from a [`Cell`]
     pub fn new(value: Cell) -> Self {
-        Self {
-            value
-        }
+        Self { value }
     }
 
     /// Get a `Literal` from a [`Cell`]
@@ -31,18 +29,14 @@ impl Literal {
     /// - `false` equals `0`
     /// - `true` equals `1`
     pub fn from_bool(value: bool) -> Self {
-        Self::from_cell(Cell::new_trim(
-            match value {
-                true => "1",
-                false => "0"
-            }
-        ))
+        Self::from_cell(Cell::new_trim(match value {
+            true => "1",
+            false => "0",
+        }))
     }
 
     pub fn from_number(value: u32) -> Self {
-        Self::from_cell(Cell::new_trim(
-            value.to_string().as_str()
-        ))
+        Self::from_cell(Cell::new_trim(value.to_string().as_str()))
     }
 
     /// Get a [`Cell`] from a `Literal`
@@ -75,7 +69,8 @@ impl Literal {
     ///
     /// Return an `Err` if contained value couldn't be parsed a numeric
     pub fn as_numeric(&self) -> Result<u32, anyhow::Error> {
-        self.value.content()
+        self.value
+            .content()
             .parse()
             .context("Could not parse the operand as a number")
     }
@@ -86,7 +81,6 @@ impl Literal {
     pub fn as_numeric_with_default(&self) -> u32 {
         self.value.content().parse().unwrap_or(0)
     }
-
 }
 
 /// An `Address` contain a [`Position`] and can be used by operations in
@@ -116,7 +110,7 @@ impl Literal {
 /// Example : `@AB` or `@Q+`
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Address {
-    pub position: Position
+    pub position: Position,
 }
 
 impl Address {
@@ -125,7 +119,7 @@ impl Address {
     /// Get an `Address` from a [`Position`]
     pub fn from_position(position: &Position) -> Self {
         Self {
-            position: *position
+            position: *position,
         }
     }
 
@@ -139,8 +133,12 @@ impl Address {
     /// [position representation](Position#representation) for more information
     pub fn from_cell(cell: &Cell) -> Result<Self, anyhow::Error> {
         let cell_content = cell.content();
-        let pos = cell_content.strip_prefix(Self::PREFIX)
-            .ok_or(anyhow!(format!("{} is not a valid `Address` format", cell_content)))?;
+        let pos = cell_content
+            .strip_prefix(Self::PREFIX)
+            .ok_or(anyhow!(format!(
+                "{} is not a valid `Address` format",
+                cell_content
+            )))?;
         let pos = Position::try_from(pos)?;
 
         Ok(Self::from_position(&pos))
@@ -150,9 +148,8 @@ impl Address {
     /// see [address format](Address#format) for more information
     pub fn as_cell(&self) -> Cell {
         let (x, y) = self.position.as_textual();
-        Cell::new(
-            format!("{}{}{}", Self::PREFIX, x, y).as_str()
-        ).expect("A Position must always have a valid Cell representation")
+        Cell::new(format!("{}{}{}", Self::PREFIX, x, y).as_str())
+            .expect("A Position must always have a valid Cell representation")
     }
 
     /// Return a [`Literal`] from an `Address`, using the `@XY` format,
@@ -197,7 +194,7 @@ impl Pointer {
     /// Get an `Pointer` from a [`Position`]
     pub fn from_position(position: &Position) -> Self {
         Self {
-            position: *position
+            position: *position,
         }
     }
 
@@ -211,8 +208,12 @@ impl Pointer {
     /// [position representation](Position#representation) for more information
     pub fn from_cell(cell: &Cell) -> Result<Self, anyhow::Error> {
         let cell_content = cell.content();
-        let pos = cell_content.strip_prefix(Self::PREFIX)
-            .ok_or(anyhow!(format!("{} is not a valid `Address` format", cell_content)))?;
+        let pos = cell_content
+            .strip_prefix(Self::PREFIX)
+            .ok_or(anyhow!(format!(
+                "{} is not a valid `Address` format",
+                cell_content
+            )))?;
         let pos = Position::try_from(pos)?;
 
         Ok(Self::from_position(&pos))
@@ -224,7 +225,11 @@ impl Pointer {
 
             if let Ok(pointer) = Pointer::from_cell(&pointed_cell) {
                 if depth + 1 >= Pointer::MAX_RECURSION_DEPTH {
-                    eprintln!("Couldn't resolve pointer chain further, max recursion depth reached ({}), last pointed cell used : `{}`", Pointer::MAX_RECURSION_DEPTH, &pointed_cell.content());
+                    eprintln!(
+                        "Couldn't resolve pointer chain further, max recursion depth reached ({}), last pointed cell used : `{}`",
+                        Pointer::MAX_RECURSION_DEPTH,
+                        &pointed_cell.content()
+                    );
                     pointed_cell
                 } else {
                     get(depth + 1, &pointer, grid)
@@ -257,9 +262,8 @@ impl Pointer {
     /// see [address format](Address#format) for more information
     pub fn as_cell(&self) -> Cell {
         let (x, y) = self.position.as_textual();
-        Cell::new(
-            format!("{}{}{}", Self::PREFIX, x, y).as_str()
-        ).expect("A Position must always have a valid Cell representation")
+        Cell::new(format!("{}{}{}", Self::PREFIX, x, y).as_str())
+            .expect("A Position must always have a valid Cell representation")
     }
 
     pub fn as_literal(&self) -> Literal {
@@ -311,9 +315,7 @@ impl Operand {
                     Self::Literal(Literal::from_cell(cell))
                 }
             }
-            _ => {
-                Self::Literal(Literal::from_cell(cell))
-            }
+            _ => Self::Literal(Literal::from_cell(cell)),
         }
     }
 
@@ -331,9 +333,12 @@ impl Operand {
 
     pub fn resolve_to_address(&self, grid: &Grid) -> Result<Address, anyhow::Error> {
         match self {
-            Self::Literal(literal) => Err(anyhow::anyhow!("cannot resolve to address, got literal : `{:?}`", literal)),
+            Self::Literal(literal) => Err(anyhow::anyhow!(
+                "cannot resolve to address, got literal : `{:?}`",
+                literal
+            )),
             Self::Address(address) => Ok(*address),
-            Self::Pointer(pointer) => pointer.resolve_to_address(grid)
+            Self::Pointer(pointer) => pointer.resolve_to_address(grid),
         }
     }
 
@@ -369,7 +374,7 @@ impl Operand {
 }
 
 impl From<Literal> for Operand {
-    fn from(value : Literal) -> Self {
+    fn from(value: Literal) -> Self {
         Self::Literal(value)
     }
 }

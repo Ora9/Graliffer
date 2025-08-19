@@ -1,5 +1,6 @@
 use crate::{
-    grid::{Grid, Position}, utils::Direction
+    grid::{Grid, Position},
+    utils::Direction,
 };
 
 #[derive(Clone, Copy)]
@@ -8,7 +9,7 @@ pub enum PreferredCharPosition {
     AtEnd,
     ForwardBy(usize),
     BackwardBy(usize),
-    At(usize)
+    At(usize),
 }
 
 pub enum PreferredGridPosition {
@@ -45,7 +46,7 @@ impl Cursor {
     fn new_at(grid_position: Position) -> Self {
         Self {
             grid_position,
-            char_position: 0
+            char_position: 0,
         }
     }
 
@@ -61,10 +62,11 @@ impl Cursor {
         &mut self,
         preferred_grid_position: PreferredGridPosition,
         preferred_char_position: PreferredCharPosition,
-        grid: &Grid) {
-            self.grid_move_to(preferred_grid_position, grid);
-            self.char_move_to(preferred_char_position, grid);
-        }
+        grid: &Grid,
+    ) {
+        self.grid_move_to(preferred_grid_position, grid);
+        self.char_move_to(preferred_char_position, grid);
+    }
 
     // todo: remove frame to pass just the cell content, or maybe in PreferredCharPosition::At(2, cell) ?
     pub fn char_move_to(&mut self, preferred_char_position: PreferredCharPosition, grid: &Grid) {
@@ -78,9 +80,7 @@ impl Cursor {
             }
             ForwardBy(offset) => {
                 let cell_length = grid.get(self.grid_position).len();
-                self.char_position
-                    .saturating_add(offset)
-                    .min(cell_length)
+                self.char_position.saturating_add(offset).min(cell_length)
             }
             BackwardBy(offset) => self.char_position.saturating_sub(offset),
         };
@@ -91,7 +91,7 @@ impl Cursor {
     fn grid_move_to(&mut self, preferred_grid_position: PreferredGridPosition, grid: &Grid) {
         use PreferredGridPosition::*;
         let grid_position = match preferred_grid_position {
-            At(position) => {position},
+            At(position) => position,
             InDirectionByOffset(direction, offset) => {
                 use Direction::*;
                 let result = match direction {
@@ -106,7 +106,7 @@ impl Cursor {
                 } else {
                     self.grid_position()
                 }
-            },
+            }
             InDirectionUntilNonEmpty(_direction) => {
                 Position::from_numeric(5, 5).unwrap()
 

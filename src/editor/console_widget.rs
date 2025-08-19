@@ -11,15 +11,12 @@ pub struct ConsoleWidget {
 
 impl ConsoleWidget {
     pub fn new(frame: Arc<Mutex<Frame>>) -> Self {
-        Self {
-            frame
-        }
+        Self { frame }
     }
 }
 
 impl Widget for ConsoleWidget {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
-
         if let Ok(_frame_guard) = self.frame.try_lock() {
             ui.label("Console! Bip boup");
         } else {
