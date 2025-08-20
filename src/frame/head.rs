@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     Frame,
-    action::{Action, Artifact},
+    action::{FrameAction, Artifact},
     grid::Position,
 };
 
@@ -127,7 +127,7 @@ pub enum HeadAction {
     TakeStep(),
 }
 
-impl Action for HeadAction {
+impl FrameAction for HeadAction {
     fn act(&self, frame: &mut Frame) -> Artifact {
         match self {
             Self::MoveTo(position) => {

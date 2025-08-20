@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     Word,
-    action::{Action, Artifact},
+    action::{FrameAction, Artifact},
     console::Console,
     grid::Grid,
     head::{Head, HeadAction},
@@ -72,12 +72,12 @@ impl Frame {
     }
 
     #[must_use]
-    pub fn act(&mut self, action: Box<dyn Action>) -> Artifact {
+    pub fn act(&mut self, action: Box<dyn FrameAction>) -> Artifact {
         action.act(self)
     }
 
     #[must_use]
-    pub fn act_by_ref(&mut self, action: &dyn Action) -> Artifact {
+    pub fn act_by_ref(&mut self, action: &dyn FrameAction) -> Artifact {
         action.act(self)
     }
 }

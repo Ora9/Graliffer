@@ -12,6 +12,7 @@ pub enum PreferredCharPosition {
     At(usize),
 }
 
+#[derive(Clone, Copy)]
 pub enum PreferredGridPosition {
     At(Position),
     InDirectionByOffset(Direction, usize),

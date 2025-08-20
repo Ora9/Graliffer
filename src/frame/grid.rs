@@ -11,7 +11,7 @@ pub use cell::Cell;
 
 use crate::{
     Frame,
-    action::{Action, Artifact},
+    action::{FrameAction, Artifact},
 };
 
 /// A `Grid` represents a 2d space filled with [`Cell`]s, theses cells are positioned by a [`Position`]
@@ -65,7 +65,7 @@ pub enum GridAction {
     Set(Position, Cell),
 }
 
-impl Action for GridAction {
+impl FrameAction for GridAction {
     fn act(&self, frame: &mut Frame) -> Artifact {
         match self {
             Self::Set(position, cell) => {

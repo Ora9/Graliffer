@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use crate::{
     Frame,
-    action::{Action, Artifact},
+    action::{FrameAction, Artifact},
 };
 
 #[derive(Default, Debug)]
@@ -30,7 +30,7 @@ pub enum ConsoleAction {
     Print(String),
 }
 
-impl Action for ConsoleAction {
+impl FrameAction for ConsoleAction {
     fn act(&self, frame: &mut Frame) -> Artifact {
         match self {
             Self::Print(string) => {

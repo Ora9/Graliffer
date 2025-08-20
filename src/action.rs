@@ -1,24 +1,44 @@
-use crate::Frame;
+use crate::{Editor, Frame};
 use std::fmt::Debug;
 
-pub trait Action: std::fmt::Debug + CloneAction {
+pub trait EditorAction: std::fmt::Debug {
+    fn act(&self, editor: &mut Editor);
+}
+
+// impl<T> CloneAction for T
+// where
+//     T: EditorAction + Clone + 'static,
+// {
+//     fn clone_action(&self) -> Box<dyn EditorAction> {
+//         Box::new(self.clone())
+//     }
+// }
+
+// impl Clone for Box<dyn FrameAction> {
+//     fn clone(&self) -> Self {
+//         self.clone_action()
+//     }
+// }
+
+
+pub trait FrameAction: std::fmt::Debug + CloneAction {
     fn act(&self, frame: &mut Frame) -> Artifact;
 }
 
 pub trait CloneAction {
-    fn clone_action(&self) -> Box<dyn Action>;
+    fn clone_action(&self) -> Box<dyn FrameAction>;
 }
 
 impl<T> CloneAction for T
 where
-    T: Action + Clone + 'static,
+    T: FrameAction + Clone + 'static,
 {
-    fn clone_action(&self) -> Box<dyn Action> {
+    fn clone_action(&self) -> Box<dyn FrameAction> {
         Box::new(self.clone())
     }
 }
 
-impl Clone for Box<dyn Action> {
+impl Clone for Box<dyn FrameAction> {
     fn clone(&self) -> Self {
         self.clone_action()
     }
@@ -26,8 +46,8 @@ impl Clone for Box<dyn Action> {
 
 #[derive(Clone)]
 struct ReciprocalAction {
-    redo: Option<Box<dyn Action>>,
-    undo: Option<Box<dyn Action>>,
+    redo: Option<Box<dyn FrameAction>>,
+    undo: Option<Box<dyn FrameAction>>,
 }
 
 impl ReciprocalAction {
@@ -59,17 +79,17 @@ impl Artifact {
         actions: Vec::new(),
     };
 
-    fn new(redo: Option<Box<dyn Action>>, undo: Option<Box<dyn Action>>) -> Self {
+    fn new(redo: Option<Box<dyn FrameAction>>, undo: Option<Box<dyn FrameAction>>) -> Self {
         Self {
             actions: vec![ReciprocalAction { redo, undo }],
         }
     }
 
-    pub fn from_redo(redo: Box<dyn Action>) -> Self {
+    pub fn from_redo(redo: Box<dyn FrameAction>) -> Self {
         Self::new(Some(redo), None)
     }
 
-    pub fn from_redo_undo(redo: Box<dyn Action>, undo: Box<dyn Action>) -> Self {
+    pub fn from_redo_undo(redo: Box<dyn FrameAction>, undo: Box<dyn FrameAction>) -> Self {
         Self::new(Some(redo), Some(undo))
     }
 

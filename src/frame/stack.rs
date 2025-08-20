@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     Frame, Operand,
-    action::{Action, Artifact},
+    action::{FrameAction, Artifact},
 };
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -52,7 +52,7 @@ pub enum StackAction {
     Push(Operand),
 }
 
-impl Action for StackAction {
+impl FrameAction for StackAction {
     fn act(&self, frame: &mut Frame) -> Artifact {
         match self {
             Self::Push(operand) => {
