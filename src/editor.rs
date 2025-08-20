@@ -1,6 +1,6 @@
 use std::{
     sync::{Arc, Mutex},
-    thread, time::{Duration, Instant},
+    thread,
 };
 
 use egui::Widget;
@@ -131,32 +131,36 @@ impl Editor {
         StackWidget::new(frame).ui(ui);
     }
 
-    fn load_file(&self) {
-        use rfd::FileDialog;
+    async fn load_file(&self) {
+        println!("Loading file..");
+        thread::sleep(std::time::Duration::from_secs(1));
+        println!("just kidding..");
 
-        println!("Open File!");
+    //     use rfd::FileDialog;
 
-        let frame_arc = self.frame.clone();
+    //     println!("Open File!");
 
-        thread::spawn(async move || {
-            dbg!("in thread");
-            let files = FileDialog::new()
-                .add_filter("text", &["txt", "rs"])
-                .add_filter("rust", &["rs", "toml"])
-                .set_directory("/")
-                .pick_file()
-                .unwrap();
+    //     let frame_arc = self.frame.clone();
 
-            dbg!(files);
-            // let data = files.read();
-            // dbg!(frame_arc.lock().unwrap());
-            let mut frame = frame_arc.lock().unwrap();
+    //     thread::spawn(async move || {
+    //         dbg!("in thread");
+    //         let files = FileDialog::new()
+    //             .add_filter("text", &["txt", "rs"])
+    //             .add_filter("rust", &["rs", "toml"])
+    //             .set_directory("/")
+    //             .pick_file()
+    //             .unwrap();
 
-            frame.act(Box::new(crate::grid::GridAction::Set(
-                Position::from_numeric(5, 5).unwrap(),
-                Cell::new_trim("OUI"),
-            )));
-        });
+    //         dbg!(files);
+    //         // let data = files.read();
+    //         // dbg!(frame_arc.lock().unwrap());
+    //         let mut frame = frame_arc.lock().unwrap();
+
+    //         frame.act(Box::new(crate::grid::GridAction::Set(
+    //             Position::from_numeric(5, 5).unwrap(),
+    //             Cell::new_trim("OUI"),
+    //         )));
+    //     });
     }
 
     /// Create the default tile layout
@@ -213,7 +217,7 @@ impl eframe::App for Editor {
             egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("Graliffer", |ui| {
                     if ui.button("Open file").clicked() {
-                        self.load_file();
+                        // self.load_file();
                     }
 
                     if ui.button("About Graliffer").clicked() {

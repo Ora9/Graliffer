@@ -88,7 +88,7 @@ impl Cursor {
         self.char_position = char_position;
     }
 
-    fn grid_move_to(&mut self, preferred_grid_position: PreferredGridPosition, grid: &Grid) {
+    fn grid_move_to(&mut self, preferred_grid_position: PreferredGridPosition, _grid: &Grid) {
         use PreferredGridPosition::*;
         let grid_position = match preferred_grid_position {
             At(position) => position,

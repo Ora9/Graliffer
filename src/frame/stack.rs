@@ -41,7 +41,7 @@ impl Stack {
     //     self.data.last().ok_or(anyhow::anyhow!("Could not pop an element from the stack"))
     // }
 
-    pub fn iter(&self) -> Iter<Operand> {
+    pub fn iter(&self) -> Iter<'_, Operand> {
         self.data.iter()
     }
 }

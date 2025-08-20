@@ -4,7 +4,7 @@ use crate::{
     Word,
     action::{Action, Artifact},
     console::Console,
-    grid::{Grid, GridAction},
+    grid::Grid,
     head::{Head, HeadAction},
     stack::{Stack, StackAction},
 };
