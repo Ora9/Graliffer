@@ -6,9 +6,6 @@ use std::{collections::HashMap, fmt::Debug};
 mod position;
 pub use position::{Position, PositionAxis};
 
-mod head;
-pub use head::{Head, HeadAction};
-
 mod cell;
 pub use cell::Cell;
 

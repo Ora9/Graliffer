@@ -6,7 +6,8 @@ use crate::{
     Address, Literal,
     action::Artifact,
     console::ConsoleAction,
-    grid::{Cell, GridAction, HeadAction},
+    grid::{Cell, GridAction},
+    head::HeadAction,
     stack::StackAction,
     utils::Direction,
 };

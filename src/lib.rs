@@ -5,10 +5,7 @@
 mod utils;
 
 mod frame;
-pub use frame::Frame;
-
-pub mod grid;
-pub mod stack;
+pub use frame::{Frame, grid, stack, head};
 
 mod lang;
 pub use lang::{Address, Literal, Opcode, Operand, Pointer, Word};

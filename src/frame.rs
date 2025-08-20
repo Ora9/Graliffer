@@ -4,9 +4,14 @@ use crate::{
     Word,
     action::{Action, Artifact},
     console::Console,
-    grid::{Grid, Head, HeadAction},
+    grid::{Grid, GridAction},
+    head::{Head, HeadAction},
     stack::{Stack, StackAction},
 };
+
+pub mod grid;
+pub mod stack;
+pub mod head;
 
 /// A [`Frame`] represents a run
 #[derive(Serialize, Deserialize, Debug, Default)]

@@ -1,9 +1,5 @@
-//! Artifact is the actions system of Graliffer, it is used to manipulate data in a centralized way, enabling to go back in time like an undo-redo system
-//!
-
-use std::fmt::Debug;
-
 use crate::Frame;
+use std::fmt::Debug;
 
 pub trait Action: std::fmt::Debug + CloneAction {
     fn act(&self, frame: &mut Frame) -> Artifact;
