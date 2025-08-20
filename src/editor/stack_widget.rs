@@ -36,10 +36,7 @@ impl Widget for StackWidget {
                                         );
 
                                         ui.label(
-                                            RichText::new(format!(
-                                                "{}",
-                                                operand.as_cell().content()
-                                            ))
+                                            RichText::new(operand.as_cell().content().to_string())
                                             .size(15.0)
                                             .family(FontFamily::Monospace),
                                         );

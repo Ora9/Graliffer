@@ -86,12 +86,12 @@ impl Literal {
 /// An `Address` contain a [`Position`] and can be used by operations in
 /// two ways, either :
 /// - To designate a certain [`Cell`] in the grid, on wich the operation can act on
-/// (e.g. the operation `set` uses an address to change the content of
-/// the designated cell).
+///   (e.g. the operation `set` uses an address to change the content of
+///   the designated cell).
 /// - More frequently, to reference another [`Cell`]'s [`Literal`].
-/// (e.g. the operation `add` needs two literal, any one of these two can
-/// actually be an address pointing to a literal, allowing for
-/// more complex programs).
+///   (e.g. the operation `add` needs two literal, any one of these two can
+///   actually be an address pointing to a literal, allowing for
+///   more complex programs).
 ///
 /// Note that, in the second case, any designated cell will not
 /// be interpreted further, that mean that if we reference a cell containing
@@ -102,10 +102,10 @@ impl Literal {
 /// # Format
 /// An address must be formated like `@XY`, with :
 /// - `@` being a prefix (wich denote an address, a `&` would denote
-/// a [`Pointer`])
+///   a [`Pointer`])
 /// - `X` and `Y` being respectively the horizontal and vertical axis of a
-/// [`Position`] in textual form, see
-/// [position representation](Position#representation) for more information
+///   [`Position`] in textual form, see
+///   [position representation](Position#representation) for more information
 ///
 /// Example : `@AB` or `@Q+`
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
@@ -175,10 +175,10 @@ impl Address {
 /// # Format
 /// An pointer must be formated like `&XY`, with :
 /// - `&` being a prefix (wich denote an address, a `@` would denote
-/// an [`Address`])
+///   an [`Address`])
 /// - `X` and `Y` being respectively the horizontal and vertical axis of a
-/// [`Position`] in textual form, see
-/// [position representation](Position#representation) for more information
+///   [`Position`] in textual form, see
+///   [position representation](Position#representation) for more information
 ///
 /// Example : `&AB` or `&Q+`
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
@@ -276,14 +276,14 @@ impl Pointer {
 ///
 /// In Graliffer there are 3 types of operands :
 /// - [`Literal`] : a string of character that represents data. Depending of
-/// the operation and place, a literal can be parsed in different ways (as bool,
-/// numbers ...)
+///   the operation and place, a literal can be parsed in different ways (as bool,
+///   numbers ...)
 /// - [`Address`] : a way to represent a position in a [`Grid`].
-/// It can either be used to represent a designate a certain [`Cell`] in the
-/// grid, where the operation can act on, or to reference another `Cell`s [`Literal`]
+///   It can either be used to represent a designate a certain [`Cell`] in the
+///   grid, where the operation can act on, or to reference another `Cell`s [`Literal`]
 /// - [`Pointer`] : a way to designate another cell's operand, that will then
-/// be interpreted. Multiples pointers can be chained to allow complex
-/// data references
+///   be interpreted. Multiples pointers can be chained to allow complex
+///   data references
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum Operand {
     Literal(Literal),

@@ -60,8 +60,8 @@ impl GridWidget {
         let container_id = ui.id();
         let response = ui.interact(container_rect, container_id, egui::Sense::click_and_drag());
 
-        if let Some(pointer_pos) = ui.ctx().input(|i| i.pointer.hover_pos()) {
-            if container_rect.contains(pointer_pos) {
+        if let Some(pointer_pos) = ui.ctx().input(|i| i.pointer.hover_pos())
+            && container_rect.contains(pointer_pos) {
                 if response.clicked_by(egui::PointerButton::Primary) {
                     response.request_focus();
 
@@ -99,8 +99,8 @@ impl GridWidget {
                         // TODO: move the cursor to the right spot when clicking on text
                         // Should be possible if we work on Cursor with prefered position
 
-                        if let Ok(frame_guard) = self.frame.try_lock() {
-                            if let Ok(grid_pos) =
+                        if let Ok(frame_guard) = self.frame.try_lock()
+                            && let Ok(grid_pos) =
                                 Position::from_numeric(hovered_cell_x, hovered_cell_y)
                             {
                                 state.cursor.move_to(
@@ -109,7 +109,6 @@ impl GridWidget {
                                     &frame_guard.grid,
                                 );
                             }
-                        }
                     }
                 }
 
@@ -128,7 +127,6 @@ impl GridWidget {
                 state.grid_transform =
                     TSTransform::from_translation(pan_delta * 2.0) * state.grid_transform;
             }
-        }
 
         response
     }
@@ -139,7 +137,7 @@ impl Widget for GridWidget {
         let (container_id, container_rect) = ui.allocate_space(ui.available_size());
 
         let mut state =
-            GridWidgetState::load(ui.ctx(), container_id).unwrap_or(GridWidgetState::new());
+            GridWidgetState::load(ui.ctx(), container_id).unwrap_or_default();
 
         let response = self.handle_inputs(&mut state, ui);
 

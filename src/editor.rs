@@ -299,7 +299,7 @@ impl TilesBehavior {
     }
 }
 
-impl<'a> egui_tiles::Behavior<Pane> for TilesBehavior {
+impl egui_tiles::Behavior<Pane> for TilesBehavior {
     fn tab_title_for_pane(&mut self, pane: &Pane) -> egui::WidgetText {
         pane.as_ref().into()
     }
@@ -323,7 +323,7 @@ impl<'a> egui_tiles::Behavior<Pane> for TilesBehavior {
                 Editor::console_ui(ui, frame);
             }
             _ => {
-                ui.label(format!("{}", pane.as_ref()));
+                ui.label(pane.as_ref().to_string());
             }
         }
 

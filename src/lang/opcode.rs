@@ -275,7 +275,7 @@ impl Opcode {
 
                 let result = match self {
                     Add => lhs.checked_add(rhs).unwrap_or(0),
-                    Sub => lhs.checked_sub(rhs).unwrap_or(0),
+                    Sub => lhs.saturating_sub(rhs),
                     Mul => lhs.checked_mul(rhs).unwrap_or(0),
                     Div => lhs.checked_div(rhs).unwrap_or(0),
                     _ => unreachable!(),
