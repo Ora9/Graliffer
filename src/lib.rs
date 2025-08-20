@@ -15,4 +15,4 @@ pub mod console;
 mod action;
 
 mod editor;
-pub use editor::GralifferEditor;
+pub use editor::Editor;

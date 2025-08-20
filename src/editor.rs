@@ -26,9 +26,9 @@ use console_widget::ConsoleWidget;
 mod stack_widget;
 use stack_widget::StackWidget;
 
-pub struct GralifferEditor {
+pub struct Editor {
     layout_tree: egui_tiles::Tree<Pane>,
-    tile_behavior: GralifferTilesBehavior,
+    tile_behavior: TilesBehavior,
 
     frame: Arc<Mutex<Frame>>,
 
@@ -46,7 +46,7 @@ pub struct GralifferEditor {
     // history entry
 }
 
-impl GralifferEditor {
+impl Editor {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let mut fonts = egui::FontDefinitions::default();
         egui_phosphor::add_to_fonts(&mut fonts, egui_phosphor::Variant::Regular);
@@ -105,7 +105,7 @@ impl GralifferEditor {
         let frame_arc = Arc::new(Mutex::new(frame));
 
         Self {
-            tile_behavior: GralifferTilesBehavior::new(frame_arc.clone()),
+            tile_behavior: TilesBehavior::new(frame_arc.clone()),
             layout_tree: Self::create_layout_tree(),
 
             frame: frame_arc,
@@ -207,7 +207,7 @@ impl GralifferEditor {
     }
 }
 
-impl eframe::App for GralifferEditor {
+impl eframe::App for Editor {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
@@ -285,17 +285,17 @@ impl eframe::App for GralifferEditor {
     }
 }
 
-struct GralifferTilesBehavior {
+struct TilesBehavior {
     frame: Arc<Mutex<Frame>>,
 }
 
-impl GralifferTilesBehavior {
+impl TilesBehavior {
     fn new(frame: Arc<Mutex<Frame>>) -> Self {
         Self { frame }
     }
 }
 
-impl<'a> egui_tiles::Behavior<Pane> for GralifferTilesBehavior {
+impl<'a> egui_tiles::Behavior<Pane> for TilesBehavior {
     fn tab_title_for_pane(&mut self, pane: &Pane) -> egui::WidgetText {
         pane.as_ref().into()
     }
@@ -310,13 +310,13 @@ impl<'a> egui_tiles::Behavior<Pane> for GralifferTilesBehavior {
 
         match pane {
             Pane::Grid => {
-                GralifferEditor::grid_ui(ui, frame);
+                Editor::grid_ui(ui, frame);
             }
             Pane::Stack => {
-                GralifferEditor::stack_ui(ui, frame);
+                Editor::stack_ui(ui, frame);
             }
             Pane::Console => {
-                GralifferEditor::console_ui(ui, frame);
+                Editor::console_ui(ui, frame);
             }
             _ => {
                 ui.label(format!("{}", pane.as_ref()));
