@@ -4,17 +4,18 @@
 
 mod utils;
 
+mod frame;
+pub use frame::Frame;
+
 pub mod grid;
 pub mod stack;
-
-pub mod console;
 
 mod lang;
 pub use lang::{Address, Literal, Opcode, Operand, Pointer, Word};
 
-mod frame;
-pub use frame::Frame;
+pub mod console;
 
 mod action;
 
-pub mod editor;
+mod editor;
+pub use editor::GralifferEditor;

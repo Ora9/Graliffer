@@ -1,13 +1,9 @@
 use std::sync::{Arc, Mutex};
 
 use crate::{
-    Frame,
-    editor::cursor,
-    grid::{Position, PositionAxis},
+    editor::{cursor, Cursor}, grid::{Position, PositionAxis}, Frame
 };
 use egui::{Context, Id, Pos2, Rect, Vec2, Widget, emath::TSTransform};
-
-use super::cursor::Cursor;
 
 #[derive(Default, Clone)]
 pub struct GridWidgetState {
