@@ -1,12 +1,12 @@
 use std::{
-    fmt::Debug, sync::{Arc, Mutex}, thread
+    collections::HashMap, fmt::Debug, hash::Hash, sync::{Arc, Mutex}, thread
 };
 
-use egui::Widget;
+use egui::{Id, Widget};
 
 use egui_tiles::{Tiles, Tree};
 use crate::{
-    action::{EditorAction, History}, editor::history_utils::HistoryAction, grid::{Cell, Grid, Position}, Frame
+    action::{EditorAction, History}, editor::{grid_widget::GridWidgetState, history_utils::HistoryAction}, grid::{Cell, Grid, Position}, Frame
 };
 use strum_macros::AsRefStr;
 
@@ -113,6 +113,40 @@ impl Editor {
         action.act(self);
     }
 
+    fn handle_inputs(&self, ctx: &egui::Context) {
+        let context = if let Some(focused_id) = ctx.memory(|mem| mem.focused()) {
+
+            let context_by_id = ContextIds::load_id(ctx).unwrap_or_default();
+
+            let focused_context = context_by_id.data.into_iter()
+                .find(|(_context, id)| {
+                    *id == focused_id
+                })
+                .and_then(|a| {Some(a.0)});
+
+            focused_context
+        } else {
+            None
+        };
+
+        dbg!(context);
+
+
+        // let event_filter = egui::EventFilter {
+        //     horizontal_arrows: true,
+        //     vertical_arrows: true,
+        //     escape: true,
+        //     tab: true,
+        // };
+
+        // // ctx.memory_mut(|mem| mem.set_focus_lock_filter(container_id, event_filter));
+        // let events = ctx.input(|i| i.filtered_events(&event_filter));
+
+        // for event in events {
+        //     dbg!(event);
+        // }
+
+    }
 
     async fn load_file(&self) {
         println!("Loading file..");
@@ -152,23 +186,22 @@ impl Editor {
 
         let stack = tiles.insert_pane(Pane::Stack);
         let grid = tiles.insert_pane(Pane::Grid);
-        let heads = tiles.insert_pane(Pane::Heads);
         let console = tiles.insert_pane(Pane::Console);
         let graphical = tiles.insert_pane(Pane::Graphical);
 
-        let stack_head = tiles.insert_container(egui_tiles::Tabs {
-            children: vec![stack, heads],
+        let stack = tiles.insert_container(egui_tiles::Tabs {
+            children: vec![stack],
             active: Some(stack),
         });
 
         let horizontal = tiles.insert_container({
             let mut linear = egui_tiles::Linear {
-                children: vec![grid, stack_head],
+                children: vec![grid, stack],
                 dir: egui_tiles::LinearDir::Horizontal,
                 shares: Default::default(),
             };
             linear.shares.set_share(grid, 0.8);
-            linear.shares.set_share(stack_head, 0.2);
+            linear.shares.set_share(stack, 0.2);
 
             linear
         });
@@ -210,6 +243,9 @@ impl Editor {
 
 impl eframe::App for Editor {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+
+        self.handle_inputs(ctx);
+
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("Graliffer", |ui| {
@@ -284,14 +320,48 @@ impl eframe::App for Editor {
             });
         }
     }
+}
 
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+pub enum ContextWidget {
+    Grid,
+    Stack,
+    Console,
+    Graphic,
+    CommandPanel,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct ContextIds {
+    data: HashMap<ContextWidget, egui::Id>
+}
+
+impl ContextIds {
+    const ID: &'static str = "ID_BY_CONTEXT";
+
+    fn store_id(ctx: &egui::Context, id: egui::Id, context: ContextWidget) {
+        ctx.data_mut(|data| {
+            let context_by_id: &mut ContextIds = data.get_persisted_mut_or_default(Id::new(Self::ID));
+
+            context_by_id.data.insert(context, id);
+        });
+    }
+
+    fn load_id(ctx: &egui::Context) -> Option<ContextIds> {
+        ctx.data_mut(|data| {
+            data.get_persisted(Id::new(Self::ID))
+        })
+    }
+
+    fn get_id(&self, context: ContextWidget) -> Option<egui::Id> {
+        self.data.get(&context).cloned()
+    }
 }
 
 #[derive(Debug, AsRefStr)]
 enum Pane {
     Grid,
     Stack,
-    Heads,
     Console,
     Graphical,
 }
@@ -337,4 +407,3 @@ impl egui_tiles::Behavior<Pane> for TilesBehavior {
         Default::default()
     }
 }
-

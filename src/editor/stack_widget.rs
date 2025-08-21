@@ -1,8 +1,8 @@
 use std::sync::{Arc, Mutex};
 
-use egui::{FontFamily, RichText, Widget};
+use egui::{FontFamily, RichText, Sense, Widget};
 
-use crate::Frame;
+use crate::{editor::{ContextIds, ContextWidget}, Frame};
 
 pub struct StackWidget {
     frame: Arc<Mutex<Frame>>,
@@ -16,6 +16,13 @@ impl StackWidget {
 
 impl Widget for StackWidget {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+        let response = ui.interact(ui.available_rect_before_wrap(), ui.id(), Sense::click());
+        if response.clicked() {
+            response.request_focus();
+        }
+
+        ContextIds::store_id(ui.ctx(), ui.id(), ContextWidget::Stack);
+
         if let Ok(frame) = self.frame.try_lock() {
             egui::ScrollArea::vertical()
                 .stick_to_bottom(true)

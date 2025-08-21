@@ -1,8 +1,8 @@
 use std::sync::{Arc, Mutex};
 
-use egui::Widget;
+use egui::{Sense, Widget};
 
-use crate::Frame;
+use crate::{editor::{ContextIds, ContextWidget}, Frame};
 
 #[derive(Debug)]
 pub struct ConsoleWidget {
@@ -17,6 +17,13 @@ impl ConsoleWidget {
 
 impl Widget for ConsoleWidget {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+        let response = ui.interact(ui.available_rect_before_wrap(), ui.id(), Sense::click());
+        if response.clicked() {
+            response.request_focus();
+        }
+
+        ContextIds::store_id(ui.ctx(), ui.id(), ContextWidget::Console);
+
         if let Ok(_frame_guard) = self.frame.try_lock() {
             ui.label("Console! Bip boup");
         } else {

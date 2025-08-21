@@ -1,16 +1,16 @@
-use std::sync::{Arc, Mutex};
+use std::{hash::Hash, sync::{Arc, Mutex}};
 
 use crate::{
-    editor::{cursor, Cursor}, grid::{Position, PositionAxis}, Frame
+    editor::{cursor, ContextIds, ContextWidget, Cursor}, grid::{Position, PositionAxis}, Frame
 };
 use egui::{Context, Id, Pos2, Rect, Vec2, Widget, emath::TSTransform};
 
-#[derive(Default, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct GridWidgetState {
     pub cursor: Cursor,
 
     // grid transform relative to the egui grid's window
-    grid_transform: TSTransform,
+    pub grid_transform: TSTransform,
     // grid transform relative to the whole egui viewport
     screen_transform: TSTransform,
 }
@@ -20,12 +20,12 @@ impl GridWidgetState {
         Self::default()
     }
 
-    fn load(ctx: &Context, id: Id) -> Option<Self> {
-        ctx.data_mut(|d| d.get_persisted(id))
+    fn load(ctx: &Context, id: impl Hash) -> Option<Self> {
+        ctx.data_mut(|d| d.get_persisted(Id::new(id)))
     }
 
-    fn store(self, ctx: &Context, id: Id) {
-        ctx.data_mut(|d| d.insert_persisted(id, self));
+    fn store(self, ctx: &Context, id: impl Hash) {
+        ctx.data_mut(|d| d.insert_persisted(Id::new(id), self));
     }
 }
 
@@ -134,10 +134,12 @@ impl GridWidget {
 
 impl Widget for GridWidget {
     fn ui(mut self, ui: &mut egui::Ui) -> egui::Response {
-        let (container_id, container_rect) = ui.allocate_space(ui.available_size());
+        let (_container_id, container_rect) = ui.allocate_space(ui.available_size());
 
         let mut state =
-            GridWidgetState::load(ui.ctx(), container_id).unwrap_or_default();
+            GridWidgetState::load(ui.ctx(), ContextWidget::Grid).unwrap_or_default();
+
+        ContextIds::store_id(ui.ctx(), ui.id(), ContextWidget::Grid);
 
         let response = self.handle_inputs(&mut state, ui);
 
@@ -292,7 +294,7 @@ impl Widget for GridWidget {
             }
         }
 
-        state.store(ui.ctx(), container_id);
+        state.store(ui.ctx(), ContextWidget::Grid);
 
         response
     }
