@@ -23,7 +23,7 @@ use console_widget::ConsoleWidget;
 use stack_widget::StackWidget;
 
 pub struct Editor {
-    layout_tree: egui_tiles::Tree<Pane>,
+    layout_tree: egui_tiles::Tree<View>,
     tile_behavior: TilesBehavior,
 
     frame: Arc<Mutex<Frame>>,
@@ -114,22 +114,26 @@ impl Editor {
     }
 
     fn handle_inputs(&self, ctx: &egui::Context) {
-        let context = if let Some(focused_id) = ctx.memory(|mem| mem.focused()) {
 
-            let context_by_id = ContextIds::load_id(ctx).unwrap_or_default();
+        dbg!(KeybindContext::load(ctx));
 
-            let focused_context = context_by_id.data.into_iter()
-                .find(|(_context, id)| {
-                    *id == focused_id
-                })
-                .and_then(|a| {Some(a.0)});
+        // let context = if let Some(focused_id) = ctx.memory(|mem| mem.focused()) {
 
-            focused_context
-        } else {
-            None
-        };
+        //     let context_by_id = ViewsIds::load(ctx).unwrap_or_default();
 
-        dbg!(context);
+        //     let focused_context = context_by_id.data.into_iter()
+        //         .find(|(_context, id)| {
+        //             *id == focused_id
+        //         })
+        //         .and_then(|a| {Some(a.0)});
+
+        //     focused_context
+        // } else {
+        //     None
+        // };
+
+        // dbg!(context);
+
 
 
         // let event_filter = egui::EventFilter {
@@ -181,13 +185,13 @@ impl Editor {
     }
 
     /// Create the default tile layout
-    fn create_layout_tree() -> Tree<Pane> {
+    fn create_layout_tree() -> Tree<View> {
         let mut tiles = Tiles::default();
 
-        let stack = tiles.insert_pane(Pane::Stack);
-        let grid = tiles.insert_pane(Pane::Grid);
-        let console = tiles.insert_pane(Pane::Console);
-        let graphical = tiles.insert_pane(Pane::Graphical);
+        let stack = tiles.insert_pane(View::Stack);
+        let grid = tiles.insert_pane(View::Grid);
+        let console = tiles.insert_pane(View::Console);
+        let graphical = tiles.insert_pane(View::Graphical);
 
         let stack = tiles.insert_container(egui_tiles::Tabs {
             children: vec![stack],
@@ -322,48 +326,69 @@ impl eframe::App for Editor {
     }
 }
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
-pub enum ContextWidget {
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub enum KeybindContext {
+    #[default]
+    None,
     Grid,
+    GridSelecting,
     Stack,
     Console,
     Graphic,
     CommandPanel,
 }
 
-#[derive(Debug, Default, Clone)]
-pub struct ContextIds {
-    data: HashMap<ContextWidget, egui::Id>
-}
+impl KeybindContext {
+    const ID: &'static str = "KEYBIND_CONTEXT";
 
-impl ContextIds {
-    const ID: &'static str = "ID_BY_CONTEXT";
-
-    fn store_id(ctx: &egui::Context, id: egui::Id, context: ContextWidget) {
+    fn store(ctx: &egui::Context, keybind_context: KeybindContext) {
         ctx.data_mut(|data| {
-            let context_by_id: &mut ContextIds = data.get_persisted_mut_or_default(Id::new(Self::ID));
-
-            context_by_id.data.insert(context, id);
+            data.insert_persisted(Id::new(Self::ID), keybind_context);
         });
     }
 
-    fn load_id(ctx: &egui::Context) -> Option<ContextIds> {
+    fn load(ctx: &egui::Context) -> KeybindContext {
+        ctx.data_mut(|data| {
+            data.get_persisted(Id::new(Self::ID)).unwrap_or_default()
+        })
+    }
+}
+
+
+#[derive(Debug, Default, Clone)]
+pub struct ViewsIds {
+    data: HashMap<View, egui::Id>
+}
+
+impl ViewsIds {
+    const ID: &'static str = "VIEWS_IDS";
+
+    fn store(ctx: &egui::Context, id: egui::Id, view: View) {
+        ctx.data_mut(|data| {
+            let context_by_id: &mut ViewsIds = data.get_persisted_mut_or_default(Id::new(Self::ID));
+
+            context_by_id.data.insert(view, id);
+        });
+    }
+
+    fn load(ctx: &egui::Context) -> Option<ViewsIds> {
         ctx.data_mut(|data| {
             data.get_persisted(Id::new(Self::ID))
         })
     }
 
-    fn get_id(&self, context: ContextWidget) -> Option<egui::Id> {
-        self.data.get(&context).cloned()
+    fn get_id(&self, view: View) -> Option<egui::Id> {
+        self.data.get(&view).cloned()
     }
 }
 
-#[derive(Debug, AsRefStr)]
-enum Pane {
+#[derive(Debug, Clone, AsRefStr, Hash, PartialEq, Eq)]
+enum View {
     Grid,
     Stack,
     Console,
     Graphical,
+    CommandPanel,
 }
 
 struct TilesBehavior {
@@ -376,31 +401,31 @@ impl TilesBehavior {
     }
 }
 
-impl egui_tiles::Behavior<Pane> for TilesBehavior {
-    fn tab_title_for_pane(&mut self, pane: &Pane) -> egui::WidgetText {
-        pane.as_ref().into()
+impl egui_tiles::Behavior<View> for TilesBehavior {
+    fn tab_title_for_pane(&mut self, view: &View) -> egui::WidgetText {
+        view.as_ref().into()
     }
 
     fn pane_ui(
         &mut self,
         ui: &mut egui::Ui,
         _tile_id: egui_tiles::TileId,
-        pane: &mut Pane,
+        view: &mut View,
     ) -> egui_tiles::UiResponse {
         let frame = self.frame.clone();
 
-        match pane {
-            Pane::Grid => {
+        match view {
+            View::Grid => {
                 Editor::grid_ui(ui, frame);
             }
-            Pane::Stack => {
+            View::Stack => {
                 Editor::stack_ui(ui, frame);
             }
-            Pane::Console => {
+            View::Console => {
                 Editor::console_ui(ui, frame);
             }
             _ => {
-                ui.label(pane.as_ref().to_string());
+                ui.label(view.as_ref().to_string());
             }
         }
 

@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use egui::{Sense, Widget};
 
-use crate::{editor::{ContextIds, ContextWidget}, Frame};
+use crate::{editor::{KeybindContext, View, ViewsIds}, Frame};
 
 #[derive(Debug)]
 pub struct ConsoleWidget {
@@ -22,7 +22,12 @@ impl Widget for ConsoleWidget {
             response.request_focus();
         }
 
-        ContextIds::store_id(ui.ctx(), ui.id(), ContextWidget::Console);
+        ViewsIds::store(ui.ctx(), ui.id(), View::Console);
+        if response.gained_focus() {
+            KeybindContext::store(ui.ctx(), KeybindContext::Console);
+        } else if response.lost_focus() {
+            KeybindContext::store(ui.ctx(), KeybindContext::None);
+        }
 
         if let Ok(_frame_guard) = self.frame.try_lock() {
             ui.label("Console! Bip boup");

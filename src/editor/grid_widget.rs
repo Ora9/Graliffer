@@ -1,9 +1,9 @@
 use std::{hash::Hash, sync::{Arc, Mutex}};
 
 use crate::{
-    editor::{cursor, ContextIds, ContextWidget, Cursor}, grid::{Position, PositionAxis}, Frame
+    editor::{cursor, KeybindContext, Cursor, View, ViewsIds}, grid::{Position, PositionAxis}, Frame
 };
-use egui::{Context, Id, Pos2, Rect, Vec2, Widget, emath::TSTransform};
+use egui::{emath::TSTransform, Context, Id, Pos2, Rect, Vec2, Widget};
 
 #[derive(Default, Debug, Clone)]
 pub struct GridWidgetState {
@@ -137,11 +137,16 @@ impl Widget for GridWidget {
         let (_container_id, container_rect) = ui.allocate_space(ui.available_size());
 
         let mut state =
-            GridWidgetState::load(ui.ctx(), ContextWidget::Grid).unwrap_or_default();
-
-        ContextIds::store_id(ui.ctx(), ui.id(), ContextWidget::Grid);
+            GridWidgetState::load(ui.ctx(), View::Grid).unwrap_or_default();
 
         let response = self.handle_inputs(&mut state, ui);
+
+        ViewsIds::store(ui.ctx(), ui.id(), View::Grid);
+        if response.gained_focus() {
+            KeybindContext::store(ui.ctx(), KeybindContext::Grid);
+        } else if response.lost_focus() {
+            KeybindContext::store(ui.ctx(), KeybindContext::None);
+        }
 
         state.screen_transform = TSTransform::from_translation(ui.min_rect().left_top().to_vec2())
             * state.grid_transform;
@@ -294,7 +299,7 @@ impl Widget for GridWidget {
             }
         }
 
-        state.store(ui.ctx(), ContextWidget::Grid);
+        state.store(ui.ctx(), View::Grid);
 
         response
     }

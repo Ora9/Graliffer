@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use egui::{FontFamily, RichText, Sense, Widget};
 
-use crate::{editor::{ContextIds, ContextWidget}, Frame};
+use crate::{editor::{KeybindContext, View, ViewsIds}, Frame};
 
 pub struct StackWidget {
     frame: Arc<Mutex<Frame>>,
@@ -21,7 +21,13 @@ impl Widget for StackWidget {
             response.request_focus();
         }
 
-        ContextIds::store_id(ui.ctx(), ui.id(), ContextWidget::Stack);
+        ViewsIds::store(ui.ctx(), ui.id(), View::Stack);
+        if response.gained_focus() {
+            KeybindContext::store(ui.ctx(), KeybindContext::Stack);
+        } else if response.lost_focus() {
+            KeybindContext::store(ui.ctx(), KeybindContext::None);
+        }
+
 
         if let Ok(frame) = self.frame.try_lock() {
             egui::ScrollArea::vertical()
