@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use egui::{Sense, Widget};
 
-use crate::{editor::{KeybindContext, View, ViewsIds}, Frame};
+use crate::{editor::{ShortcutContext, View, ViewsIds}, Frame};
 
 #[derive(Debug)]
 pub struct ConsoleWidget {
@@ -24,9 +24,9 @@ impl Widget for ConsoleWidget {
 
         ViewsIds::store(ui.ctx(), ui.id(), View::Console);
         if response.gained_focus() {
-            KeybindContext::store(ui.ctx(), KeybindContext::Console);
+            ShortcutContext::store(ui.ctx(), ShortcutContext::Console);
         } else if response.lost_focus() {
-            KeybindContext::store(ui.ctx(), KeybindContext::None);
+            ShortcutContext::store(ui.ctx(), ShortcutContext::None);
         }
 
         if let Ok(_frame_guard) = self.frame.try_lock() {

@@ -1,8 +1,35 @@
-use crate::{Editor, Frame};
+use egui::KeyboardShortcut;
+
+use crate::{editor::ShortcutContext, Editor, Frame};
 use std::fmt::Debug;
 
-pub trait EditorAction: std::fmt::Debug {
+pub trait CloneEditorAction {
+    fn clone_action(&self) -> Box<dyn EditorAction>;
+}
+
+impl<T> CloneEditorAction for T
+where
+    T: EditorAction + Clone + 'static,
+{
+    fn clone_action(&self) -> Box<dyn EditorAction> {
+        Box::new(self.clone())
+    }
+}
+
+impl Clone for Box<dyn EditorAction> {
+    fn clone(&self) -> Self {
+        self.clone_action()
+    }
+}
+
+pub trait EditorAction: std::fmt::Debug + CloneEditorAction {
     fn act(&self, editor: &mut Editor);
+    fn shortcut_and_context(&self) -> Option<(KeyboardShortcut, ShortcutContext)> {
+        None
+    }
+    fn text(&self) -> (Option<&'static str>, Option<&'static str>) {
+        (None, None)
+    }
 }
 
 // impl<T> CloneAction for T
@@ -21,15 +48,15 @@ pub trait EditorAction: std::fmt::Debug {
 // }
 
 
-pub trait FrameAction: std::fmt::Debug + CloneAction {
+pub trait FrameAction: std::fmt::Debug + CloneFrameAction {
     fn act(&self, frame: &mut Frame) -> Artifact;
 }
 
-pub trait CloneAction {
+pub trait CloneFrameAction {
     fn clone_action(&self) -> Box<dyn FrameAction>;
 }
 
-impl<T> CloneAction for T
+impl<T> CloneFrameAction for T
 where
     T: FrameAction + Clone + 'static,
 {

@@ -6,7 +6,7 @@ use egui::{Id, Widget};
 
 use egui_tiles::{Tiles, Tree};
 use crate::{
-    action::{EditorAction, History}, editor::{grid_widget::GridWidgetState, history_utils::HistoryAction}, grid::{Cell, Grid, Position}, Frame
+    action::{EditorAction, History}, editor::{history_utils::HistoryAction, shortcut::ShortcutRegistry}, grid::{Cell, Grid, Position}, Frame
 };
 use strum_macros::AsRefStr;
 
@@ -15,12 +15,14 @@ mod history_utils;
 mod grid_widget;
 mod console_widget;
 mod stack_widget;
+mod shortcut;
 
 use cursor::Cursor;
 use history_utils::HistoryMerge;
 use grid_widget::GridWidget;
 use console_widget::ConsoleWidget;
 use stack_widget::StackWidget;
+pub use shortcut::ShortcutContext;
 
 pub struct Editor {
     layout_tree: egui_tiles::Tree<View>,
@@ -34,6 +36,8 @@ pub struct Editor {
     cursor: Cursor,
     history: History,
     history_merge: HistoryMerge,
+
+    shortcut_registry: ShortcutRegistry,
 }
 
 impl Editor {
@@ -106,6 +110,8 @@ impl Editor {
             cursor: Cursor::default(),
             history: History::default(),
             history_merge: HistoryMerge::default(),
+
+            shortcut_registry: ShortcutRegistry::build(),
         }
     }
 
@@ -113,9 +119,12 @@ impl Editor {
         action.act(self);
     }
 
-    fn handle_inputs(&self, ctx: &egui::Context) {
+    fn handle_inputs(&mut self, ctx: &egui::Context) {
 
-        dbg!(KeybindContext::load(ctx));
+        if let Some(action_pressed) = Self::listen_for_shortcut(self, &ctx) {
+            dbg!(&action_pressed);
+            self.act(action_pressed);
+        }
 
         // let context = if let Some(focused_id) = ctx.memory(|mem| mem.focused()) {
 
@@ -144,11 +153,6 @@ impl Editor {
         // };
 
         // // ctx.memory_mut(|mem| mem.set_focus_lock_filter(container_id, event_filter));
-        // let events = ctx.input(|i| i.filtered_events(&event_filter));
-
-        // for event in events {
-        //     dbg!(event);
-        // }
 
     }
 
@@ -323,34 +327,6 @@ impl eframe::App for Editor {
                 ctx.memory_ui(ui);
             });
         }
-    }
-}
-
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub enum KeybindContext {
-    #[default]
-    None,
-    Grid,
-    GridSelecting,
-    Stack,
-    Console,
-    Graphic,
-    CommandPanel,
-}
-
-impl KeybindContext {
-    const ID: &'static str = "KEYBIND_CONTEXT";
-
-    fn store(ctx: &egui::Context, keybind_context: KeybindContext) {
-        ctx.data_mut(|data| {
-            data.insert_persisted(Id::new(Self::ID), keybind_context);
-        });
-    }
-
-    fn load(ctx: &egui::Context) -> KeybindContext {
-        ctx.data_mut(|data| {
-            data.get_persisted(Id::new(Self::ID)).unwrap_or_default()
-        })
     }
 }
 

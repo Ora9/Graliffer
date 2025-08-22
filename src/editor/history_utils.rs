@@ -1,6 +1,8 @@
 use std::{fmt::Debug, time::{Duration, Instant}};
 
-use crate::{action::EditorAction, Editor};
+use egui::{KeyboardShortcut, Modifiers};
+
+use crate::{action::EditorAction, editor::ShortcutContext, Editor};
 
 /// A timeout for the next acceptable text input that would be
 /// merged in undo history. This is used to merge closely entered
@@ -49,6 +51,7 @@ impl HistoryMerge {
     }
 }
 
+#[derive(Clone)]
 pub enum HistoryAction {
     Undo,
     Redo,
@@ -65,6 +68,46 @@ impl EditorAction for HistoryAction {
             }
             Self::Undo => {
                 editor.history.undo(&mut frame);
+            }
+        }
+    }
+
+    fn shortcut_and_context(&self) -> Option<(egui::KeyboardShortcut, ShortcutContext)> {
+        match self {
+            Self::Redo => {
+                Some((
+                    KeyboardShortcut {
+                        modifiers: Modifiers::CTRL | Modifiers::COMMAND,
+                        logical_key: egui::Key::Y,
+                    },
+                    ShortcutContext::None
+                ))
+            }
+            Self::Undo => {
+                Some((
+                    KeyboardShortcut {
+                        modifiers: Modifiers::CTRL | Modifiers::COMMAND,
+                        logical_key: egui::Key::Z,
+                    },
+                    ShortcutContext::None
+                ))
+            }
+        }
+    }
+
+    fn text(&self) -> (Option<&'static str>, Option<&'static str>) {
+        match self {
+            Self::Redo => {
+                (
+                    Some("Redo"),
+                    Some("Redo the last undone operation")
+                )
+            }
+            Self::Undo => {
+                (
+                    Some("Undo"),
+                    Some("Undo the last grid operation or evaluation step")
+                )
             }
         }
     }

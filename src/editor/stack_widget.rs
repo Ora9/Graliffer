@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use egui::{FontFamily, RichText, Sense, Widget};
 
-use crate::{editor::{KeybindContext, View, ViewsIds}, Frame};
+use crate::{editor::{ShortcutContext, View, ViewsIds}, Frame};
 
 pub struct StackWidget {
     frame: Arc<Mutex<Frame>>,
@@ -23,9 +23,9 @@ impl Widget for StackWidget {
 
         ViewsIds::store(ui.ctx(), ui.id(), View::Stack);
         if response.gained_focus() {
-            KeybindContext::store(ui.ctx(), KeybindContext::Stack);
+            ShortcutContext::store(ui.ctx(), ShortcutContext::Stack);
         } else if response.lost_focus() {
-            KeybindContext::store(ui.ctx(), KeybindContext::None);
+            ShortcutContext::store(ui.ctx(), ShortcutContext::None);
         }
 
 

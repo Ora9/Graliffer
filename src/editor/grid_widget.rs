@@ -1,7 +1,7 @@
 use std::{hash::Hash, sync::{Arc, Mutex}};
 
 use crate::{
-    editor::{cursor, KeybindContext, Cursor, View, ViewsIds}, grid::{Position, PositionAxis}, Frame
+    editor::{cursor, ShortcutContext, Cursor, View, ViewsIds}, grid::{Position, PositionAxis}, Frame
 };
 use egui::{emath::TSTransform, Context, Id, Pos2, Rect, Vec2, Widget};
 
@@ -143,9 +143,9 @@ impl Widget for GridWidget {
 
         ViewsIds::store(ui.ctx(), ui.id(), View::Grid);
         if response.gained_focus() {
-            KeybindContext::store(ui.ctx(), KeybindContext::Grid);
+            ShortcutContext::store(ui.ctx(), ShortcutContext::Grid);
         } else if response.lost_focus() {
-            KeybindContext::store(ui.ctx(), KeybindContext::None);
+            ShortcutContext::store(ui.ctx(), ShortcutContext::None);
         }
 
         state.screen_transform = TSTransform::from_translation(ui.min_rect().left_top().to_vec2())
