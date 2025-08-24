@@ -1,9 +1,14 @@
-use std::{hash::Hash, sync::{Arc, Mutex}};
+use std::{
+    hash::Hash,
+    sync::{Arc, Mutex},
+};
 
 use crate::{
-    editor::{cursor, EventContext, Cursor, View, ViewsIds}, grid::{Position, PositionAxis}, Frame
+    Frame,
+    editor::{Cursor, EventContext, View, ViewsIds, cursor},
+    grid::{Position, PositionAxis},
 };
-use egui::{emath::TSTransform, Context, Id, Pos2, Rect, Vec2, Widget};
+use egui::{Context, Id, Pos2, Rect, Vec2, Widget, emath::TSTransform};
 
 #[derive(Default, Debug, Clone)]
 pub struct GridWidgetState {
@@ -61,72 +66,72 @@ impl GridWidget {
         let response = ui.interact(container_rect, container_id, egui::Sense::click_and_drag());
 
         if let Some(pointer_pos) = ui.ctx().input(|i| i.pointer.hover_pos())
-            && container_rect.contains(pointer_pos) {
-                if response.clicked_by(egui::PointerButton::Primary) {
-                    response.request_focus();
+            && container_rect.contains(pointer_pos)
+        {
+            if response.clicked_by(egui::PointerButton::Primary) {
+                response.request_focus();
 
-                    // from pointer position, figure out hovered cell rect and pos
-                    // *_t for translated, as in grid render coordinates
-                    let pointer_pos_t = state.screen_transform.inverse().mul_pos(pointer_pos);
-                    let hovered_cell_pos_t = Pos2 {
-                        x: (pointer_pos_t.x / GridWidget::CELL_FULL_SIZE).clamp(
-                            PositionAxis::MIN_NUMERIC as f32,
-                            PositionAxis::MAX_NUMERIC as f32,
-                        ),
-                        y: (pointer_pos_t.y / GridWidget::CELL_FULL_SIZE).clamp(
-                            PositionAxis::MIN_NUMERIC as f32,
-                            PositionAxis::MAX_NUMERIC as f32,
-                        ),
-                    };
+                // from pointer position, figure out hovered cell rect and pos
+                // *_t for translated, as in grid render coordinates
+                let pointer_pos_t = state.screen_transform.inverse().mul_pos(pointer_pos);
+                let hovered_cell_pos_t = Pos2 {
+                    x: (pointer_pos_t.x / GridWidget::CELL_FULL_SIZE).clamp(
+                        PositionAxis::MIN_NUMERIC as f32,
+                        PositionAxis::MAX_NUMERIC as f32,
+                    ),
+                    y: (pointer_pos_t.y / GridWidget::CELL_FULL_SIZE).clamp(
+                        PositionAxis::MIN_NUMERIC as f32,
+                        PositionAxis::MAX_NUMERIC as f32,
+                    ),
+                };
 
-                    // Ceil implementation says in https://doc.rust-lang.org/std/primitive.f32.html#method.ceil :
-                    // « Returns the smallest integer greater than or equal to state. » wich mean that 62.0 is still 62.0 not 63.0
-                    // So we truncate and add 1.0 instead
-                    let hovered_cell_rect_t = Rect {
-                        min: hovered_cell_pos_t.floor() * GridWidget::CELL_FULL_SIZE,
-                        max: Pos2 {
-                            x: (hovered_cell_pos_t.x.trunc() + 1.0) * GridWidget::CELL_FULL_SIZE,
-                            y: (hovered_cell_pos_t.y.trunc() + 1.0) * GridWidget::CELL_FULL_SIZE,
-                        },
-                    };
+                // Ceil implementation says in https://doc.rust-lang.org/std/primitive.f32.html#method.ceil :
+                // « Returns the smallest integer greater than or equal to state. » wich mean that 62.0 is still 62.0 not 63.0
+                // So we truncate and add 1.0 instead
+                let hovered_cell_rect_t = Rect {
+                    min: hovered_cell_pos_t.floor() * GridWidget::CELL_FULL_SIZE,
+                    max: Pos2 {
+                        x: (hovered_cell_pos_t.x.trunc() + 1.0) * GridWidget::CELL_FULL_SIZE,
+                        y: (hovered_cell_pos_t.y.trunc() + 1.0) * GridWidget::CELL_FULL_SIZE,
+                    },
+                };
 
-                    let hovered_cell_x = hovered_cell_pos_t.x.floor() as u32;
-                    let hovered_cell_y = hovered_cell_pos_t.y.floor() as u32;
-                    // let hovered_cell_pos = state.screen_transform.mul_pos(hovered_cell_pos_t);
-                    let hovered_cell_rect = state.screen_transform.mul_rect(hovered_cell_rect_t);
+                let hovered_cell_x = hovered_cell_pos_t.x.floor() as u32;
+                let hovered_cell_y = hovered_cell_pos_t.y.floor() as u32;
+                // let hovered_cell_pos = state.screen_transform.mul_pos(hovered_cell_pos_t);
+                let hovered_cell_rect = state.screen_transform.mul_rect(hovered_cell_rect_t);
 
-                    if hovered_cell_rect.contains(pointer_pos) {
-                        // TODO: move the cursor to the right spot when clicking on text
-                        // Should be possible if we work on Cursor with prefered position
+                if hovered_cell_rect.contains(pointer_pos) {
+                    // TODO: move the cursor to the right spot when clicking on text
+                    // Should be possible if we work on Cursor with prefered position
 
-                        if let Ok(frame_guard) = self.frame.try_lock()
-                            && let Ok(grid_pos) =
-                                Position::from_numeric(hovered_cell_x, hovered_cell_y)
-                            {
-                                state.cursor.move_to(
-                                    cursor::PreferredGridPosition::At(grid_pos),
-                                    cursor::PreferredCharPosition::AtEnd,
-                                    &frame_guard.grid,
-                                );
-                            }
+                    if let Ok(frame_guard) = self.frame.try_lock()
+                        && let Ok(grid_pos) = Position::from_numeric(hovered_cell_x, hovered_cell_y)
+                    {
+                        state.cursor.move_to(
+                            cursor::PreferredGridPosition::At(grid_pos),
+                            cursor::PreferredCharPosition::AtEnd,
+                            &frame_guard.grid,
+                        );
                     }
                 }
-
-                let pointer_in_layer = state.screen_transform.inverse() * pointer_pos;
-                let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
-                let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta * 1.5);
-                // let multi_touch_info = ui.ctx().input(|i| i.multi_touch());
-
-                // Zoom in on pointer:
-                state.grid_transform = state.grid_transform
-                    * TSTransform::from_translation(pointer_in_layer.to_vec2())
-                    * TSTransform::from_scaling(zoom_delta)
-                    * TSTransform::from_translation(-pointer_in_layer.to_vec2());
-
-                // Pan:
-                state.grid_transform =
-                    TSTransform::from_translation(pan_delta * 2.0) * state.grid_transform;
             }
+
+            let pointer_in_layer = state.screen_transform.inverse() * pointer_pos;
+            let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
+            let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta * 1.5);
+            // let multi_touch_info = ui.ctx().input(|i| i.multi_touch());
+
+            // Zoom in on pointer:
+            state.grid_transform = state.grid_transform
+                * TSTransform::from_translation(pointer_in_layer.to_vec2())
+                * TSTransform::from_scaling(zoom_delta)
+                * TSTransform::from_translation(-pointer_in_layer.to_vec2());
+
+            // Pan:
+            state.grid_transform =
+                TSTransform::from_translation(pan_delta * 2.0) * state.grid_transform;
+        }
 
         response
     }
@@ -136,8 +141,7 @@ impl Widget for GridWidget {
     fn ui(mut self, ui: &mut egui::Ui) -> egui::Response {
         let (_container_id, container_rect) = ui.allocate_space(ui.available_size());
 
-        let mut state =
-            GridWidgetState::load(ui.ctx(), View::Grid).unwrap_or_default();
+        let mut state = GridWidgetState::load(ui.ctx(), View::Grid).unwrap_or_default();
 
         let response = self.handle_inputs(&mut state, ui);
 

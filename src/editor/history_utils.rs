@@ -1,8 +1,13 @@
-use std::{fmt::Debug, time::{Duration, Instant}};
+use std::{
+    fmt::Debug,
+    time::{Duration, Instant},
+};
 
-use egui::{Event, KeyboardShortcut, Modifiers};
-
-use crate::{action::EditorAction, editor::{events::InputEvent, EventContext}, Editor};
+use crate::{
+    Editor,
+    action::EditorAction,
+    editor::{EventContext, events::InputEvent},
+};
 
 /// A timeout for the next acceptable text input that would be
 /// merged in undo history. This is used to merge closely entered
@@ -59,8 +64,10 @@ pub enum HistoryAction {
 
 impl EditorAction for HistoryAction {
     fn act(&self, editor: &mut Editor) {
-
-        let mut frame = editor.frame.lock().expect("Should be able to get the frame");
+        let mut frame = editor
+            .frame
+            .lock()
+            .expect("Should be able to get the frame");
 
         match self {
             Self::Redo => {
@@ -74,41 +81,30 @@ impl EditorAction for HistoryAction {
 
     fn events_and_context(&self) -> Option<(InputEvent, EventContext)> {
         match self {
-            Self::Redo => {
-                Some((
-                    InputEvent::Key {
-                        key: egui::Key::Y,
-                        modifiers: Modifiers::CTRL | Modifiers::COMMAND,
-                    },
-                    EventContext::None
-                ))
-            }
-            Self::Undo => {
-                Some((
-                    InputEvent::Key {
-                        key: egui::Key::Z,
-                        modifiers: Modifiers::CTRL | Modifiers::COMMAND,
-                    },
-                    EventContext::None
-                ))
-            }
+            Self::Redo => Some((
+                InputEvent::Key {
+                    key: egui::Key::Y,
+                    modifiers: egui::Modifiers::CTRL | egui::Modifiers::COMMAND,
+                },
+                EventContext::None,
+            )),
+            Self::Undo => Some((
+                InputEvent::Key {
+                    key: egui::Key::Z,
+                    modifiers: egui::Modifiers::CTRL | egui::Modifiers::COMMAND,
+                },
+                EventContext::None,
+            )),
         }
     }
 
     fn text(&self) -> (Option<&'static str>, Option<&'static str>) {
         match self {
-            Self::Redo => {
-                (
-                    Some("Redo"),
-                    Some("Redo the last undone operation")
-                )
-            }
-            Self::Undo => {
-                (
-                    Some("Undo"),
-                    Some("Undo the last grid operation or evaluation step")
-                )
-            }
+            Self::Redo => (Some("Redo"), Some("Redo the last undone operation")),
+            Self::Undo => (
+                Some("Undo"),
+                Some("Undo the last grid operation or evaluation step"),
+            ),
         }
     }
 }

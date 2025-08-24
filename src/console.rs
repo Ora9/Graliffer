@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use crate::{
     Frame,
-    action::{FrameAction, Artifact},
+    action::{Artifact, FrameAction},
 };
 
 #[derive(Default, Debug)]

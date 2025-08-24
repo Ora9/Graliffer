@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     Frame, Operand,
-    action::{FrameAction, Artifact},
+    action::{Artifact, FrameAction},
 };
 
 #[derive(Serialize, Deserialize, Default, Debug)]

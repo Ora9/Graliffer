@@ -2,7 +2,10 @@ use std::sync::{Arc, Mutex};
 
 use egui::{FontFamily, RichText, Sense, Widget};
 
-use crate::{editor::{ShortcutContext, View, ViewsIds}, Frame};
+use crate::{
+    Frame,
+    editor::{EventContext, View, ViewsIds},
+};
 
 pub struct StackWidget {
     frame: Arc<Mutex<Frame>>,
@@ -23,11 +26,10 @@ impl Widget for StackWidget {
 
         ViewsIds::store(ui.ctx(), ui.id(), View::Stack);
         if response.gained_focus() {
-            ShortcutContext::store(ui.ctx(), ShortcutContext::Stack);
+            EventContext::store(ui.ctx(), EventContext::Stack);
         } else if response.lost_focus() {
-            ShortcutContext::store(ui.ctx(), ShortcutContext::None);
+            EventContext::store(ui.ctx(), EventContext::None);
         }
-
 
         if let Ok(frame) = self.frame.try_lock() {
             egui::ScrollArea::vertical()
@@ -50,8 +52,8 @@ impl Widget for StackWidget {
 
                                         ui.label(
                                             RichText::new(operand.as_cell().content().to_string())
-                                            .size(15.0)
-                                            .family(FontFamily::Monospace),
+                                                .size(15.0)
+                                                .family(FontFamily::Monospace),
                                         );
                                         ui.end_row();
                                     }

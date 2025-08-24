@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     Word,
-    action::{FrameAction, Artifact},
+    action::{Artifact, FrameAction},
     console::Console,
     grid::Grid,
     head::{Head, HeadAction},
@@ -10,8 +10,8 @@ use crate::{
 };
 
 pub mod grid;
-pub mod stack;
 pub mod head;
+pub mod stack;
 
 /// A [`Frame`] represents a run
 #[derive(Serialize, Deserialize, Debug, Default)]

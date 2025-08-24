@@ -1,6 +1,7 @@
-use egui::KeyboardShortcut;
-
-use crate::{editor::{EventContext, InputEvent}, Editor, Frame};
+use crate::{
+    Editor, Frame,
+    editor::{EventContext, InputEvent},
+};
 use std::fmt::Debug;
 
 pub trait CloneEditorAction {
@@ -46,7 +47,6 @@ pub trait EditorAction: std::fmt::Debug + CloneEditorAction {
 //         self.clone_action()
 //     }
 // }
-
 
 pub trait FrameAction: std::fmt::Debug + CloneFrameAction {
     fn act(&self, frame: &mut Frame) -> Artifact;

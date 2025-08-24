@@ -1,28 +1,35 @@
 use std::{
-    collections::HashMap, fmt::Debug, hash::Hash, sync::{Arc, Mutex}, thread
+    collections::HashMap,
+    fmt::Debug,
+    hash::Hash,
+    sync::{Arc, Mutex},
+    thread,
 };
 
 use egui::{Id, Widget};
 
-use egui_tiles::{Tiles, Tree};
 use crate::{
-    action::{EditorAction, History}, editor::{history_utils::HistoryAction, events::EventRegistry}, grid::{Cell, Grid, Position}, Frame
+    Frame,
+    action::{EditorAction, History},
+    editor::{events::EventRegistry, history_utils::HistoryAction},
+    grid::{Cell, Grid, Position},
 };
+use egui_tiles::{Tiles, Tree};
 use strum_macros::AsRefStr;
 
-mod cursor;
-mod history_utils;
-mod grid_widget;
 mod console_widget;
-mod stack_widget;
+mod cursor;
 mod events;
+mod grid_widget;
+mod history_utils;
+mod stack_widget;
 
-use cursor::Cursor;
-use history_utils::HistoryMerge;
-use grid_widget::GridWidget;
 use console_widget::ConsoleWidget;
+use cursor::Cursor;
+pub use events::{EventContext, InputEvent};
+use grid_widget::GridWidget;
+use history_utils::HistoryMerge;
 use stack_widget::StackWidget;
-pub use events::{InputEvent, EventContext};
 
 pub struct Editor {
     layout_tree: egui_tiles::Tree<View>,
@@ -143,31 +150,31 @@ impl Editor {
         thread::sleep(std::time::Duration::from_secs(1));
         println!("just kidding..");
 
-    //     use rfd::FileDialog;
+        //     use rfd::FileDialog;
 
-    //     println!("Open File!");
+        //     println!("Open File!");
 
-    //     let frame_arc = self.frame.clone();
+        //     let frame_arc = self.frame.clone();
 
-    //     thread::spawn(async move || {
-    //         dbg!("in thread");
-    //         let files = FileDialog::new()
-    //             .add_filter("text", &["txt", "rs"])
-    //             .add_filter("rust", &["rs", "toml"])
-    //             .set_directory("/")
-    //             .pick_file()
-    //             .unwrap();
+        //     thread::spawn(async move || {
+        //         dbg!("in thread");
+        //         let files = FileDialog::new()
+        //             .add_filter("text", &["txt", "rs"])
+        //             .add_filter("rust", &["rs", "toml"])
+        //             .set_directory("/")
+        //             .pick_file()
+        //             .unwrap();
 
-    //         dbg!(files);
-    //         // let data = files.read();
-    //         // dbg!(frame_arc.lock().unwrap());
-    //         let mut frame = frame_arc.lock().unwrap();
+        //         dbg!(files);
+        //         // let data = files.read();
+        //         // dbg!(frame_arc.lock().unwrap());
+        //         let mut frame = frame_arc.lock().unwrap();
 
-    //         frame.act(Box::new(crate::grid::GridAction::Set(
-    //             Position::from_numeric(5, 5).unwrap(),
-    //             Cell::new_trim("OUI"),
-    //         )));
-    //     });
+        //         frame.act(Box::new(crate::grid::GridAction::Set(
+        //             Position::from_numeric(5, 5).unwrap(),
+        //             Cell::new_trim("OUI"),
+        //         )));
+        //     });
     }
 
     /// Create the default tile layout
@@ -292,7 +299,6 @@ impl eframe::App for Editor {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-
             self.handle_inputs(ui);
 
             self.layout_tree.ui(&mut self.tile_behavior, ui);
@@ -312,10 +318,9 @@ impl eframe::App for Editor {
     }
 }
 
-
 #[derive(Debug, Default, Clone)]
 pub struct ViewsIds {
-    data: HashMap<View, egui::Id>
+    data: HashMap<View, egui::Id>,
 }
 
 impl ViewsIds {
@@ -330,9 +335,7 @@ impl ViewsIds {
     }
 
     fn load(ctx: &egui::Context) -> Option<ViewsIds> {
-        ctx.data_mut(|data| {
-            data.get_persisted(Id::new(Self::ID))
-        })
+        ctx.data_mut(|data| data.get_persisted(Id::new(Self::ID)))
     }
 
     fn get_id(&self, view: View) -> Option<egui::Id> {

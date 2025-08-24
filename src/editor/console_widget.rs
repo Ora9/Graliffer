@@ -2,7 +2,10 @@ use std::sync::{Arc, Mutex};
 
 use egui::{Sense, Widget};
 
-use crate::{editor::{EventContext, View, ViewsIds}, Frame};
+use crate::{
+    Frame,
+    editor::{EventContext, View, ViewsIds},
+};
 
 #[derive(Debug)]
 pub struct ConsoleWidget {
