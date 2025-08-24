@@ -6,7 +6,7 @@ use egui::{Id, Widget};
 
 use egui_tiles::{Tiles, Tree};
 use crate::{
-    action::{EditorAction, History}, editor::{history_utils::HistoryAction, shortcut::ShortcutRegistry}, grid::{Cell, Grid, Position}, Frame
+    action::{EditorAction, History}, editor::{history_utils::HistoryAction, events::EventRegistry}, grid::{Cell, Grid, Position}, Frame
 };
 use strum_macros::AsRefStr;
 
@@ -15,14 +15,14 @@ mod history_utils;
 mod grid_widget;
 mod console_widget;
 mod stack_widget;
-mod shortcut;
+mod events;
 
 use cursor::Cursor;
 use history_utils::HistoryMerge;
 use grid_widget::GridWidget;
 use console_widget::ConsoleWidget;
 use stack_widget::StackWidget;
-pub use shortcut::ShortcutContext;
+pub use events::{InputEvent, EventContext};
 
 pub struct Editor {
     layout_tree: egui_tiles::Tree<View>,
@@ -37,7 +37,7 @@ pub struct Editor {
     history: History,
     history_merge: HistoryMerge,
 
-    shortcut_registry: ShortcutRegistry,
+    event_registry: EventRegistry,
 }
 
 impl Editor {
@@ -111,7 +111,7 @@ impl Editor {
             history: History::default(),
             history_merge: HistoryMerge::default(),
 
-            shortcut_registry: ShortcutRegistry::build(),
+            event_registry: EventRegistry::build(),
         }
     }
 
@@ -119,41 +119,23 @@ impl Editor {
         action.act(self);
     }
 
-    fn handle_inputs(&mut self, ctx: &egui::Context) {
+    // fn handle_inputs(&mut self, ctx: &egui::Context) {
+    fn handle_inputs(&mut self, ui: &egui::Ui) {
+        let event_filter = egui::EventFilter {
+            horizontal_arrows: true,
+            vertical_arrows: true,
+            escape: true,
+            tab: true,
+        };
 
-        if let Some(action_pressed) = Self::listen_for_shortcut(self, &ctx) {
-            dbg!(&action_pressed);
-            self.act(action_pressed);
+        ui.memory_mut(|mem| mem.set_focus_lock_filter(ui.id(), event_filter));
+        let events = ui.input(|i| i.filtered_events(&event_filter));
+
+        for event in events {
+            if let Some(action_pressed) = Self::listen_for_events(self, ui.ctx(), event) {
+                self.act(action_pressed);
+            }
         }
-
-        // let context = if let Some(focused_id) = ctx.memory(|mem| mem.focused()) {
-
-        //     let context_by_id = ViewsIds::load(ctx).unwrap_or_default();
-
-        //     let focused_context = context_by_id.data.into_iter()
-        //         .find(|(_context, id)| {
-        //             *id == focused_id
-        //         })
-        //         .and_then(|a| {Some(a.0)});
-
-        //     focused_context
-        // } else {
-        //     None
-        // };
-
-        // dbg!(context);
-
-
-
-        // let event_filter = egui::EventFilter {
-        //     horizontal_arrows: true,
-        //     vertical_arrows: true,
-        //     escape: true,
-        //     tab: true,
-        // };
-
-        // // ctx.memory_mut(|mem| mem.set_focus_lock_filter(container_id, event_filter));
-
     }
 
     async fn load_file(&self) {
@@ -251,9 +233,6 @@ impl Editor {
 
 impl eframe::App for Editor {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-
-        self.handle_inputs(ctx);
-
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("Graliffer", |ui| {
@@ -313,6 +292,9 @@ impl eframe::App for Editor {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
+
+            self.handle_inputs(ui);
+
             self.layout_tree.ui(&mut self.tile_behavior, ui);
         });
 

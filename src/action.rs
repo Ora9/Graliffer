@@ -1,6 +1,6 @@
 use egui::KeyboardShortcut;
 
-use crate::{editor::ShortcutContext, Editor, Frame};
+use crate::{editor::{EventContext, InputEvent}, Editor, Frame};
 use std::fmt::Debug;
 
 pub trait CloneEditorAction {
@@ -24,7 +24,7 @@ impl Clone for Box<dyn EditorAction> {
 
 pub trait EditorAction: std::fmt::Debug + CloneEditorAction {
     fn act(&self, editor: &mut Editor);
-    fn shortcut_and_context(&self) -> Option<(KeyboardShortcut, ShortcutContext)> {
+    fn events_and_context(&self) -> Option<(InputEvent, EventContext)> {
         None
     }
     fn text(&self) -> (Option<&'static str>, Option<&'static str>) {

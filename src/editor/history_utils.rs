@@ -1,8 +1,8 @@
 use std::{fmt::Debug, time::{Duration, Instant}};
 
-use egui::{KeyboardShortcut, Modifiers};
+use egui::{Event, KeyboardShortcut, Modifiers};
 
-use crate::{action::EditorAction, editor::ShortcutContext, Editor};
+use crate::{action::EditorAction, editor::{events::InputEvent, EventContext}, Editor};
 
 /// A timeout for the next acceptable text input that would be
 /// merged in undo history. This is used to merge closely entered
@@ -72,24 +72,24 @@ impl EditorAction for HistoryAction {
         }
     }
 
-    fn shortcut_and_context(&self) -> Option<(egui::KeyboardShortcut, ShortcutContext)> {
+    fn events_and_context(&self) -> Option<(InputEvent, EventContext)> {
         match self {
             Self::Redo => {
                 Some((
-                    KeyboardShortcut {
+                    InputEvent::Key {
+                        key: egui::Key::Y,
                         modifiers: Modifiers::CTRL | Modifiers::COMMAND,
-                        logical_key: egui::Key::Y,
                     },
-                    ShortcutContext::None
+                    EventContext::None
                 ))
             }
             Self::Undo => {
                 Some((
-                    KeyboardShortcut {
+                    InputEvent::Key {
+                        key: egui::Key::Z,
                         modifiers: Modifiers::CTRL | Modifiers::COMMAND,
-                        logical_key: egui::Key::Z,
                     },
-                    ShortcutContext::None
+                    EventContext::None
                 ))
             }
         }
