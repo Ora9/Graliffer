@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{Editor, action::EditorAction, editor::history_utils::HistoryAction};
+use crate::{action::EditorAction, editor::{grid_widget::GridEditorAction, history_utils::HistoryAction}, Editor};
 
 /// A selective copy of egui::Event but only the event we care about, in a way
 /// we can store the event match against
@@ -23,7 +23,12 @@ pub struct EventRegistry {
 impl EventRegistry {
     pub fn build() -> Self {
         let actions: Vec<Box<dyn EditorAction>> =
-            vec![Box::new(HistoryAction::Redo), Box::new(HistoryAction::Undo)];
+            vec![
+                Box::new(HistoryAction::Redo),
+                Box::new(HistoryAction::Undo),
+
+                Box::new(GridEditorAction::Insert(String::default())),
+            ];
 
         let mut registry: HashMap<(InputEvent, EventContext), Box<dyn EditorAction>> =
             HashMap::new();
@@ -36,12 +41,31 @@ impl EventRegistry {
 
         // have to re-sort, in shortcut order (shift alt etc first)
 
+
         Self { data: registry }
     }
 }
 
 impl Editor {
-    // pub fn listen_for_events(&self, ctx: &egui::Context) -> Option<Box<dyn EditorAction>> {
+    fn get_action_from_context(&self, input_event: InputEvent, current_context: EventContext) -> Option<Box<dyn EditorAction>> {
+        let get = |context| {
+            self.event_registry
+                .data
+                .get(&(input_event.clone(), context))
+        };
+
+        dbg!(&current_context, &input_event);
+
+        if let Some(action) = get(current_context) {
+            Some(action.clone())
+        } else if let Some(action) = get(EventContext::None) {
+            Some(action.clone())
+        } else {
+            dbg!("a");
+            None
+        }
+    }
+
     pub fn listen_for_events(
         &self,
         ctx: &egui::Context,
@@ -51,8 +75,8 @@ impl Editor {
 
         match event {
             egui::Event::Text(text_input) => {
-                dbg!(text_input);
-                None
+                let input_event = InputEvent::Text(text_input);
+                self.get_action_from_context(input_event, current_context)
             }
             egui::Event::Key {
                 key,
@@ -61,61 +85,10 @@ impl Editor {
                 ..
             } => {
                 let input_event = InputEvent::Key { key, modifiers };
-
-                let get_action = |context| {
-                    self.event_registry
-                        .data
-                        .get(&(input_event.clone(), context))
-                };
-
-                if let Some(action) = get_action(current_context) {
-                    Some(action.clone())
-                } else if let Some(action) = get_action(EventContext::None) {
-                    Some(action.clone())
-                } else {
-                    None
-                }
+                self.get_action_from_context(input_event, current_context)
             }
             _ => None,
         }
-
-        //         _ => {
-        //         }
-        //     }
-
-        // }
-        //     return match event {
-        //         egui::Event::Text(text_input) => {
-
-        //             dbg!(text_input);
-        //             None
-        //         }
-        // egui::Event::Key {
-        //     key,
-        //     modifiers,
-        //     pressed: true,
-        //     ..
-        // } => {
-        //     let input_event = InputEvent::Key {
-        //         key,
-        //         modifiers,
-        //     };
-
-        //     let get_action = |context| {
-        //         self.event_registry.data.get(&(input_event.clone(), context))
-        //     };
-
-        //     if let Some(action) = get_action(current_context) {
-        //         Some(action.clone())
-        //     } else if let Some(action) = get_action(EventContext::None) {
-        //         Some(action.clone())
-        //     } else {
-        //         None
-        //     }
-        // }
-        //     }
-        // }
-        // None
     }
 }
 
