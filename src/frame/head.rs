@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     Frame,
-    action::{Artifact, FrameAction},
+    FrameAction,
+    history::Artifact,
     grid::Position,
 };
 

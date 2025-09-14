@@ -4,7 +4,7 @@ use egui::{Sense, Widget};
 
 use crate::{
     Frame,
-    editor::{EventContext, View, ViewsIds},
+    editor::{View, ViewsIds},
 };
 
 #[derive(Debug)]
@@ -26,11 +26,11 @@ impl Widget for ConsoleWidget {
         }
 
         ViewsIds::store(ui.ctx(), ui.id(), View::Console);
-        if response.gained_focus() {
-            EventContext::store(ui.ctx(), EventContext::Console);
-        } else if response.lost_focus() {
-            EventContext::store(ui.ctx(), EventContext::None);
-        }
+        // if response.gained_focus() {
+        //     EventContext::store(ui.ctx(), EventContext::Console);
+        // } else if response.lost_focus() {
+        //     EventContext::store(ui.ctx(), EventContext::None);
+        // }
 
         if let Ok(_frame_guard) = self.frame.try_lock() {
             ui.label("Console! Bip boup");

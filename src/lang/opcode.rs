@@ -3,7 +3,8 @@ use std::str::FromStr;
 use strum_macros::EnumString;
 
 use crate::{
-    action::{Artifact, FrameAction}, grid::Cell, utils::Direction, Address, Literal
+    FrameAction,
+    Artifact, grid::Cell, utils::Direction, Address, Literal
 };
 
 use super::{Frame, Operand};

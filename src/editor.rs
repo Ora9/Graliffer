@@ -9,24 +9,21 @@ use std::{
 use egui::{Id, Widget};
 
 use crate::{
-    Frame,
-    action::{EditorAction, History},
-    editor::{events::EventRegistry, history_utils::HistoryAction},
-    grid::{Cell, Grid, Position},
+    grid::{Cell, Grid, Position}, history::History, Artifact, Frame, FrameAction
 };
 use egui_tiles::{Tiles, Tree};
 use strum_macros::AsRefStr;
 
 mod console_widget;
 mod cursor;
-mod events;
+// mod events;
 mod grid_widget;
 mod history_utils;
 mod stack_widget;
 
 use console_widget::ConsoleWidget;
 use cursor::Cursor;
-pub use events::{EventContext, InputEvent};
+// pub use events::{EventContext, InputEvent};
 use grid_widget::GridWidget;
 use history_utils::HistoryMerge;
 use stack_widget::StackWidget;
@@ -44,7 +41,7 @@ pub struct Editor {
     history: History,
     history_merge: HistoryMerge,
 
-    event_registry: EventRegistry,
+    // event_registry: EventRegistry,
 }
 
 impl Editor {
@@ -118,11 +115,11 @@ impl Editor {
             history: History::default(),
             history_merge: HistoryMerge::default(),
 
-            event_registry: EventRegistry::build(),
+            // event_registry: EventRegistry::build(),
         }
     }
 
-    fn act(&mut self, action: Box<dyn EditorAction>) {
+    fn act(&mut self, action: EditorAction) {
         action.act(self);
     }
 
@@ -139,9 +136,9 @@ impl Editor {
         let events = ui.input(|i| i.filtered_events(&event_filter));
 
         for event in events {
-            if let Some(action_pressed) = Self::listen_for_events(self, ui.ctx(), event) {
-                self.act(action_pressed);
-            }
+            // if let Some(action_pressed) = Self::listen_for_events(self, ui.ctx(), event) {
+                // self.act(action_pressed);
+            // }
         }
     }
 
@@ -238,6 +235,55 @@ impl Editor {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum EditorAction {
+    Undo,
+    Redo,
+
+    GridInsertAtCursor(String),
+}
+
+impl EditorAction {
+    pub fn act(&self, editor: &mut Editor) {
+        let mut frame = editor
+            .frame
+            .lock()
+            .expect("Should be able to get the frame");
+
+        use EditorAction::*;
+        match self {
+            Redo => {
+                editor.history.redo(&mut frame);
+            }
+            Undo => {
+                editor.history.undo(&mut frame);
+            }
+
+            GridInsertAtCursor(string) => {
+                let pos = editor.cursor.grid_position();
+                let mut cell = frame.grid.get(pos);
+
+                let char_inserted = cell.insert_at(string, editor.cursor.char_position()).unwrap_or(0);
+
+                if char_inserted > 0 {
+                    let artifact = frame.act(FrameAction::GridSet(pos, cell));
+                    editor.cursor.move_to(cursor::PreferredGridPosition::At(pos), cursor::PreferredCharPosition::ForwardBy(char_inserted), &frame.grid);
+
+                    if editor.history_merge.should_merge_input() {
+                        dbg!("Merging !");
+                        editor.history.merge_with_last(artifact);
+                    } else {
+                        editor.history.append(artifact);
+                    }
+
+                    editor.history_merge.update_input_timeout();
+                    editor.history_merge.cancel_deletion_merge();
+                }
+            }
+        }
+    }
+}
+
 impl eframe::App for Editor {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
@@ -289,11 +335,11 @@ impl eframe::App for Editor {
                 }
 
                 if ui.button("Undo").clicked() {
-                    self.act(Box::new(HistoryAction::Undo));
+                    self.act(EditorAction::Undo);
                 }
 
                 if ui.button("Redo").clicked() {
-                    self.act(Box::new(HistoryAction::Redo));
+                    self.act(EditorAction::Redo);
                 }
             });
         });
