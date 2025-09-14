@@ -11,7 +11,7 @@ pub use cell::Cell;
 
 use crate::{
     Frame,
-    action::{Artifact, FrameAction},
+    action::Artifact,
 };
 
 /// A `Grid` represents a 2d space filled with [`Cell`]s, theses cells are positioned by a [`Position`]
@@ -58,36 +58,4 @@ impl Grid {
     // pub fn to_json(&self) -> String {
     //     let serialized = serde_json::to_string(&self).unwrap();
     // }
-}
-
-#[derive(Clone)]
-pub enum GridAction {
-    Set(Position, Cell),
-}
-
-impl FrameAction for GridAction {
-    fn act(&self, frame: &mut Frame) -> Artifact {
-        match self {
-            Self::Set(position, cell) => {
-                let previous_cell = frame.grid.get(*position);
-
-                frame.grid.set(*position, cell.clone());
-
-                Artifact::from_redo_undo(
-                    Box::new(self.to_owned()),
-                    Box::new(Self::Set(*position, previous_cell)),
-                )
-            }
-        }
-    }
-}
-
-impl Debug for GridAction {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Set(position, cell) => {
-                write!(f, "GridAction::Set ({:?} at {:?}", cell, position)
-            }
-        }
-    }
 }

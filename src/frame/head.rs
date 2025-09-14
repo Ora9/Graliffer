@@ -66,7 +66,7 @@ impl Head {
     /// head.move_to(pos);
     /// assert_eq!(head.position, pos);
     /// ```
-    fn move_to(&mut self, position: Position) {
+    pub fn move_to(&mut self, position: Position) {
         self.position = position;
     }
 
@@ -81,7 +81,7 @@ impl Head {
     /// head.direct_to(Direction::Up);
     /// assert_eq!(head.direction, Direction::Up);
     /// ```
-    fn direct_to(&mut self, direction: Direction) {
+    pub fn direct_to(&mut self, direction: Direction) {
         self.direction = direction;
     }
 
@@ -97,16 +97,16 @@ impl Head {
     /// let pos = Position::from_numeric(25, 25).unwrap();
     /// let mut head = Head::new(pos, Direction::Right);
     ///
-    /// head.take_step();
+    /// head.step();
     /// head.direct_to(Direction::Down);
-    /// head.take_step();
+    /// head.step();
     /// head.direct_to(Direction::Left);
-    /// head.take_step();
+    /// head.step();
     /// head.direct_to(Direction::Up);
-    /// head.take_step();
+    /// head.step();
     /// assert_eq!(head.position, pos);
     /// ```
-    fn take_step(&mut self) -> Result<(), anyhow::Error> {
+    pub fn step(&mut self) -> Result<(), anyhow::Error> {
         use crate::utils::Direction::*;
         self.position = match self.direction {
             Up => self.position.checked_decrement_y(1),
@@ -117,50 +117,6 @@ impl Head {
         .context("could not step into darkness, the position is invalid")?;
 
         Ok(())
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum HeadAction {
-    MoveTo(Position),
-    DirectTo(Direction),
-    TakeStep(),
-}
-
-impl FrameAction for HeadAction {
-    fn act(&self, frame: &mut Frame) -> Artifact {
-        match self {
-            Self::MoveTo(position) => {
-                let old_position = frame.head.position;
-
-                frame.head.move_to(*position);
-
-                Artifact::from_redo_undo(
-                    Box::new(self.to_owned()),
-                    Box::new(Self::MoveTo(old_position)),
-                )
-            }
-            Self::DirectTo(direction) => {
-                let old_direction = frame.head.direction;
-
-                frame.head.direct_to(*direction);
-
-                Artifact::from_redo_undo(
-                    Box::new(self.to_owned()),
-                    Box::new(Self::DirectTo(old_direction)),
-                )
-            }
-            Self::TakeStep() => {
-                let old_position = frame.head.position;
-
-                let _ = frame.head.take_step();
-
-                Artifact::from_redo_undo(
-                    Box::new(self.to_owned()),
-                    Box::new(Self::MoveTo(old_position)),
-                )
-            }
-        }
     }
 }
 

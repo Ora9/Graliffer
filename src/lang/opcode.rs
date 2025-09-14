@@ -3,20 +3,17 @@ use std::str::FromStr;
 use strum_macros::EnumString;
 
 use crate::{
-    Address, Literal,
-    action::Artifact,
-    console::ConsoleAction,
-    grid::{Cell, GridAction},
-    head::HeadAction,
-    stack::StackAction,
-    utils::Direction,
+    action::{Artifact, FrameAction}, grid::Cell, utils::Direction, Address, Literal
 };
 
 use super::{Frame, Operand};
 
 fn pop_operand(frame: &mut Frame) -> (Result<Operand, anyhow::Error>, Artifact) {
     if let Some(popped) = frame.stack.get_last() {
-        (Ok(popped.to_owned()), frame.act(Box::new(StackAction::Pop)))
+        (
+            Ok(popped.to_owned()),
+            frame.act(FrameAction::StackPop)
+        )
     } else {
         (
             Err(anyhow!("Could not pop the stack further")),
@@ -175,7 +172,7 @@ impl Opcode {
                     _ => unreachable!(),
                 };
 
-                frame.act(Box::new(HeadAction::DirectTo(direction)))
+                frame.act(FrameAction::HeadDirectTo(direction))
             }
 
             Jmp => {
@@ -183,10 +180,10 @@ impl Opcode {
                     .stack
                     .get_last()
                     .map(|operand| operand.resolve_to_address(&frame.grid));
-                let mut artifact = frame.act(Box::new(StackAction::Pop));
+                let mut artifact = frame.act(FrameAction::StackPop);
 
                 if let Some(Ok(address)) = address_opt {
-                    artifact.push(frame.act(Box::new(HeadAction::MoveTo(address.position))));
+                    artifact.push(frame.act(FrameAction::HeadMoveTo(address.position)));
                 }
 
                 artifact
@@ -206,7 +203,7 @@ impl Opcode {
                         _ => unreachable!(),
                     };
 
-                    artifact.push(frame.act(Box::new(HeadAction::DirectTo(direction))));
+                    artifact.push(frame.act(FrameAction::HeadDirectTo(direction)));
                 }
 
                 artifact
@@ -220,7 +217,7 @@ impl Opcode {
                 if let Ok(address) = address_res
                     && operand
                 {
-                    artifact.push(frame.act(Box::new(HeadAction::MoveTo(address.position))));
+                    artifact.push(frame.act(FrameAction::HeadMoveTo(address.position)));
                 }
 
                 artifact
@@ -242,7 +239,7 @@ impl Opcode {
                 };
 
                 let result_operand = Literal::from_bool(result);
-                let push_artifact = frame.act(Box::new(StackAction::Push(result_operand.into())));
+                let push_artifact = frame.act(FrameAction::StackPush(result_operand.into()));
                 artifact.push(push_artifact);
 
                 artifact
@@ -262,7 +259,7 @@ impl Opcode {
                 };
 
                 let result_operand = Literal::from_bool(result);
-                let push_artifact = frame.act(Box::new(StackAction::Push(result_operand.into())));
+                let push_artifact = frame.act(FrameAction::StackPush(result_operand.into()));
                 artifact.push(push_artifact);
 
                 artifact
@@ -282,7 +279,7 @@ impl Opcode {
                 };
 
                 let result_operand = Literal::from_number(result);
-                let push_artifact = frame.act(Box::new(StackAction::Push(result_operand.into())));
+                let push_artifact = frame.act(FrameAction::StackPush(result_operand.into()));
                 artifact.push(push_artifact);
 
                 artifact
@@ -294,10 +291,10 @@ impl Opcode {
                 artifact.push(lit_artifact);
 
                 if let (Ok(address), Ok(literal)) = (address_res, literal_res) {
-                    let set_artifact = frame.act(Box::new(GridAction::Set(
+                    let set_artifact = frame.act(FrameAction::GridSet(
                         address.position,
                         literal.as_cell(),
-                    )));
+                    ));
                     artifact.push(set_artifact);
                 }
 
@@ -309,7 +306,7 @@ impl Opcode {
 
                 if let Ok(operand) = operand_res {
                     let prt_artifact =
-                        frame.act(Box::new(ConsoleAction::Print(operand.as_cell().content())));
+                        frame.act(FrameAction::ConsolePrint(operand.as_cell().content()));
                     artifact.push(prt_artifact);
                 }
 
@@ -318,7 +315,7 @@ impl Opcode {
         };
 
         if !matches!(self, Jmp | Hlt | Ijp) {
-            artifact.push(frame.act(Box::new(HeadAction::TakeStep())));
+            artifact.push(frame.act(FrameAction::HeadStep));
         }
 
         artifact

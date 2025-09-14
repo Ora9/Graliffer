@@ -1,17 +1,12 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    Word,
-    action::{Artifact, FrameAction},
-    console::Console,
-    grid::Grid,
-    head::{Head, HeadAction},
-    stack::{Stack, StackAction},
-};
-
 pub mod grid;
 pub mod head;
 pub mod stack;
+
+use crate::{
+    action::{Artifact, FrameAction}, console::Console, grid::Grid, head::Head, stack::Stack, Word
+};
 
 /// A [`Frame`] represents a run
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -52,7 +47,7 @@ impl Frame {
         let current_cell = self.grid.get(self.head.position);
 
         if current_cell.is_empty() {
-            self.act(Box::new(HeadAction::TakeStep()))
+            self.act(FrameAction::HeadStep)
         } else {
             let word = Word::from_cell(current_cell);
 
@@ -62,8 +57,8 @@ impl Frame {
                     opcode.evaluate(self)
                 }
                 Word::Operand(operand) => {
-                    let mut artifact = self.act(Box::new(StackAction::Push(operand)));
-                    artifact.push(self.act(Box::new(HeadAction::TakeStep())));
+                    let mut artifact = self.act(FrameAction::StackPush(operand));
+                    artifact.push(self.act(FrameAction::HeadStep));
 
                     artifact
                 }
@@ -72,12 +67,12 @@ impl Frame {
     }
 
     #[must_use]
-    pub fn act(&mut self, action: Box<dyn FrameAction>) -> Artifact {
+    pub fn act(&mut self, action: FrameAction) -> Artifact {
         action.act(self)
     }
 
-    #[must_use]
-    pub fn act_by_ref(&mut self, action: &dyn FrameAction) -> Artifact {
-        action.act(self)
-    }
+    // #[must_use]
+    // pub fn act_by_ref(&mut self, action: FrameAction) -> Artifact {
+    //     action.act(self)
+    // }
 }

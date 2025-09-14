@@ -1,6 +1,5 @@
 use crate::{
-    Editor, Frame,
-    editor::{EventContext, InputEvent},
+    editor::{EventContext, InputEvent}, grid::{Cell, Position}, utils::Direction, Editor, Frame, Operand
 };
 use std::fmt::Debug;
 
@@ -48,33 +47,98 @@ pub trait EditorAction: std::fmt::Debug + CloneEditorAction {
 //     }
 // }
 
-pub trait FrameAction: std::fmt::Debug + CloneFrameAction {
-    fn act(&self, frame: &mut Frame) -> Artifact;
+#[derive(Debug, Clone)]
+pub enum FrameAction {
+    GridSet(Position, Cell),
+
+    StackPush(Operand),
+    StackPop,
+
+    HeadMoveTo(Position),
+    HeadDirectTo(Direction),
+    HeadStep,
+
+    ConsolePrint(String),
 }
 
-pub trait CloneFrameAction {
-    fn clone_action(&self) -> Box<dyn FrameAction>;
-}
+impl FrameAction {
+    pub fn act(&self, frame: &mut Frame) -> Artifact {
+        use FrameAction::*;
+        match self {
+            GridSet(position, cell) => {
+                let previous_cell = frame.grid.get(*position);
 
-impl<T> CloneFrameAction for T
-where
-    T: FrameAction + Clone + 'static,
-{
-    fn clone_action(&self) -> Box<dyn FrameAction> {
-        Box::new(self.clone())
-    }
-}
+                frame.grid.set(*position, cell.clone());
 
-impl Clone for Box<dyn FrameAction> {
-    fn clone(&self) -> Self {
-        self.clone_action()
+                Artifact::from_redo_undo(
+                    self.to_owned(),
+                    Self::GridSet(*position, previous_cell)
+                )
+            }
+
+            StackPush(operand) => {
+                frame.stack.push(operand.to_owned());
+
+                Artifact::from_redo_undo(
+                    self.to_owned(),
+                    StackPop
+                )
+            }
+            StackPop => {
+                if let Some(popped) = frame.stack.pop() {
+                    Artifact::from_redo_undo(
+                        self.to_owned(),
+                        StackPush(popped)
+                    )
+                } else {
+                    Artifact::from_redo(self.to_owned())
+                }
+            }
+
+            HeadMoveTo(position) => {
+                let old_position = frame.head.position;
+
+                frame.head.move_to(*position);
+
+                Artifact::from_redo_undo(
+                    self.to_owned(),
+                    Self::HeadMoveTo(old_position)
+                )
+            }
+            HeadDirectTo(direction) => {
+                let old_direction = frame.head.direction;
+
+                frame.head.direct_to(*direction);
+
+                Artifact::from_redo_undo(
+                    self.to_owned(),
+                    Self::HeadDirectTo(old_direction)
+                )
+            }
+            HeadStep => {
+                let old_position = frame.head.position;
+
+                let _ = frame.head.step();
+
+                Artifact::from_redo_undo(
+                    self.to_owned(),
+                    Self::HeadMoveTo(old_position)
+                )
+            }
+
+            ConsolePrint(string) => {
+                frame.console.print(string);
+
+                Artifact::from_redo(self.to_owned())
+            }
+        }
     }
 }
 
 #[derive(Clone)]
 struct ReciprocalAction {
-    redo: Option<Box<dyn FrameAction>>,
-    undo: Option<Box<dyn FrameAction>>,
+    redo: Option<FrameAction>,
+    undo: Option<FrameAction>,
 }
 
 impl ReciprocalAction {
@@ -106,17 +170,17 @@ impl Artifact {
         actions: Vec::new(),
     };
 
-    fn new(redo: Option<Box<dyn FrameAction>>, undo: Option<Box<dyn FrameAction>>) -> Self {
+    fn new(redo: Option<FrameAction>, undo: Option<FrameAction>) -> Self {
         Self {
             actions: vec![ReciprocalAction { redo, undo }],
         }
     }
 
-    pub fn from_redo(redo: Box<dyn FrameAction>) -> Self {
+    pub fn from_redo(redo: FrameAction) -> Self {
         Self::new(Some(redo), None)
     }
 
-    pub fn from_redo_undo(redo: Box<dyn FrameAction>, undo: Box<dyn FrameAction>) -> Self {
+    pub fn from_redo_undo(redo: FrameAction, undo: FrameAction) -> Self {
         Self::new(Some(redo), Some(undo))
     }
 
@@ -130,16 +194,16 @@ impl Artifact {
 
     fn redo(&self, frame: &mut Frame) {
         for action in self.actions.iter() {
-            if let Some(redo) = &action.redo {
-                let _ = frame.act_by_ref(&**redo);
+            if let Some(redo) = action.redo.to_owned() {
+                let _ = frame.act(redo.to_owned());
             }
         }
     }
 
     fn undo(&self, frame: &mut Frame) {
         for action in self.actions.iter().rev() {
-            if let Some(undo) = &action.undo {
-                let _ = frame.act_by_ref(&**undo);
+            if let Some(undo) = action.undo.to_owned() {
+                let _ = frame.act(undo);
             }
         }
     }

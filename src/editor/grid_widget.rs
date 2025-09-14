@@ -3,7 +3,7 @@ use std::{
 };
 
 use crate::{
-    action::EditorAction, editor::{cursor, Cursor, EventContext, InputEvent, View, ViewsIds}, grid::{GridAction, Position, PositionAxis}, Editor, Frame
+    action::{EditorAction, FrameAction}, editor::{cursor, Cursor, EventContext, InputEvent, View, ViewsIds}, grid::{Position, PositionAxis}, Editor, Frame
 };
 use egui::{Context, Id, Pos2, Rect, Vec2, Widget, emath::TSTransform};
 
@@ -326,7 +326,7 @@ impl EditorAction for GridEditorAction {
                 let char_inserted = cell.insert_at(text, editor.cursor.char_position()).unwrap_or(0);
 
                 if char_inserted > 0 {
-                    let artifact = frame.act(Box::new(GridAction::Set(pos, cell)));
+                    let artifact = frame.act(FrameAction::GridSet(pos, cell));
                     editor.cursor.move_to(cursor::PreferredGridPosition::At(pos), cursor::PreferredCharPosition::ForwardBy(char_inserted), &frame.grid);
 
                     if editor.history_merge.should_merge_input() {

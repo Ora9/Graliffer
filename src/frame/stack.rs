@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     Frame, Operand,
-    action::{Artifact, FrameAction},
+    action::Artifact,
 };
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -21,11 +21,11 @@ impl Stack {
         Self { data: Vec::new() }
     }
 
-    fn push(&mut self, operand: Operand) {
+    pub fn push(&mut self, operand: Operand) {
         self.data.push(operand);
     }
 
-    fn pop(&mut self) -> Option<Operand> {
+    pub fn pop(&mut self) -> Option<Operand> {
         self.data.pop()
     }
 
@@ -43,46 +43,5 @@ impl Stack {
 
     pub fn iter(&self) -> Iter<'_, Operand> {
         self.data.iter()
-    }
-}
-
-#[derive(Clone)]
-pub enum StackAction {
-    Pop,
-    Push(Operand),
-}
-
-impl FrameAction for StackAction {
-    fn act(&self, frame: &mut Frame) -> Artifact {
-        match self {
-            Self::Push(operand) => {
-                frame.stack.push(operand.to_owned());
-
-                Artifact::from_redo_undo(Box::new(self.to_owned()), Box::new(Self::Pop))
-            }
-            Self::Pop => {
-                if let Some(popped) = frame.stack.pop() {
-                    Artifact::from_redo_undo(
-                        Box::new(self.to_owned()),
-                        Box::new(Self::Push(popped)),
-                    )
-                } else {
-                    Artifact::from_redo(Box::new(self.to_owned()))
-                }
-            }
-        }
-    }
-}
-
-impl Debug for StackAction {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Push(operand) => {
-                write!(f, "StackAction::Push ({:?})", operand)
-            }
-            Self::Pop => {
-                write!(f, "StackAction::Push ()")
-            }
-        }
     }
 }
