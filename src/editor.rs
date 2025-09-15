@@ -6,7 +6,7 @@ use std::{
     thread,
 };
 
-use egui::{Id, Widget};
+use egui::{Event, Id, Key, Modifiers, Widget};
 
 use crate::{
     grid::{Cell, Grid, Position}, history::History, Artifact, Frame, FrameAction
@@ -136,9 +136,9 @@ impl Editor {
         let events = ui.input(|i| i.filtered_events(&event_filter));
 
         for event in events {
-            // if let Some(action_pressed) = Self::listen_for_events(self, ui.ctx(), event) {
-                // self.act(action_pressed);
-            // }
+            if let Some(action) = EditorAction::from_event(&event) {
+                self.act(action);
+            }
         }
     }
 
@@ -244,6 +244,35 @@ pub enum EditorAction {
 }
 
 impl EditorAction {
+    pub fn from_event(event: &Event) -> Option<Self> {
+        match event {
+            Event::Key {
+                key: Key::Z,
+                modifiers,
+                pressed: true,
+                ..
+            } if modifiers.command => {
+                Some(Self::Undo)
+            }
+            Event::Key {
+                key: Key::Y,
+                modifiers,
+                pressed: true,
+                ..
+            } if modifiers.command => {
+                Some(Self::Redo)
+            }
+
+            Event::Text(string) => {
+                Some(Self::GridInsertAtCursor(string.clone()))
+            }
+
+            _ => {
+                None
+            }
+        }
+    }
+
     pub fn act(&self, editor: &mut Editor) {
         let mut frame = editor
             .frame
@@ -262,6 +291,8 @@ impl EditorAction {
             GridInsertAtCursor(string) => {
                 let pos = editor.cursor.grid_position();
                 let mut cell = frame.grid.get(pos);
+
+                dbg!(pos, string);
 
                 let char_inserted = cell.insert_at(string, editor.cursor.char_position()).unwrap_or(0);
 
