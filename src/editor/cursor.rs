@@ -3,7 +3,7 @@ use crate::{
     utils::Direction,
 };
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum PreferredCharPosition {
     AtStart,
     AtEnd,
@@ -12,7 +12,7 @@ pub enum PreferredCharPosition {
     At(usize),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum PreferredGridPosition {
     At(Position),
     InDirectionByOffset(Direction, usize),

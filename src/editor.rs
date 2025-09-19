@@ -9,7 +9,7 @@ use std::{
 use egui::{Event, Id, Key, Modifiers, Widget};
 
 use crate::{
-    grid::{Cell, Grid, Position}, history::History, Artifact, Frame, FrameAction
+    editor::cursor::{PreferredCharPosition, PreferredGridPosition}, grid::{Cell, Grid, Position}, history::History, Artifact, Frame, FrameAction
 };
 use egui_tiles::{Tiles, Tree};
 use strum_macros::AsRefStr;
@@ -240,6 +240,8 @@ pub enum EditorAction {
     Undo,
     Redo,
 
+    CursorMoveTo(PreferredGridPosition, PreferredCharPosition),
+
     GridInsertAtCursor(String),
 }
 
@@ -261,6 +263,21 @@ impl EditorAction {
                 ..
             } if modifiers.command => {
                 Some(Self::Redo)
+            }
+
+            Event::Key {
+                key: arrow @ (
+                    Key::ArrowUp
+                    | Key::ArrowRight
+                    | Key::ArrowDown
+                    | Key::ArrowLeft
+                ),
+                pressed: true,
+                modifiers,
+                ..
+            } => {
+                dbg!(arrow, modifiers);
+                None
             }
 
             Event::Text(string) => {
@@ -286,6 +303,10 @@ impl EditorAction {
             }
             Undo => {
                 editor.history.undo(&mut frame);
+            }
+
+            CursorMoveTo(grid_pos, char_pos) => {
+                dbg!(grid_pos, char_pos);
             }
 
             GridInsertAtCursor(string) => {
