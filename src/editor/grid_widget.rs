@@ -18,15 +18,15 @@ pub struct GridWidgetState {
 }
 
 impl GridWidgetState {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self::default()
     }
 
-    fn load(ctx: &Context, id: impl Hash) -> Option<Self> {
+    pub fn get(ctx: &Context, id: impl Hash) -> Option<Self> {
         ctx.data_mut(|d| d.get_persisted(Id::new(id)))
     }
 
-    fn store(self, ctx: &Context, id: impl Hash) {
+    pub fn set(self, ctx: &Context, id: impl Hash) {
         ctx.data_mut(|d| d.insert_persisted(Id::new(id), self));
     }
 }
@@ -105,6 +105,7 @@ impl GridWidget {
                     if let Ok(frame_guard) = self.frame.try_lock()
                         && let Ok(grid_pos) = Position::from_numeric(hovered_cell_x, hovered_cell_y)
                     {
+
                         state.cursor.move_to(
                             cursor::PreferredGridPosition::At(grid_pos),
                             cursor::PreferredCharPosition::AtEnd,
@@ -138,7 +139,7 @@ impl Widget for GridWidget {
     fn ui(mut self, ui: &mut egui::Ui) -> egui::Response {
         let (_container_id, container_rect) = ui.allocate_space(ui.available_size());
 
-        let mut state = GridWidgetState::load(ui.ctx(), View::Grid).unwrap_or_default();
+        let mut state = GridWidgetState::get(ui.ctx(), View::Grid).unwrap_or_default();
 
         let response = self.handle_inputs(&mut state, ui);
 
@@ -300,7 +301,7 @@ impl Widget for GridWidget {
             }
         }
 
-        state.store(ui.ctx(), View::Grid);
+        state.set(ui.ctx(), View::Grid);
 
         response
     }
