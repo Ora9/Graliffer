@@ -4,7 +4,7 @@ use egui::{FontFamily, RichText, Sense, Widget};
 
 use crate::{
     Frame,
-    editor::{EventContext, View, ViewsIds},
+    editor::{View, ViewsIds},
 };
 
 pub struct StackWidget {
@@ -25,11 +25,11 @@ impl Widget for StackWidget {
         }
 
         ViewsIds::store(ui.ctx(), ui.id(), View::Stack);
-        if response.gained_focus() {
-            EventContext::store(ui.ctx(), EventContext::Stack);
-        } else if response.lost_focus() {
-            EventContext::store(ui.ctx(), EventContext::None);
-        }
+        // if response.gained_focus() {
+        //     EventContext::store(ui.ctx(), EventContext::Stack);
+        // } else if response.lost_focus() {
+        //     EventContext::store(ui.ctx(), EventContext::None);
+        // }
 
         if let Ok(frame) = self.frame.try_lock() {
             egui::ScrollArea::vertical()

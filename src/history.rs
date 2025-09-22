@@ -1,89 +1,13 @@
 use crate::{
-    Editor, Frame,
-    editor::{EventContext, InputEvent},
+    Frame,
+    FrameAction
 };
 use std::fmt::Debug;
 
-pub trait CloneEditorAction {
-    fn clone_action(&self) -> Box<dyn EditorAction>;
-}
-
-impl<T> CloneEditorAction for T
-where
-    T: EditorAction + Clone + 'static,
-{
-    fn clone_action(&self) -> Box<dyn EditorAction> {
-        Box::new(self.clone())
-    }
-}
-
-impl Clone for Box<dyn EditorAction> {
-    fn clone(&self) -> Self {
-        self.clone_action()
-    }
-}
-
-pub trait EditorAction: std::fmt::Debug + CloneEditorAction {
-    fn act(&self, editor: &mut Editor);
-    fn events_and_context(&self) -> Option<(InputEvent, EventContext)> {
-        None
-    }
-    fn text(&self) -> (Option<&'static str>, Option<&'static str>) {
-        (None, None)
-    }
-}
-
-// impl<T> CloneAction for T
-// where
-//     T: EditorAction + Clone + 'static,
-// {
-//     fn clone_action(&self) -> Box<dyn EditorAction> {
-//         Box::new(self.clone())
-//     }
-// }
-
-// impl Clone for Box<dyn FrameAction> {
-//     fn clone(&self) -> Self {
-//         self.clone_action()
-//     }
-// }
-
-pub trait FrameAction: std::fmt::Debug + CloneFrameAction {
-    fn act(&self, frame: &mut Frame) -> Artifact;
-}
-
-pub trait CloneFrameAction {
-    fn clone_action(&self) -> Box<dyn FrameAction>;
-}
-
-impl<T> CloneFrameAction for T
-where
-    T: FrameAction + Clone + 'static,
-{
-    fn clone_action(&self) -> Box<dyn FrameAction> {
-        Box::new(self.clone())
-    }
-}
-
-impl Clone for Box<dyn FrameAction> {
-    fn clone(&self) -> Self {
-        self.clone_action()
-    }
-}
-
 #[derive(Clone)]
 struct ReciprocalAction {
-    redo: Option<Box<dyn FrameAction>>,
-    undo: Option<Box<dyn FrameAction>>,
-}
-
-impl ReciprocalAction {
-    // fn invert_actions(self) -> Self {
-    //     Self {
-    //         redo: self.undo,
-    //         undo: self.redo,
-    //     }
-    // }
+    redo: Option<FrameAction>,
+    undo: Option<FrameAction>,
 }
 
 impl Debug for ReciprocalAction {
@@ -106,17 +30,17 @@ impl Artifact {
         actions: Vec::new(),
     };
 
-    fn new(redo: Option<Box<dyn FrameAction>>, undo: Option<Box<dyn FrameAction>>) -> Self {
+    fn new(redo: Option<FrameAction>, undo: Option<FrameAction>) -> Self {
         Self {
             actions: vec![ReciprocalAction { redo, undo }],
         }
     }
 
-    pub fn from_redo(redo: Box<dyn FrameAction>) -> Self {
+    pub fn from_redo(redo: FrameAction) -> Self {
         Self::new(Some(redo), None)
     }
 
-    pub fn from_redo_undo(redo: Box<dyn FrameAction>, undo: Box<dyn FrameAction>) -> Self {
+    pub fn from_redo_undo(redo: FrameAction, undo: FrameAction) -> Self {
         Self::new(Some(redo), Some(undo))
     }
 
@@ -130,16 +54,16 @@ impl Artifact {
 
     fn redo(&self, frame: &mut Frame) {
         for action in self.actions.iter() {
-            if let Some(redo) = &action.redo {
-                let _ = frame.act_by_ref(&**redo);
+            if let Some(redo) = action.redo.to_owned() {
+                let _ = frame.act(redo.to_owned());
             }
         }
     }
 
     fn undo(&self, frame: &mut Frame) {
         for action in self.actions.iter().rev() {
-            if let Some(undo) = &action.undo {
-                let _ = frame.act_by_ref(&**undo);
+            if let Some(undo) = action.undo.to_owned() {
+                let _ = frame.act(undo);
             }
         }
     }

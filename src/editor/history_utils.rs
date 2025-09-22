@@ -5,8 +5,8 @@ use std::{
 
 use crate::{
     Editor,
-    action::EditorAction,
-    editor::{EventContext, events::InputEvent},
+    EditorAction,
+    // editor::{EventContext, events::InputEvent},
 };
 
 /// A timeout for the next acceptable text input that would be
@@ -53,71 +53,5 @@ impl HistoryMerge {
     pub fn cancel_all_merge(&mut self) {
         self.cancel_input_merge();
         self.cancel_deletion_merge();
-    }
-}
-
-#[derive(Clone)]
-pub enum HistoryAction {
-    Undo,
-    Redo,
-}
-
-impl EditorAction for HistoryAction {
-    fn act(&self, editor: &mut Editor) {
-        let mut frame = editor
-            .frame
-            .lock()
-            .expect("Should be able to get the frame");
-
-        match self {
-            Self::Redo => {
-                editor.history.redo(&mut frame);
-            }
-            Self::Undo => {
-                editor.history.undo(&mut frame);
-            }
-        }
-    }
-
-    fn events_and_context(&self) -> Option<(InputEvent, EventContext)> {
-        match self {
-            Self::Redo => Some((
-                InputEvent::Key {
-                    key: egui::Key::Y,
-                    modifiers: egui::Modifiers::CTRL | egui::Modifiers::COMMAND,
-                },
-                EventContext::None,
-            )),
-            Self::Undo => Some((
-                InputEvent::Key {
-                    key: egui::Key::Z,
-                    modifiers: egui::Modifiers::CTRL | egui::Modifiers::COMMAND,
-                },
-                EventContext::None,
-            )),
-        }
-    }
-
-    fn text(&self) -> (Option<&'static str>, Option<&'static str>) {
-        match self {
-            Self::Redo => (Some("Redo"), Some("Redo the last undone operation")),
-            Self::Undo => (
-                Some("Undo"),
-                Some("Undo the last grid operation or evaluation step"),
-            ),
-        }
-    }
-}
-
-impl Debug for HistoryAction {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Redo => {
-                write!(f, "HistoryAction::Redo")
-            }
-            Self::Undo => {
-                write!(f, "HistoryAction::Undo")
-            }
-        }
     }
 }

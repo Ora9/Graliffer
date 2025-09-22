@@ -1,49 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{action::EditorAction, editor::{grid_widget::GridEditorAction, history_utils::HistoryAction}, Editor};
-
-/// A selective copy of egui::Event but only the event we care about, in a way
-/// we can store the event match against
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub enum InputEvent {
-    Copy,
-    Cut,
-    Paste,
-    Text(String),
-    Key {
-        key: egui::Key,
-        modifiers: egui::Modifiers,
-    },
-}
+use crate::{Editor, EditorAction};
 
 pub struct EventRegistry {
-    data: HashMap<(InputEvent, EventContext), Box<dyn EditorAction>>,
-}
-
-impl EventRegistry {
-    pub fn build() -> Self {
-        let actions: Vec<Box<dyn EditorAction>> =
-            vec![
-                Box::new(HistoryAction::Redo),
-                Box::new(HistoryAction::Undo),
-
-                Box::new(GridEditorAction::Insert(String::default())),
-            ];
-
-        let mut registry: HashMap<(InputEvent, EventContext), Box<dyn EditorAction>> =
-            HashMap::new();
-
-        for action in actions {
-            if let Some((event, context)) = action.events_and_context() {
-                registry.insert((event, context), action);
-            }
-        }
-
-        // have to re-sort, in shortcut order (shift alt etc first)
-
-
-        Self { data: registry }
-    }
+    data: HashMap<(InputEvent, EventContext), EditorAction>,
 }
 
 impl Editor {

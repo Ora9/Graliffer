@@ -3,7 +3,7 @@ use std::{
 };
 
 use crate::{
-    action::EditorAction, editor::{cursor, Cursor, EventContext, InputEvent, View, ViewsIds}, grid::{GridAction, Position, PositionAxis}, Editor, Frame
+    editor::{EditorAction, cursor, Cursor, View, ViewsIds}, frame::FrameAction, grid::{Position, PositionAxis}, Editor, Frame
 };
 use egui::{Context, Id, Pos2, Rect, Vec2, Widget, emath::TSTransform};
 
@@ -18,15 +18,15 @@ pub struct GridWidgetState {
 }
 
 impl GridWidgetState {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self::default()
     }
 
-    fn load(ctx: &Context, id: impl Hash) -> Option<Self> {
+    pub fn get(ctx: &Context, id: impl Hash) -> Option<Self> {
         ctx.data_mut(|d| d.get_persisted(Id::new(id)))
     }
 
-    fn store(self, ctx: &Context, id: impl Hash) {
+    pub fn set(self, ctx: &Context, id: impl Hash) {
         ctx.data_mut(|d| d.insert_persisted(Id::new(id), self));
     }
 }
@@ -105,6 +105,7 @@ impl GridWidget {
                     if let Ok(frame_guard) = self.frame.try_lock()
                         && let Ok(grid_pos) = Position::from_numeric(hovered_cell_x, hovered_cell_y)
                     {
+
                         state.cursor.move_to(
                             cursor::PreferredGridPosition::At(grid_pos),
                             cursor::PreferredCharPosition::AtEnd,
@@ -138,16 +139,16 @@ impl Widget for GridWidget {
     fn ui(mut self, ui: &mut egui::Ui) -> egui::Response {
         let (_container_id, container_rect) = ui.allocate_space(ui.available_size());
 
-        let mut state = GridWidgetState::load(ui.ctx(), View::Grid).unwrap_or_default();
+        let mut state = GridWidgetState::get(ui.ctx(), View::Grid).unwrap_or_default();
 
         let response = self.handle_inputs(&mut state, ui);
 
         ViewsIds::store(ui.ctx(), ui.id(), View::Grid);
-        if response.gained_focus() {
-            EventContext::store(ui.ctx(), EventContext::Grid);
-        } else if response.lost_focus() {
-            EventContext::store(ui.ctx(), EventContext::None);
-        }
+        // if response.gained_focus() {
+        //     EventContext::store(ui.ctx(), EventContext::Grid);
+        // } else if response.lost_focus() {
+        //     EventContext::store(ui.ctx(), EventContext::None);
+        // }
 
         state.screen_transform = TSTransform::from_translation(ui.min_rect().left_top().to_vec2())
             * state.grid_transform;
@@ -300,78 +301,8 @@ impl Widget for GridWidget {
             }
         }
 
-        state.store(ui.ctx(), View::Grid);
+        state.set(ui.ctx(), View::Grid);
 
         response
-    }
-}
-
-#[derive(Clone)]
-pub enum GridEditorAction {
-    Insert(String),
-}
-
-impl EditorAction for GridEditorAction {
-    fn act(&self, editor: &mut Editor) {
-        let mut frame = editor
-            .frame
-            .lock()
-            .expect("Should be able to get the frame");
-
-        match self {
-            Self::Insert(text) => {
-                let pos = editor.cursor.grid_position();
-                let mut cell = frame.grid.get(pos);
-
-                let char_inserted = cell.insert_at(text, editor.cursor.char_position()).unwrap_or(0);
-
-                if char_inserted > 0 {
-                    let artifact = frame.act(Box::new(GridAction::Set(pos, cell)));
-                    editor.cursor.move_to(cursor::PreferredGridPosition::At(pos), cursor::PreferredCharPosition::ForwardBy(char_inserted), &frame.grid);
-
-                    if editor.history_merge.should_merge_input() {
-                        dbg!("Merging !");
-                        editor.history.merge_with_last(artifact);
-                    } else {
-                        editor.history.append(artifact);
-                    }
-
-                    editor.history_merge.update_input_timeout();
-                    editor.history_merge.cancel_deletion_merge();
-                }
-
-            }
-        }
-    }
-
-    fn events_and_context(&self) -> Option<(InputEvent, EventContext)> {
-        match self {
-            Self::Insert(_) => {
-                Some((
-                    InputEvent::Text(String::default()),
-                    EventContext::Grid,
-                ))
-            }
-
-        }
-    }
-
-    fn text(&self) -> (Option<&'static str>, Option<&'static str>) {
-        match self {
-            Self::Insert(_) => (
-                Some("Insert text"),
-                Some("Insert text in the current selected cell"),
-            ),
-        }
-    }
-}
-
-impl Debug for GridEditorAction {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Insert(_) => {
-                write!(f, "GridEditorAction")
-            }
-        }
     }
 }
