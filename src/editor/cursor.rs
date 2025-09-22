@@ -5,6 +5,7 @@ use crate::{
 
 #[derive(Debug, Clone, Copy)]
 pub enum PreferredCharPosition {
+    Unchanged,
     AtStart,
     AtEnd,
     ForwardBy(usize),
@@ -14,6 +15,7 @@ pub enum PreferredCharPosition {
 
 #[derive(Debug, Clone, Copy)]
 pub enum PreferredGridPosition {
+    Unchanged,
     At(Position),
     InDirectionByOffset(Direction, usize),
     InDirectionUntilNonEmpty(Direction),
@@ -73,6 +75,7 @@ impl Cursor {
     pub fn char_move_to(&mut self, preferred_char_position: PreferredCharPosition, grid: &Grid) {
         use PreferredCharPosition::*;
         let char_position = match preferred_char_position {
+            Unchanged => self.char_position,
             AtStart => 0,
             AtEnd => grid.get(self.grid_position).len(),
             At(char_position) => {
@@ -92,6 +95,7 @@ impl Cursor {
     fn grid_move_to(&mut self, preferred_grid_position: PreferredGridPosition, _grid: &Grid) {
         use PreferredGridPosition::*;
         let grid_position = match preferred_grid_position {
+            Unchanged => self.grid_position,
             At(position) => position,
             InDirectionByOffset(direction, offset) => {
                 use Direction::*;
