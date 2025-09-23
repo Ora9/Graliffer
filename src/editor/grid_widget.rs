@@ -5,9 +5,9 @@ use std::{
 };
 
 use crate::{
-    Editor, Frame,
-    editor::{Cursor, EditorAction, View, ViewsIds, cursor},
-    frame::FrameAction,
+    Frame,
+    editor::{Cursor, View, ViewsIds, cursor},
+
     grid::{Position, PositionAxis},
 };
 use egui::{Context, Id, Pos2, Rect, Vec2, Widget, emath::TSTransform};

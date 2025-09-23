@@ -6,7 +6,7 @@ use std::{fmt::Debug, slice::Iter};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Frame, Operand, history::Artifact};
+use crate::Operand;
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Stack {

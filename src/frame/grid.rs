@@ -9,7 +9,6 @@ pub use position::{Position, PositionAxis};
 mod cell;
 pub use cell::Cell;
 
-use crate::{Frame, history::Artifact};
 
 /// A `Grid` represents a 2d space filled with [`Cell`]s, theses cells are positioned by a [`Position`]
 ///

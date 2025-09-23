@@ -3,12 +3,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::{
-    Editor,
-    EditorAction,
-    // editor::{EventContext, events::InputEvent},
-};
-
 /// A timeout for the next acceptable text input that would be
 /// merged in undo history. This is used to merge closely entered
 /// text input (timewise), and make undo/redo a bit less granular

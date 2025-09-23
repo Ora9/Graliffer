@@ -4,7 +4,7 @@ use crate::utils::Direction;
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
 
-use crate::{Frame, FrameAction, grid::Position, history::Artifact};
+use crate::grid::Position;
 
 /// An head travels in a [`Grid`] reading [`Operand`] and [`Opcodes`]
 ///

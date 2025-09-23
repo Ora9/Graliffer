@@ -6,10 +6,10 @@ use std::{
     thread,
 };
 
-use egui::{Context, Event, Id, Key, Modifiers, Widget};
+use egui::{Context, Event, Id, Key, Widget};
 
 use crate::{
-    Artifact, Frame, FrameAction,
+    Frame, FrameAction,
     editor::{
         cursor::{PreferredCharPosition, PreferredGridPosition},
         grid_widget::GridWidgetState,
