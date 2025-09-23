@@ -441,14 +441,14 @@ impl EditorAction {
                         &frame.grid,
                     );
 
-                    if editor.history_merge.should_merge_input() {
+                    if editor.history_merge.should_merge_insertion() {
                         dbg!("Merging !");
                         editor.history.merge_with_last(artifact);
                     } else {
                         editor.history.append(artifact);
                     }
 
-                    editor.history_merge.update_input_timeout();
+                    editor.history_merge.update_insertion_timeout();
                     editor.history_merge.cancel_deletion_merge();
                 }
 
