@@ -1,7 +1,4 @@
-use crate::{
-    Frame,
-    FrameAction
-};
+use crate::{Frame, FrameAction};
 use std::fmt::Debug;
 
 #[derive(Clone)]

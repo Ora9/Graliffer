@@ -2,19 +2,13 @@ use anyhow::anyhow;
 use std::str::FromStr;
 use strum_macros::EnumString;
 
-use crate::{
-    FrameAction,
-    Artifact, grid::Cell, utils::Direction, Address, Literal
-};
+use crate::{Address, Artifact, FrameAction, Literal, grid::Cell, utils::Direction};
 
 use super::{Frame, Operand};
 
 fn pop_operand(frame: &mut Frame) -> (Result<Operand, anyhow::Error>, Artifact) {
     if let Some(popped) = frame.stack.get_last() {
-        (
-            Ok(popped.to_owned()),
-            frame.act(FrameAction::StackPop)
-        )
+        (Ok(popped.to_owned()), frame.act(FrameAction::StackPop))
     } else {
         (
             Err(anyhow!("Could not pop the stack further")),
@@ -292,10 +286,8 @@ impl Opcode {
                 artifact.push(lit_artifact);
 
                 if let (Ok(address), Ok(literal)) = (address_res, literal_res) {
-                    let set_artifact = frame.act(FrameAction::GridSet(
-                        address.position,
-                        literal.as_cell(),
-                    ));
+                    let set_artifact =
+                        frame.act(FrameAction::GridSet(address.position, literal.as_cell()));
                     artifact.push(set_artifact);
                 }
 

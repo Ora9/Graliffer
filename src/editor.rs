@@ -9,7 +9,14 @@ use std::{
 use egui::{Context, Event, Id, Key, Modifiers, Widget};
 
 use crate::{
-    editor::{cursor::{PreferredCharPosition, PreferredGridPosition}, grid_widget::GridWidgetState}, grid::{Cell, Grid, Position}, history::History, utils::Direction, Artifact, Frame, FrameAction
+    Artifact, Frame, FrameAction,
+    editor::{
+        cursor::{PreferredCharPosition, PreferredGridPosition},
+        grid_widget::GridWidgetState,
+    },
+    grid::{Cell, Grid, Position},
+    history::History,
+    utils::Direction,
 };
 use egui_tiles::{Tiles, Tree};
 use strum_macros::AsRefStr;
@@ -40,7 +47,6 @@ pub struct Editor {
     first_frame: bool,
 
     // cursor: Cursor,
-
     history: History,
     history_merge: HistoryMerge,
 }
@@ -260,25 +266,16 @@ impl EditorAction {
                 modifiers,
                 pressed: true,
                 ..
-            } if modifiers.command => {
-                Some(Self::Undo)
-            }
+            } if modifiers.command => Some(Self::Undo),
             Event::Key {
                 key: Key::Y,
                 modifiers,
                 pressed: true,
                 ..
-            } if modifiers.command => {
-                Some(Self::Redo)
-            }
+            } if modifiers.command => Some(Self::Redo),
 
             Event::Key {
-                key: arrow @ (
-                    Key::ArrowUp
-                    | Key::ArrowRight
-                    | Key::ArrowDown
-                    | Key::ArrowLeft
-                ),
+                key: arrow @ (Key::ArrowUp | Key::ArrowRight | Key::ArrowDown | Key::ArrowLeft),
                 pressed: true,
                 modifiers,
                 ..
@@ -290,7 +287,9 @@ impl EditorAction {
                     Key::ArrowRight => Direction::Right,
                     Key::ArrowDown => Direction::Down,
                     Key::ArrowLeft => Direction::Left,
-                    _ => { unreachable!(); }
+                    _ => {
+                        unreachable!();
+                    }
                 };
 
                 if modifiers.command {
@@ -312,18 +311,14 @@ impl EditorAction {
                     match key {
                         Key::Backspace => Some(Self::GridDeleteOrCursorStepBackward),
                         Key::Delete => Some(Self::GridDeleteForeward),
-                        _ => unreachable!()
+                        _ => unreachable!(),
                     }
                 }
             }
 
-            Event::Text(string) => {
-                Some(Self::GridInsertAtCursor(string.clone()))
-            }
+            Event::Text(string) => Some(Self::GridInsertAtCursor(string.clone())),
 
-            _ => {
-                None
-            }
+            _ => None,
         }
     }
 
@@ -342,36 +337,32 @@ impl EditorAction {
                 editor.history.undo(&mut frame);
             }
 
-            CursorLeapIn(direction) => {
-
-            }
+            CursorLeapIn(direction) => {}
 
             CursorStepIn(direction) => {
-                let mut grid_state = GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
+                let mut grid_state =
+                    GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
                 let grid_pos = grid_state.cursor.grid_position();
                 let char_pos = grid_state.cursor.char_position();
 
-
                 match direction {
-                    Direction::Down | Direction::Up => {
-                        grid_state.cursor.move_to(
-                            PreferredGridPosition::InDirectionByOffset(*direction, 1),
-                            PreferredCharPosition::At(grid_state.cursor.char_position()),
-                            &frame.grid
-                        )
-                    }
+                    Direction::Down | Direction::Up => grid_state.cursor.move_to(
+                        PreferredGridPosition::InDirectionByOffset(*direction, 1),
+                        PreferredCharPosition::At(grid_state.cursor.char_position()),
+                        &frame.grid,
+                    ),
                     Direction::Right => {
                         if char_pos >= frame.grid.get(grid_pos).len() {
                             grid_state.cursor.move_to(
                                 PreferredGridPosition::InDirectionByOffset(*direction, 1),
                                 PreferredCharPosition::AtEnd,
-                                &frame.grid
+                                &frame.grid,
                             )
                         } else {
                             grid_state.cursor.move_to(
                                 PreferredGridPosition::Unchanged,
                                 PreferredCharPosition::ForwardBy(1),
-                                &frame.grid
+                                &frame.grid,
                             )
                         }
                     }
@@ -380,13 +371,13 @@ impl EditorAction {
                             grid_state.cursor.move_to(
                                 PreferredGridPosition::InDirectionByOffset(*direction, 1),
                                 PreferredCharPosition::AtStart,
-                                &frame.grid
+                                &frame.grid,
                             )
                         } else {
                             grid_state.cursor.move_to(
                                 PreferredGridPosition::Unchanged,
                                 PreferredCharPosition::BackwardBy(1),
-                                &frame.grid
+                                &frame.grid,
                             )
                         }
                     }
@@ -396,18 +387,20 @@ impl EditorAction {
             }
 
             CursorMoveTo(position) => {
-                let mut grid_state = GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
+                let mut grid_state =
+                    GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
 
                 grid_state.cursor.move_to(
                     PreferredGridPosition::At(*position),
                     PreferredCharPosition::AtEnd,
-                    &frame.grid
+                    &frame.grid,
                 );
                 grid_state.set(&editor.egui_ctx, View::Grid);
             }
 
             GridDeleteCell => {
-                let grid_state = GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
+                let grid_state =
+                    GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
 
                 let pos = grid_state.cursor.grid_position();
                 frame.grid.set(pos, Cell::new_trim(""));
@@ -416,20 +409,19 @@ impl EditorAction {
             }
 
             GridDeleteOrCursorStepBackward => {
-                let grid_state = GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
+                let grid_state =
+                    GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
 
                 let pos = grid_state.cursor.grid_position();
-
 
                 grid_state.set(&editor.egui_ctx, View::Grid);
             }
 
-            GridDeleteForeward => {
-
-            }
+            GridDeleteForeward => {}
 
             GridInsertAtCursor(string) => {
-                let mut grid_state = GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
+                let mut grid_state =
+                    GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
 
                 let pos = grid_state.cursor.grid_position();
 
@@ -437,11 +429,17 @@ impl EditorAction {
 
                 dbg!(pos, string);
 
-                let char_inserted = cell.insert_at(string, grid_state.cursor.char_position()).unwrap_or(0);
+                let char_inserted = cell
+                    .insert_at(string, grid_state.cursor.char_position())
+                    .unwrap_or(0);
 
                 if char_inserted > 0 {
                     let artifact = frame.act(FrameAction::GridSet(pos, cell));
-                    grid_state.cursor.move_to(cursor::PreferredGridPosition::At(pos), cursor::PreferredCharPosition::ForwardBy(char_inserted), &frame.grid);
+                    grid_state.cursor.move_to(
+                        cursor::PreferredGridPosition::At(pos),
+                        cursor::PreferredCharPosition::ForwardBy(char_inserted),
+                        &frame.grid,
+                    );
 
                     if editor.history_merge.should_merge_input() {
                         dbg!("Merging !");

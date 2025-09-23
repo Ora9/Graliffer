@@ -1,9 +1,14 @@
 use std::{
-    fmt::Debug, hash::Hash, sync::{Arc, Mutex}
+    fmt::Debug,
+    hash::Hash,
+    sync::{Arc, Mutex},
 };
 
 use crate::{
-    editor::{EditorAction, cursor, Cursor, View, ViewsIds}, frame::FrameAction, grid::{Position, PositionAxis}, Editor, Frame
+    Editor, Frame,
+    editor::{Cursor, EditorAction, View, ViewsIds, cursor},
+    frame::FrameAction,
+    grid::{Position, PositionAxis},
 };
 use egui::{Context, Id, Pos2, Rect, Vec2, Widget, emath::TSTransform};
 
@@ -105,7 +110,6 @@ impl GridWidget {
                     if let Ok(frame_guard) = self.frame.try_lock()
                         && let Ok(grid_pos) = Position::from_numeric(hovered_cell_x, hovered_cell_y)
                     {
-
                         state.cursor.move_to(
                             cursor::PreferredGridPosition::At(grid_pos),
                             cursor::PreferredCharPosition::AtEnd,
