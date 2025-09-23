@@ -30,7 +30,7 @@ impl PositionAxis {
     pub const MAX_NUMERIC: u32 = 63;
 
     /// PositionAxis placed at origin (0)
-    pub const ZERO: PositionAxis = PositionAxis(0);
+    pub const ORIGIN: PositionAxis = PositionAxis(0);
 
     /// Return `true` if the given `u32` is considered a valid numeric representation of [`PositionAxis`]
     ///
@@ -406,9 +406,9 @@ pub struct Position {
 
 impl Position {
     /// A Position placed at the origin (0)
-    pub const ZERO: Position = Position {
-        x: PositionAxis::ZERO,
-        y: PositionAxis::ZERO,
+    pub const ORIGIN: Position = Position {
+        x: PositionAxis::ORIGIN,
+        y: PositionAxis::ORIGIN,
     };
 
     /// Returns a `Position` given two [`PositionAxis`]

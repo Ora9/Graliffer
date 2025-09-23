@@ -35,7 +35,7 @@ pub struct Cursor {
 impl Default for Cursor {
     fn default() -> Self {
         Self {
-            grid_position: Position::ZERO,
+            grid_position: Position::ORIGIN,
             char_position: 0,
         }
     }

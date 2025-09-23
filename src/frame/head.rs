@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::grid::Position;
 
-/// An head travels in a [`Grid`] reading [`Operand`] and [`Opcodes`]
+/// An head travels in a [`Grid`] reading [`Cells`], to parse [`Operand`]
+/// or [`Opcodes`]
 ///
 /// an `Head` has :
 /// - A [`Position`] in a [`Grid`]
@@ -35,7 +36,7 @@ pub struct Head {
 impl Default for Head {
     fn default() -> Self {
         Self {
-            position: Default::default(),
+            position: Position::ORIGIN,
             direction: Direction::Right,
         }
     }
