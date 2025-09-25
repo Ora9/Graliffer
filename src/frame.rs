@@ -7,6 +7,8 @@ pub mod grid;
 pub mod head;
 pub mod stack;
 
+pub mod console;
+
 use crate::{Word, console::Console, grid::Grid, head::Head, history::Artifact, stack::Stack};
 
 /// A [`Frame`] represents a run

@@ -6,12 +6,10 @@
 mod utils;
 
 mod frame;
-pub use frame::{Frame, FrameAction, grid, head, stack};
+pub use frame::{Frame, FrameAction, grid, head, stack, console};
 
 mod lang;
 pub use lang::{Address, Literal, Opcode, Operand, Pointer, Word};
-
-pub mod console;
 
 mod history;
 pub use history::{Artifact, History};
