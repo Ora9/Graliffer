@@ -17,4 +17,4 @@ mod history;
 pub use history::{Artifact, History};
 
 mod editor;
-pub use editor::{Editor, EditorAction};
+pub use editor::Editor;
