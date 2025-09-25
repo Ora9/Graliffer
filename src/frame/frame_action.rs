@@ -1,5 +1,8 @@
-use crate::{grid::{Cell, Position}, utils::Direction, Artifact, Frame, Operand};
-
+use crate::{
+    Artifact, Frame, Operand,
+    grid::{Cell, Position},
+    utils::Direction,
+};
 
 #[derive(Debug, Clone)]
 pub enum FrameAction {

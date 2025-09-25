@@ -1,6 +1,15 @@
 use egui::{Event, Key};
 
-use crate::{editor::{cursor::{PreferredCharPosition, PreferredGridPosition}, grid_widget::GridWidgetState, View}, grid::{Cell, Position}, utils::Direction, Editor, FrameAction};
+use crate::{
+    Editor, FrameAction,
+    editor::{
+        View,
+        cursor::{PreferredCharPosition, PreferredGridPosition},
+        grid_widget::GridWidgetState,
+    },
+    grid::{Cell, Position},
+    utils::Direction,
+};
 
 #[derive(Debug, Clone)]
 pub enum EditorAction {
@@ -97,7 +106,7 @@ impl EditorAction {
                 editor.history.undo(&mut frame);
             }
 
-            CursorLeapIn(direction) => {}
+            CursorLeapIn(_direction) => {}
 
             CursorStepIn(direction) => {
                 let mut grid_state =
@@ -172,7 +181,7 @@ impl EditorAction {
                 let grid_state =
                     GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
 
-                let pos = grid_state.cursor.grid_position();
+                let _pos = grid_state.cursor.grid_position();
 
                 grid_state.set(&editor.egui_ctx, View::Grid);
             }

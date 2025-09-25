@@ -7,15 +7,7 @@ pub mod grid;
 pub mod head;
 pub mod stack;
 
-use crate::{
-    Operand, Word,
-    console::Console,
-    grid::{Cell, Grid, Position},
-    head::Head,
-    history::Artifact,
-    stack::Stack,
-    utils::Direction,
-};
+use crate::{Word, console::Console, grid::Grid, head::Head, history::Artifact, stack::Stack};
 
 /// A [`Frame`] represents a run
 #[derive(Serialize, Deserialize, Debug, Default)]

@@ -5,9 +5,11 @@ use std::{
 };
 
 use crate::{
-    editor::{cursor, Cursor, InputContext, View, ViewsIds}, grid::{Position, PositionAxis}, Frame
+    Frame,
+    editor::{Cursor, InputContext, View, ViewsIds, cursor},
+    grid::{Position, PositionAxis},
 };
-use egui::{emath::TSTransform, Context, Id, Pos2, Rect, Response, Vec2, Widget};
+use egui::{Context, Id, Pos2, Rect, Vec2, Widget, emath::TSTransform};
 
 #[derive(Default, Debug, Clone)]
 pub struct GridWidgetState {

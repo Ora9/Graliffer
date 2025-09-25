@@ -3,7 +3,8 @@ use std::sync::{Arc, Mutex};
 use egui::{FontFamily, RichText, Sense, Widget};
 
 use crate::{
-    editor::{InputContext, View, ViewsIds}, Frame
+    Frame,
+    editor::{InputContext, View, ViewsIds},
 };
 
 pub struct StackWidget {

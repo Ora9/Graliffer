@@ -6,17 +6,12 @@ use std::{
     thread,
 };
 
-use egui::{Context, Event, Id, Key, Widget};
+use egui::{Context, Id, Widget};
 
 use crate::{
-    Frame, FrameAction,
-    editor::{
-        cursor::{PreferredCharPosition, PreferredGridPosition},
-        grid_widget::GridWidgetState,
-    },
+    Frame,
     grid::{Cell, Grid, Position},
     history::History,
-    utils::Direction,
 };
 use egui_tiles::{Tiles, Tree};
 use strum_macros::AsRefStr;
@@ -135,21 +130,20 @@ impl Editor {
     fn handle_inputs(&mut self, ctx: &Context) {
         // If
         let events = if let Some(grid_id) = ViewsIds::get_id(&self.egui_ctx, View::Grid)
-            && self.egui_ctx.memory(|mem| mem.has_focus(grid_id)) {
-
-                let event_filter = egui::EventFilter {
-                    horizontal_arrows: true,
-                    vertical_arrows: true,
-                    escape: true,
-                    tab: true,
-                };
-
-                ctx.memory_mut(|mem| mem.set_focus_lock_filter(grid_id, event_filter));
-                ctx.input(|i| i.filtered_events(&event_filter))
-            } else {
-                ctx.input(|i| i.events.to_owned())
+            && self.egui_ctx.memory(|mem| mem.has_focus(grid_id))
+        {
+            let event_filter = egui::EventFilter {
+                horizontal_arrows: true,
+                vertical_arrows: true,
+                escape: true,
+                tab: true,
             };
 
+            ctx.memory_mut(|mem| mem.set_focus_lock_filter(grid_id, event_filter));
+            ctx.input(|i| i.filtered_events(&event_filter))
+        } else {
+            ctx.input(|i| i.events.to_owned())
+        };
 
         for event in events {
             if let Some(action) = EditorAction::from_event(&event) {
@@ -315,9 +309,10 @@ impl eframe::App for Editor {
             self.layout_tree.ui(&mut self.tile_behavior, ui);
 
             if let Some(grid_id) = ViewsIds::get_id(ctx, View::Grid)
-                && self.first_frame {
-                    ctx.memory_mut(|mem| mem.request_focus(grid_id));
-                    self.first_frame = false;
+                && self.first_frame
+            {
+                ctx.memory_mut(|mem| mem.request_focus(grid_id));
+                self.first_frame = false;
             }
 
             self.handle_inputs(ctx);
@@ -359,8 +354,7 @@ impl ViewsIds {
 
     fn get_id(ctx: &egui::Context, view: View) -> Option<egui::Id> {
         Self::get(ctx)
-            .map(|views_ids| views_ids.data.get(&view).cloned())
-            .flatten()
+            .and_then(|views_ids| views_ids.data.get(&view).cloned())
     }
 }
 

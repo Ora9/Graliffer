@@ -3,7 +3,8 @@ use std::sync::{Arc, Mutex};
 use egui::{Sense, Widget};
 
 use crate::{
-    editor::{InputContext, View, ViewsIds}, Frame
+    Frame,
+    editor::{InputContext, View, ViewsIds},
 };
 
 #[derive(Debug)]
