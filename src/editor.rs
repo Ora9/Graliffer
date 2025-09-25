@@ -130,17 +130,24 @@ impl Editor {
         action.act(self);
     }
 
-    // fn handle_inputs(&mut self, ctx: &egui::Context) {
-    fn handle_inputs(&mut self, ui: &egui::Ui) {
-        let event_filter = egui::EventFilter {
-            horizontal_arrows: true,
-            vertical_arrows: true,
-            escape: true,
-            tab: true,
-        };
+    fn handle_inputs(&mut self, ctx: &Context) {
+        // If
+        let events = if let Some(grid_id) = ViewsIds::get_id(&self.egui_ctx, View::Grid)
+            && self.egui_ctx.memory(|mem| mem.has_focus(grid_id)) {
 
-        ui.memory_mut(|mem| mem.set_focus_lock_filter(ui.id(), event_filter));
-        let events = ui.input(|i| i.filtered_events(&event_filter));
+                let event_filter = egui::EventFilter {
+                    horizontal_arrows: true,
+                    vertical_arrows: true,
+                    escape: true,
+                    tab: true,
+                };
+
+                ctx.memory_mut(|mem| mem.set_focus_lock_filter(grid_id, event_filter));
+                ctx.input(|i| i.filtered_events(&event_filter))
+            } else {
+                ctx.input(|i| i.events.to_owned())
+            };
+
 
         for event in events {
             if let Some(action) = EditorAction::from_event(&event) {
@@ -519,13 +526,18 @@ impl eframe::App for Editor {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            if self.first_frame {
-                ui.response().request_focus();
-                self.first_frame = false;
+            self.layout_tree.ui(&mut self.tile_behavior, ui);
+
+            if let Some(grid_id) = ViewsIds::get_id(ctx, View::Grid)
+                && self.first_frame {
+                    ctx.memory_mut(|mem| mem.request_focus(grid_id));
+                    self.first_frame = false;
             }
 
-            self.handle_inputs(ui);
-            self.layout_tree.ui(&mut self.tile_behavior, ui);
+            // if InputContext::get(ctx) == InputContext::None {
+                self.handle_inputs(ctx);
+            // }
+
         });
 
         if self.inspect {
@@ -550,7 +562,7 @@ pub struct ViewsIds {
 impl ViewsIds {
     const ID: &'static str = "VIEWS_IDS";
 
-    fn store(ctx: &egui::Context, id: egui::Id, view: View) {
+    fn insert(ctx: &egui::Context, view: View, id: egui::Id) {
         ctx.data_mut(|data| {
             let context_by_id: &mut ViewsIds = data.get_persisted_mut_or_default(Id::new(Self::ID));
 
@@ -558,12 +570,14 @@ impl ViewsIds {
         });
     }
 
-    fn load(ctx: &egui::Context) -> Option<ViewsIds> {
+    fn get(ctx: &egui::Context) -> Option<ViewsIds> {
         ctx.data_mut(|data| data.get_persisted(Id::new(Self::ID)))
     }
 
-    fn get_id(&self, view: View) -> Option<egui::Id> {
-        self.data.get(&view).cloned()
+    fn get_id(ctx: &egui::Context, view: View) -> Option<egui::Id> {
+        Self::get(ctx)
+            .map(|views_ids| views_ids.data.get(&view).cloned())
+            .flatten()
     }
 }
 
@@ -615,5 +629,35 @@ impl egui_tiles::Behavior<View> for TilesBehavior {
         }
 
         Default::default()
+    }
+}
+
+#[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
+pub enum InputContext {
+    #[default]
+    None,
+    Grid,
+    GridSelecting,
+    Stack,
+    Console,
+    Graphic,
+    CommandPanel,
+}
+
+impl InputContext {
+    const ID: &'static str = "INPUT_CONTEXT";
+
+    pub fn set(ctx: &egui::Context, input_context: InputContext) {
+        dbg!(&input_context);
+        ctx.data_mut(|data| {
+            data.insert_persisted(egui::Id::new(Self::ID), input_context);
+        });
+    }
+
+    pub fn get(ctx: &egui::Context) -> InputContext {
+        ctx.data_mut(|data| {
+            data.get_persisted(egui::Id::new(Self::ID))
+                .unwrap_or_default()
+        })
     }
 }

@@ -5,12 +5,9 @@ use std::{
 };
 
 use crate::{
-    Frame,
-    editor::{Cursor, View, ViewsIds, cursor},
-
-    grid::{Position, PositionAxis},
+    editor::{cursor, Cursor, InputContext, View, ViewsIds}, grid::{Position, PositionAxis}, Frame
 };
-use egui::{Context, Id, Pos2, Rect, Vec2, Widget, emath::TSTransform};
+use egui::{emath::TSTransform, Context, Id, Pos2, Rect, Response, Vec2, Widget};
 
 #[derive(Default, Debug, Clone)]
 pub struct GridWidgetState {
@@ -147,12 +144,12 @@ impl Widget for GridWidget {
 
         let response = self.handle_inputs(&mut state, ui);
 
-        ViewsIds::store(ui.ctx(), ui.id(), View::Grid);
-        // if response.gained_focus() {
-        //     EventContext::store(ui.ctx(), EventContext::Grid);
-        // } else if response.lost_focus() {
-        //     EventContext::store(ui.ctx(), EventContext::None);
-        // }
+        ViewsIds::insert(ui.ctx(), View::Grid, ui.id());
+        if response.gained_focus() {
+            InputContext::set(ui.ctx(), InputContext::Grid);
+        } else if response.lost_focus() {
+            InputContext::set(ui.ctx(), InputContext::None);
+        }
 
         state.screen_transform = TSTransform::from_translation(ui.min_rect().left_top().to_vec2())
             * state.grid_transform;

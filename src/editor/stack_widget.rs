@@ -3,8 +3,7 @@ use std::sync::{Arc, Mutex};
 use egui::{FontFamily, RichText, Sense, Widget};
 
 use crate::{
-    Frame,
-    editor::{View, ViewsIds},
+    editor::{InputContext, View, ViewsIds}, Frame
 };
 
 pub struct StackWidget {
@@ -24,12 +23,12 @@ impl Widget for StackWidget {
             response.request_focus();
         }
 
-        ViewsIds::store(ui.ctx(), ui.id(), View::Stack);
-        // if response.gained_focus() {
-        //     EventContext::store(ui.ctx(), EventContext::Stack);
-        // } else if response.lost_focus() {
-        //     EventContext::store(ui.ctx(), EventContext::None);
-        // }
+        ViewsIds::insert(ui.ctx(), View::Stack, ui.id());
+        if response.gained_focus() {
+            InputContext::set(ui.ctx(), InputContext::Stack);
+        } else if response.lost_focus() {
+            InputContext::set(ui.ctx(), InputContext::None);
+        }
 
         if let Ok(frame) = self.frame.try_lock() {
             egui::ScrollArea::vertical()

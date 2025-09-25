@@ -3,8 +3,7 @@ use std::sync::{Arc, Mutex};
 use egui::{Sense, Widget};
 
 use crate::{
-    Frame,
-    editor::{View, ViewsIds},
+    editor::{InputContext, View, ViewsIds}, Frame
 };
 
 #[derive(Debug)]
@@ -25,12 +24,12 @@ impl Widget for ConsoleWidget {
             response.request_focus();
         }
 
-        ViewsIds::store(ui.ctx(), ui.id(), View::Console);
-        // if response.gained_focus() {
-        //     EventContext::store(ui.ctx(), EventContext::Console);
-        // } else if response.lost_focus() {
-        //     EventContext::store(ui.ctx(), EventContext::None);
-        // }
+        ViewsIds::insert(ui.ctx(), View::Console, ui.id());
+        if response.gained_focus() {
+            InputContext::set(ui.ctx(), InputContext::Console);
+        } else if response.lost_focus() {
+            InputContext::set(ui.ctx(), InputContext::None);
+        }
 
         if let Ok(_frame_guard) = self.frame.try_lock() {
             ui.label("Console! Bip boup");
