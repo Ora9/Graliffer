@@ -13,11 +13,25 @@ use crate::{
 
 #[derive(Debug, Clone)]
 pub enum EditorAction {
+    /// Undo the last editor action
     Undo,
+    /// Redo the last thing that was undone
     Redo,
 
+    /// The default behavior when pressing an arrow key, stepping to the next
+    /// character in a cell, or to the next cell if the cursor is at the border
+    /// of a cell
     CursorStepIn(Direction),
+
+    /// A small leap to the next cell in the direction, ignoring the current
+    /// cursor char position, used for the tab, enter and space key
     CursorLeapIn(Direction),
+
+    /// A dash to either the start/end of a cell's content, or to the next
+    /// non-empty cell in the given direction
+    CursorDashIn(Direction),
+
+    /// Move the cursor to a given position in the grid
     CursorMoveTo(Position),
 
     GridDeleteOrCursorStepBackward,
@@ -44,25 +58,40 @@ impl EditorAction {
             } if modifiers.command => Some(Self::Redo),
 
             Event::Key {
-                key: arrow @ (Key::ArrowUp | Key::ArrowRight | Key::ArrowDown | Key::ArrowLeft),
+                key: arrow @ (
+                    Key::ArrowUp
+                    | Key::ArrowRight
+                    | Key::ArrowDown
+                    | Key::ArrowLeft
+                    | Key::Space
+                    | Key::Tab
+                    | Key::Enter
+                ),
                 pressed: true,
                 modifiers,
                 ..
             } => {
-                dbg!(arrow, modifiers);
-
                 let direction = match arrow {
                     Key::ArrowUp => Direction::Up,
+
                     Key::ArrowRight => Direction::Right,
+
+                    Key::Space | Key::Tab if modifiers.shift => Direction::Left,
+                    Key::Space | Key::Tab => Direction::Right,
+
+                    Key::Enter if modifiers.shift => Direction::Up,
+                    Key::Enter => Direction::Down,
+
                     Key::ArrowDown => Direction::Down,
                     Key::ArrowLeft => Direction::Left,
-                    _ => {
-                        unreachable!();
-                    }
+
+                    _ => unreachable!()
                 };
 
-                if modifiers.command {
+                if matches!(arrow, Key::Tab | Key::Space | Key::Enter) {
                     Some(Self::CursorLeapIn(direction))
+                } else if modifiers.command {
+                    Some(Self::CursorDashIn(direction))
                 } else {
                     Some(Self::CursorStepIn(direction))
                 }
@@ -85,7 +114,9 @@ impl EditorAction {
                 }
             }
 
-            Event::Text(string) => Some(Self::GridInsertAtCursor(string.clone())),
+            Event::Text(string) if string != " " => {
+                Some(Self::GridInsertAtCursor(string.clone()))
+            },
 
             _ => None,
         }
@@ -101,12 +132,72 @@ impl EditorAction {
         match self {
             Redo => {
                 editor.history.redo(&mut frame);
+                editor.history_merge.cancel_all_merge();
             }
             Undo => {
                 editor.history.undo(&mut frame);
+                editor.history_merge.cancel_all_merge();
             }
 
-            CursorLeapIn(_direction) => {}
+            CursorDashIn(direction) => {
+                let mut grid_state =
+                    GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
+                let char_pos = grid_state.cursor.char_position();
+                let grid_pos = grid_state.cursor.grid_position();
+
+                match direction {
+                    Direction::Up
+                    | Direction::Down => {
+                        grid_state.cursor.move_to(
+                            PreferredGridPosition::InDirectionUntilNonEmpty(*direction),
+                            PreferredCharPosition::AtEnd,
+                            &frame.grid
+                        );
+                    }
+                    Direction::Right => {
+                        if char_pos >= frame.grid.get(grid_pos).len() {
+                            grid_state.cursor.move_to(
+                                PreferredGridPosition::InDirectionUntilNonEmpty(*direction),
+                                PreferredCharPosition::AtStart,
+                                &frame.grid
+                            );
+                        } else {
+                            grid_state.cursor.move_to(
+                                PreferredGridPosition::Unchanged,
+                                PreferredCharPosition::AtEnd,
+                                &frame.grid);
+                        }
+                    }
+                    Direction::Left => {
+                        if char_pos == 0 {
+                            grid_state.cursor.move_to(
+                                PreferredGridPosition::InDirectionUntilNonEmpty(*direction),
+                                PreferredCharPosition::AtEnd,
+                                &frame.grid
+                            );
+                        } else {
+                            grid_state.cursor.move_to(
+                                PreferredGridPosition::Unchanged,
+                                PreferredCharPosition::AtStart,
+                                &frame.grid);
+                        }
+                    }
+                }
+
+                grid_state.set(&editor.egui_ctx, View::Grid);
+            }
+
+            CursorLeapIn(direction) => {
+                let mut grid_state =
+                    GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
+
+                grid_state.cursor.move_to(
+                    PreferredGridPosition::InDirectionByOffset(*direction, 1),
+                    PreferredCharPosition::AtEnd,
+                    &frame.grid);
+
+                grid_state.set(&editor.egui_ctx, View::Grid);
+            }
 
             CursorStepIn(direction) => {
                 let mut grid_state =
@@ -124,7 +215,7 @@ impl EditorAction {
                         if char_pos >= frame.grid.get(grid_pos).len() {
                             grid_state.cursor.move_to(
                                 PreferredGridPosition::InDirectionByOffset(*direction, 1),
-                                PreferredCharPosition::AtEnd,
+                                PreferredCharPosition::AtStart,
                                 &frame.grid,
                             )
                         } else {
@@ -139,7 +230,7 @@ impl EditorAction {
                         if char_pos == 0 {
                             grid_state.cursor.move_to(
                                 PreferredGridPosition::InDirectionByOffset(*direction, 1),
-                                PreferredCharPosition::AtStart,
+                                PreferredCharPosition::AtEnd,
                                 &frame.grid,
                             )
                         } else {
@@ -195,8 +286,6 @@ impl EditorAction {
                 let pos = grid_state.cursor.grid_position();
 
                 let mut cell = frame.grid.get(pos);
-
-                dbg!(pos, string);
 
                 let char_inserted = cell
                     .insert_at(string, grid_state.cursor.char_position())

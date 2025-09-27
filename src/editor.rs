@@ -128,7 +128,6 @@ impl Editor {
     }
 
     fn handle_inputs(&mut self, ctx: &Context) {
-        // If
         let events = if let Some(grid_id) = ViewsIds::get_id(&self.egui_ctx, View::Grid)
             && self.egui_ctx.memory(|mem| mem.has_focus(grid_id))
         {
@@ -425,7 +424,6 @@ impl InputContext {
     const ID: &'static str = "INPUT_CONTEXT";
 
     pub fn set(ctx: &egui::Context, input_context: InputContext) {
-        dbg!(&input_context);
         ctx.data_mut(|data| {
             data.insert_persisted(egui::Id::new(Self::ID), input_context);
         });
