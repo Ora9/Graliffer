@@ -58,15 +58,14 @@ impl EditorAction {
             } if modifiers.command => Some(Self::Redo),
 
             Event::Key {
-                key: arrow @ (
-                    Key::ArrowUp
+                key:
+                    arrow @ (Key::ArrowUp
                     | Key::ArrowRight
                     | Key::ArrowDown
                     | Key::ArrowLeft
                     | Key::Space
                     | Key::Tab
-                    | Key::Enter
-                ),
+                    | Key::Enter),
                 pressed: true,
                 modifiers,
                 ..
@@ -85,7 +84,7 @@ impl EditorAction {
                     Key::ArrowDown => Direction::Down,
                     Key::ArrowLeft => Direction::Left,
 
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 };
 
                 if matches!(arrow, Key::Tab | Key::Space | Key::Enter) {
@@ -114,9 +113,7 @@ impl EditorAction {
                 }
             }
 
-            Event::Text(string) if string != " " => {
-                Some(Self::GridInsertAtCursor(string.clone()))
-            },
+            Event::Text(string) if string != " " => Some(Self::GridInsertAtCursor(string.clone())),
 
             _ => None,
         }
@@ -146,13 +143,10 @@ impl EditorAction {
                 let grid_pos = grid_state.cursor.grid_position();
 
                 let (preferred_grid_pos, preferred_char_pos) = match direction {
-                    Direction::Up
-                    | Direction::Down => {
-                        (
-                            PreferredGridPosition::InDirectionUntilNonEmpty(*direction),
-                            PreferredCharPosition::AtEnd,
-                        )
-                    }
+                    Direction::Up | Direction::Down => (
+                        PreferredGridPosition::InDirectionUntilNonEmpty(*direction),
+                        PreferredCharPosition::AtEnd,
+                    ),
                     Direction::Right => {
                         if char_pos >= frame.grid.get(grid_pos).len() {
                             (
@@ -184,7 +178,7 @@ impl EditorAction {
                 if let Ok(cursor) = grid_state.cursor.with_position(
                     preferred_grid_pos,
                     preferred_char_pos,
-                    &frame.grid
+                    &frame.grid,
                 ) {
                     grid_state.cursor = cursor;
                 }
@@ -199,7 +193,7 @@ impl EditorAction {
                 if let Ok(cursor) = grid_state.cursor.with_position(
                     PreferredGridPosition::InDirectionByOffset(*direction, 1),
                     PreferredCharPosition::AtEnd,
-                    &frame.grid
+                    &frame.grid,
                 ) {
                     grid_state.cursor = cursor;
                 }
@@ -214,12 +208,10 @@ impl EditorAction {
                 let char_pos = grid_state.cursor.char_position();
 
                 let (preferred_grid_pos, preferred_char_pos) = match direction {
-                    Direction::Down | Direction::Up => {
-                        (
-                            PreferredGridPosition::InDirectionByOffset(*direction, 1),
-                            PreferredCharPosition::At(grid_state.cursor.char_position()),
-                        )
-                    }
+                    Direction::Down | Direction::Up => (
+                        PreferredGridPosition::InDirectionByOffset(*direction, 1),
+                        PreferredCharPosition::At(grid_state.cursor.char_position()),
+                    ),
                     Direction::Right => {
                         if char_pos >= frame.grid.get(grid_pos).len() {
                             (
@@ -266,7 +258,7 @@ impl EditorAction {
                 if let Ok(cursor) = grid_state.cursor.with_position(
                     PreferredGridPosition::At(*position),
                     PreferredCharPosition::AtEnd,
-                    &frame.grid
+                    &frame.grid,
                 ) {
                     grid_state.cursor = cursor;
                 }

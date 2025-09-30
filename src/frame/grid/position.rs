@@ -604,7 +604,8 @@ impl Position {
             Direction::Right => self.checked_increment_x(offset),
             Direction::Down => self.checked_increment_y(offset),
             Direction::Left => self.checked_decrement_x(offset),
-        }.context("could not step out of the grid")
+        }
+        .context("could not step out of the grid")
     }
 }
 

@@ -1,4 +1,4 @@
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 
 use crate::{
     grid::{Grid, Position},
@@ -80,7 +80,11 @@ impl Cursor {
     }
 
     #[must_use]
-    fn grid_with(&self, preferred_grid_position: PreferredGridPosition, grid: &Grid) -> Result<Self, anyhow::Error> {
+    fn grid_with(
+        &self,
+        preferred_grid_position: PreferredGridPosition,
+        grid: &Grid,
+    ) -> Result<Self, anyhow::Error> {
         use PreferredGridPosition::*;
         let grid_position = match preferred_grid_position {
             Unchanged => self.grid_position,
@@ -110,12 +114,16 @@ impl Cursor {
 
         Ok(Self {
             grid_position,
-            char_position: self.char_position
+            char_position: self.char_position,
         })
     }
 
     #[must_use]
-    pub fn char_with(&self, preferred_char_position: PreferredCharPosition, grid: &Grid) -> Result<Self, anyhow::Error> {
+    pub fn char_with(
+        &self,
+        preferred_char_position: PreferredCharPosition,
+        grid: &Grid,
+    ) -> Result<Self, anyhow::Error> {
         use PreferredCharPosition::*;
         let char_position = match preferred_char_position {
             Unchanged => self.char_position,
@@ -129,14 +137,12 @@ impl Cursor {
                 let cell_length = grid.get(self.grid_position).len();
                 self.char_position.saturating_add(offset).min(cell_length)
             }
-            BackwardBy(offset) => {
-                self.char_position.saturating_sub(offset)
-            }
+            BackwardBy(offset) => self.char_position.saturating_sub(offset),
         };
 
         Ok(Self {
             grid_position: self.grid_position,
-            char_position
+            char_position,
         })
     }
 }

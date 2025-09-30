@@ -6,7 +6,7 @@
 mod utils;
 
 mod frame;
-pub use frame::{Frame, FrameAction, grid, head, stack, console};
+pub use frame::{Frame, FrameAction, console, grid, head, stack};
 
 mod lang;
 pub use lang::{Address, Literal, Opcode, Operand, Pointer, Word};

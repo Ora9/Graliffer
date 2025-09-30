@@ -352,8 +352,7 @@ impl ViewsIds {
     }
 
     fn get_id(ctx: &egui::Context, view: View) -> Option<egui::Id> {
-        Self::get(ctx)
-            .and_then(|views_ids| views_ids.data.get(&view).cloned())
+        Self::get(ctx).and_then(|views_ids| views_ids.data.get(&view).cloned())
     }
 }
 
