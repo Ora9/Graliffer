@@ -3,6 +3,8 @@ use std::fmt::Debug;
 use anyhow::{Context, bail};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Visitor};
 
+use crate::utils::Direction;
+
 /// `PositionAxis` represents a coordinate axis in the [Grid](crate::grid::Grid). A combination of two `PositionAxis` makes a [`Position`]
 ///
 /// # Representation
@@ -594,6 +596,15 @@ impl Position {
             self.x,
             self.y.checked_decrement(value)?,
         ))
+    }
+
+    pub fn checked_step(&self, direction: Direction, offset: u32) -> Result<Self, anyhow::Error> {
+        match direction {
+            Direction::Up => self.checked_decrement_y(offset),
+            Direction::Right => self.checked_increment_x(offset),
+            Direction::Down => self.checked_increment_y(offset),
+            Direction::Left => self.checked_decrement_x(offset),
+        }.context("could not step out of the grid")
     }
 }
 

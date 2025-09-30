@@ -1,4 +1,4 @@
-use anyhow::Context;
+use anyhow::{bail, Context};
 
 use crate::{
     grid::{Grid, Position},
@@ -80,24 +80,31 @@ impl Cursor {
     }
 
     #[must_use]
-    fn grid_with(&self, preferred_grid_position: PreferredGridPosition, _grid: &Grid) -> Result<Self, anyhow::Error> {
+    fn grid_with(&self, preferred_grid_position: PreferredGridPosition, grid: &Grid) -> Result<Self, anyhow::Error> {
         use PreferredGridPosition::*;
         let grid_position = match preferred_grid_position {
             Unchanged => self.grid_position,
             At(position) => position,
             InDirectionByOffset(direction, offset) => {
-                use Direction::*;
-                match direction {
-                    Up => self.grid_position.checked_decrement_y(offset as u32),
-                    Right => self.grid_position.checked_increment_x(offset as u32),
-                    Down => self.grid_position.checked_increment_y(offset as u32),
-                    Left => self.grid_position.checked_decrement_x(offset as u32),
-                }.context("could not step out of the grid")?
+                self.grid_position.checked_step(direction, offset as u32)?
             }
-            InDirectionUntilNonEmpty(_direction) => {
-                Position::from_numeric(5, 5).unwrap()
+            InDirectionUntilNonEmpty(direction) => {
+                let mut pos = self.grid_position;
 
-                // unimplemented!()
+                loop {
+                    match pos.checked_step(direction, 1) {
+                        Ok(next) => {
+                            pos = next;
+                            if grid.get(pos).is_empty() {
+                                continue;
+                            } else {
+                                break;
+                            }
+                        }
+                        Err(_) => break,
+                    }
+                }
+                pos
             }
         };
 
