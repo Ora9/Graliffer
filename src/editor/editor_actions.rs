@@ -36,6 +36,10 @@ pub enum EditorAction {
     /// Redo the last thing that was undone
     Redo,
 
+    Copy,
+    Cut,
+    Paste(String),
+
     /// The default behavior when pressing an arrow key, stepping to the next
     /// character in a cell, or to the next cell if the cursor is at the border
     /// of a cell
@@ -69,12 +73,17 @@ impl EditorAction {
                 pressed: true,
                 ..
             } if modifiers.command => Some(Self::Undo),
+
             Event::Key {
                 key: Key::Y,
                 modifiers,
                 pressed: true,
                 ..
             } if modifiers.command => Some(Self::Redo),
+
+            Event::Copy => Some(Self::Copy),
+            Event::Cut => Some(Self::Cut),
+            Event::Paste(string) => Some(Self::Paste(string.to_owned())),
 
             Event::Key {
                 key:
@@ -172,6 +181,25 @@ impl EditorAction {
                 }
 
                 editor.history_merge.cancel_all_merge();
+            }
+
+            Copy => {
+                let grid_state =
+                    GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
+
+                let grid_pos = grid_state.cursor.grid_position();
+                let cell = frame.grid.get(grid_pos);
+
+                if !cell.is_empty() {
+                    editor.egui_ctx.copy_text(cell.content());
+                }
+            }
+
+            Cut => {
+            }
+
+            Paste(text) => {
+
             }
 
             CursorDashIn(direction) => {
