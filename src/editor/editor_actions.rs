@@ -54,6 +54,7 @@ pub enum EditorAction {
     GridDeleteOrCursorStepBackward,
     GridDeleteForeward,
     GridDeleteCell,
+    GridDeleteCellOrCursorStepBackward,
 
     GridInsertAtCursor(String),
 }
@@ -114,7 +115,20 @@ impl EditorAction {
             }
 
             Event::Key {
-                key: key @ (Key::Backspace | Key::Delete),
+                key: Key::Backspace,
+                pressed: true,
+                modifiers,
+                ..
+            } => {
+                if modifiers.command {
+                    Some(Self::GridDeleteCellOrCursorStepBackward)
+                } else {
+                    Some(Self::GridDeleteOrCursorStepBackward)
+                }
+            }
+
+            Event::Key {
+                key: Key::Delete,
                 pressed: true,
                 modifiers,
                 ..
@@ -122,11 +136,7 @@ impl EditorAction {
                 if modifiers.command {
                     Some(Self::GridDeleteCell)
                 } else {
-                    match key {
-                        Key::Backspace => Some(Self::GridDeleteOrCursorStepBackward),
-                        Key::Delete => Some(Self::GridDeleteForeward),
-                        _ => unreachable!(),
-                    }
+                    Some(Self::GridDeleteForeward)
                 }
             }
 
@@ -328,6 +338,47 @@ impl EditorAction {
                 grid_state.set(&editor.egui_ctx, View::Grid);
             }
 
+            GridDeleteCellOrCursorStepBackward => {
+                let mut grid_state =
+                    GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
+
+                let grid_pos = grid_state.cursor.grid_position();
+                let char_pos = grid_state.cursor.char_position();
+
+                if char_pos > 0 {
+                    let artifact = frame.act(FrameAction::GridSet(grid_pos, Cell::new_trim("")));
+
+                    if let Ok(cursor) = grid_state.cursor.char_with(
+                        PreferredCharPosition::AtStart,
+                        &frame.grid,
+                    ) {
+                        grid_state.cursor = cursor;
+                    }
+
+                    if editor.history_merge.should_merge_deletion() {
+                        editor.history.merge_with_last(artifact);
+                    } else {
+                        editor.history.append(artifact);
+                    }
+
+                    editor.history_merge.update_deletion_timeout();
+                    editor.history_merge.cancel_insertion_merge();
+
+                } else {
+                    if let Ok(cursor) = grid_state.cursor.with_position(
+                        PreferredGridPosition::InDirectionByOffset(Direction::Left, 1),
+                        PreferredCharPosition::AtEnd,
+                        &frame.grid,
+                    ) {
+                        grid_state.cursor = cursor;
+                    }
+
+                    editor.history_merge.cancel_all_merge();
+                }
+
+                grid_state.set(&editor.egui_ctx, View::Grid);
+            }
+
             GridDeleteOrCursorStepBackward => {
                 let mut grid_state =
                     GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
@@ -338,7 +389,7 @@ impl EditorAction {
                 if char_pos > 0 {
                     let mut cell = frame.grid.get(grid_pos);
 
-                    let char_deleted = cell.delete_char_range((char_pos - 1..char_pos)).unwrap_or(0);
+                    let char_deleted = cell.delete_char_range(char_pos - 1..char_pos).unwrap_or(0);
                     let artifact = frame.act(FrameAction::GridSet(grid_pos, cell));
 
                     if let Ok(cursor) = grid_state.cursor.char_with(
@@ -381,7 +432,7 @@ impl EditorAction {
 
                 let mut cell = frame.grid.get(grid_pos);
 
-                let _ = cell.delete_char_range((char_pos..char_pos + 1)).unwrap_or(0);
+                let _ = cell.delete_char_range(char_pos..char_pos + 1).unwrap_or(0);
                 let artifact = frame.act(FrameAction::GridSet(grid_pos, cell));
 
                 if editor.history_merge.should_merge_deletion() {
