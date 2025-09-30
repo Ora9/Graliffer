@@ -145,43 +145,48 @@ impl EditorAction {
                 let char_pos = grid_state.cursor.char_position();
                 let grid_pos = grid_state.cursor.grid_position();
 
-                match direction {
+                let (preferred_grid_pos, preferred_char_pos) = match direction {
                     Direction::Up
                     | Direction::Down => {
-                        grid_state.cursor.move_to(
+                        (
                             PreferredGridPosition::InDirectionUntilNonEmpty(*direction),
                             PreferredCharPosition::AtEnd,
-                            &frame.grid
-                        );
+                        )
                     }
                     Direction::Right => {
                         if char_pos >= frame.grid.get(grid_pos).len() {
-                            grid_state.cursor.move_to(
+                            (
                                 PreferredGridPosition::InDirectionUntilNonEmpty(*direction),
                                 PreferredCharPosition::AtStart,
-                                &frame.grid
-                            );
+                            )
                         } else {
-                            grid_state.cursor.move_to(
+                            (
                                 PreferredGridPosition::Unchanged,
                                 PreferredCharPosition::AtEnd,
-                                &frame.grid);
+                            )
                         }
                     }
                     Direction::Left => {
                         if char_pos == 0 {
-                            grid_state.cursor.move_to(
+                            (
                                 PreferredGridPosition::InDirectionUntilNonEmpty(*direction),
                                 PreferredCharPosition::AtEnd,
-                                &frame.grid
-                            );
+                            )
                         } else {
-                            grid_state.cursor.move_to(
+                            (
                                 PreferredGridPosition::Unchanged,
                                 PreferredCharPosition::AtStart,
-                                &frame.grid);
+                            )
                         }
                     }
+                };
+
+                if let Ok(cursor) = grid_state.cursor.with_position(
+                    preferred_grid_pos,
+                    preferred_char_pos,
+                    &frame.grid
+                ) {
+                    grid_state.cursor = cursor;
                 }
 
                 grid_state.set(&editor.egui_ctx, View::Grid);
@@ -191,10 +196,13 @@ impl EditorAction {
                 let mut grid_state =
                     GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
 
-                grid_state.cursor.move_to(
+                if let Ok(cursor) = grid_state.cursor.with_position(
                     PreferredGridPosition::InDirectionByOffset(*direction, 1),
                     PreferredCharPosition::AtEnd,
-                    &frame.grid);
+                    &frame.grid
+                ) {
+                    grid_state.cursor = cursor;
+                }
 
                 grid_state.set(&editor.egui_ctx, View::Grid);
             }
@@ -205,43 +213,48 @@ impl EditorAction {
                 let grid_pos = grid_state.cursor.grid_position();
                 let char_pos = grid_state.cursor.char_position();
 
-                match direction {
-                    Direction::Down | Direction::Up => grid_state.cursor.move_to(
-                        PreferredGridPosition::InDirectionByOffset(*direction, 1),
-                        PreferredCharPosition::At(grid_state.cursor.char_position()),
-                        &frame.grid,
-                    ),
+                let (preferred_grid_pos, preferred_char_pos) = match direction {
+                    Direction::Down | Direction::Up => {
+                        (
+                            PreferredGridPosition::InDirectionByOffset(*direction, 1),
+                            PreferredCharPosition::At(grid_state.cursor.char_position()),
+                        )
+                    }
                     Direction::Right => {
                         if char_pos >= frame.grid.get(grid_pos).len() {
-                            grid_state.cursor.move_to(
+                            (
                                 PreferredGridPosition::InDirectionByOffset(*direction, 1),
                                 PreferredCharPosition::AtStart,
-                                &frame.grid,
                             )
                         } else {
-                            grid_state.cursor.move_to(
+                            (
                                 PreferredGridPosition::Unchanged,
                                 PreferredCharPosition::ForwardBy(1),
-                                &frame.grid,
                             )
                         }
                     }
                     Direction::Left => {
                         if char_pos == 0 {
-                            grid_state.cursor.move_to(
+                            (
                                 PreferredGridPosition::InDirectionByOffset(*direction, 1),
                                 PreferredCharPosition::AtEnd,
-                                &frame.grid,
                             )
                         } else {
-                            grid_state.cursor.move_to(
+                            (
                                 PreferredGridPosition::Unchanged,
                                 PreferredCharPosition::BackwardBy(1),
-                                &frame.grid,
                             )
                         }
                     }
                 };
+
+                if let Ok(cursor) = grid_state.cursor.with_position(
+                    preferred_grid_pos,
+                    preferred_char_pos,
+                    &frame.grid,
+                ) {
+                    grid_state.cursor = cursor;
+                }
 
                 grid_state.set(&editor.egui_ctx, View::Grid);
             }
@@ -250,11 +263,14 @@ impl EditorAction {
                 let mut grid_state =
                     GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
 
-                grid_state.cursor.move_to(
+                if let Ok(cursor) = grid_state.cursor.with_position(
                     PreferredGridPosition::At(*position),
                     PreferredCharPosition::AtEnd,
-                    &frame.grid,
-                );
+                    &frame.grid
+                ) {
+                    grid_state.cursor = cursor;
+                }
+
                 grid_state.set(&editor.egui_ctx, View::Grid);
             }
 
@@ -293,11 +309,14 @@ impl EditorAction {
 
                 if char_inserted > 0 {
                     let artifact = frame.act(FrameAction::GridSet(pos, cell));
-                    grid_state.cursor.move_to(
+
+                    if let Ok(cursor) = grid_state.cursor.with_position(
                         PreferredGridPosition::At(pos),
                         PreferredCharPosition::ForwardBy(char_inserted),
                         &frame.grid,
-                    );
+                    ) {
+                        grid_state.cursor = cursor;
+                    }
 
                     if editor.history_merge.should_merge_insertion() {
                         dbg!("Merging !");

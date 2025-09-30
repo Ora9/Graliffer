@@ -1,3 +1,5 @@
+use anyhow::Context;
+
 use crate::{
     grid::{Grid, Position},
     utils::Direction,
@@ -42,8 +44,11 @@ impl Default for Cursor {
 }
 
 impl Cursor {
-    fn new() -> Self {
-        Cursor::default()
+    fn new(grid_position: Position, char_position: usize) -> Self {
+        Self {
+            grid_position,
+            char_position,
+        }
     }
 
     fn new_at(grid_position: Position) -> Self {
@@ -61,63 +66,60 @@ impl Cursor {
         self.char_position
     }
 
-    pub fn move_to(
-        &mut self,
+    #[must_use]
+    pub fn with_position(
+        &self,
         preferred_grid_position: PreferredGridPosition,
         preferred_char_position: PreferredCharPosition,
         grid: &Grid,
-    ) {
-        self.grid_move_to(preferred_grid_position, grid);
-        self.char_move_to(preferred_char_position, grid);
+    ) -> Result<Self, anyhow::Error> {
+        Ok(Self::new(
+           self.grid_with(preferred_grid_position, grid)?,
+           self.char_with(preferred_char_position, grid)?,
+        ))
     }
 
-    // todo: remove frame to pass just the cell content, or maybe in PreferredCharPosition::At(2, cell) ?
-    pub fn char_move_to(&mut self, preferred_char_position: PreferredCharPosition, grid: &Grid) {
-        use PreferredCharPosition::*;
-        let char_position = match preferred_char_position {
-            Unchanged => self.char_position,
-            AtStart => 0,
-            AtEnd => grid.get(self.grid_position).len(),
-            At(char_position) => {
-                let max_length = grid.get(self.grid_position).len();
-                char_position.min(max_length)
-            }
-            ForwardBy(offset) => {
-                let cell_length = grid.get(self.grid_position).len();
-                self.char_position.saturating_add(offset).min(cell_length)
-            }
-            BackwardBy(offset) => self.char_position.saturating_sub(offset),
-        };
-
-        self.char_position = char_position;
-    }
-
-    fn grid_move_to(&mut self, preferred_grid_position: PreferredGridPosition, _grid: &Grid) {
+    #[must_use]
+    fn grid_with(&self, preferred_grid_position: PreferredGridPosition, _grid: &Grid) -> Result<Position, anyhow::Error> {
         use PreferredGridPosition::*;
-        let grid_position = match preferred_grid_position {
-            Unchanged => self.grid_position,
-            At(position) => position,
+        match preferred_grid_position {
+            Unchanged => Ok(self.grid_position),
+            At(position) => Ok(position),
             InDirectionByOffset(direction, offset) => {
                 use Direction::*;
-                let result = match direction {
+                match direction {
                     Up => self.grid_position.checked_decrement_y(offset as u32),
                     Right => self.grid_position.checked_increment_x(offset as u32),
                     Down => self.grid_position.checked_increment_y(offset as u32),
                     Left => self.grid_position.checked_decrement_x(offset as u32),
-                };
-
-                if let Ok(position) = result {
-                    position
-                } else {
-                    self.grid_position()
-                }
+                }.context("could not step out of the grid")
             }
             InDirectionUntilNonEmpty(_direction) => {
-                Position::from_numeric(5, 5).unwrap()
+                Ok(Position::from_numeric(5, 5).unwrap())
 
                 // unimplemented!()
             }
-        };
-        self.grid_position = grid_position;
+        }
+    }
+
+    #[must_use]
+    pub fn char_with(&self, preferred_char_position: PreferredCharPosition, grid: &Grid) -> Result<usize, anyhow::Error> {
+        use PreferredCharPosition::*;
+        match preferred_char_position {
+            Unchanged => Ok(self.char_position),
+            AtStart => Ok(0),
+            AtEnd => Ok(grid.get(self.grid_position).len()),
+            At(char_position) => {
+                let max_length = grid.get(self.grid_position).len();
+                Ok(char_position.min(max_length))
+            }
+            ForwardBy(offset) => {
+                let cell_length = grid.get(self.grid_position).len();
+                Ok(self.char_position.saturating_add(offset).min(cell_length))
+            }
+            BackwardBy(offset) => {
+                Ok(self.char_position.saturating_sub(offset))
+            }
+        }
     }
 }
