@@ -1,30 +1,31 @@
 use egui::{Event, Key};
 
 use crate::{
+    Editor, Frame, FrameAction,
     editor::{
-        cursor::{PreferredCharPosition, PreferredGridPosition}, grid_widget::GridWidgetState, View
-    }, grid::{Cell, Position}, utils::Direction, Editor, Frame, FrameAction
+        View,
+        cursor::{PreferredCharPosition, PreferredGridPosition},
+        grid_widget::GridWidgetState,
+    },
+    grid::{Cell, Position},
+    utils::Direction,
 };
 
 /// Helper function to move the cursor when said action is FrameAction::GridSet
 /// To make the cursor follow undo/redo manipulations
 fn move_cursor_back_to_action(editor: &Editor, frame: &Frame, action: FrameAction) {
-    match action {
-        FrameAction::GridSet(grid_pos, _) => {
-            let mut grid_state =
-                GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
+    if let FrameAction::GridSet(grid_pos, _) = action {
+        let mut grid_state = GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
 
-            if let Ok(cursor) = grid_state.cursor.with_position(
-                PreferredGridPosition::At(grid_pos),
-                PreferredCharPosition::AtEnd,
-                &frame.grid,
-            ) {
-                grid_state.cursor = cursor
-            }
+        if let Ok(cursor) = grid_state.cursor.with_position(
+            PreferredGridPosition::At(grid_pos),
+            PreferredCharPosition::AtEnd,
+            &frame.grid,
+        ) {
+            grid_state.cursor = cursor
+        }
 
-            grid_state.set(&editor.egui_ctx, View::Grid);
-        },
-        _ => {}
+        grid_state.set(&editor.egui_ctx, View::Grid);
     }
 }
 
@@ -158,7 +159,7 @@ impl EditorAction {
                 let artifact = editor.history.redo(&mut frame);
 
                 if let Some(action) = artifact.last_redo_action() {
-                    move_cursor_back_to_action(&editor, &frame, action);
+                    move_cursor_back_to_action(editor, &frame, action);
                 }
 
                 editor.history_merge.cancel_all_merge();
@@ -167,7 +168,7 @@ impl EditorAction {
                 let artifact = editor.history.undo(&mut frame);
 
                 if let Some(action) = artifact.last_undo_action() {
-                    move_cursor_back_to_action(&editor, &frame, action);
+                    move_cursor_back_to_action(editor, &frame, action);
                 }
 
                 editor.history_merge.cancel_all_merge();
@@ -317,10 +318,10 @@ impl EditorAction {
 
                 let artifact = frame.act(FrameAction::GridSet(grid_pos, Cell::new_trim("")));
 
-                if let Ok(cursor) = grid_state.cursor.char_with(
-                    PreferredCharPosition::AtStart,
-                    &frame.grid,
-                ) {
+                if let Ok(cursor) = grid_state
+                    .cursor
+                    .char_with(PreferredCharPosition::AtStart, &frame.grid)
+                {
                     grid_state.cursor = cursor;
                 }
 
@@ -348,10 +349,10 @@ impl EditorAction {
                 if char_pos > 0 {
                     let artifact = frame.act(FrameAction::GridSet(grid_pos, Cell::new_trim("")));
 
-                    if let Ok(cursor) = grid_state.cursor.char_with(
-                        PreferredCharPosition::AtStart,
-                        &frame.grid,
-                    ) {
+                    if let Ok(cursor) = grid_state
+                        .cursor
+                        .char_with(PreferredCharPosition::AtStart, &frame.grid)
+                    {
                         grid_state.cursor = cursor;
                     }
 
@@ -363,7 +364,6 @@ impl EditorAction {
 
                     editor.history_merge.update_deletion_timeout();
                     editor.history_merge.cancel_insertion_merge();
-
                 } else {
                     if let Ok(cursor) = grid_state.cursor.with_position(
                         PreferredGridPosition::InDirectionByOffset(Direction::Left, 1),
@@ -392,10 +392,10 @@ impl EditorAction {
                     let char_deleted = cell.delete_char_range(char_pos - 1..char_pos).unwrap_or(0);
                     let artifact = frame.act(FrameAction::GridSet(grid_pos, cell));
 
-                    if let Ok(cursor) = grid_state.cursor.char_with(
-                        PreferredCharPosition::BackwardBy(char_deleted),
-                        &frame.grid,
-                    ) {
+                    if let Ok(cursor) = grid_state
+                        .cursor
+                        .char_with(PreferredCharPosition::BackwardBy(char_deleted), &frame.grid)
+                    {
                         grid_state.cursor = cursor;
                     }
 
@@ -407,7 +407,6 @@ impl EditorAction {
 
                     editor.history_merge.update_deletion_timeout();
                     editor.history_merge.cancel_insertion_merge();
-
                 } else {
                     if let Ok(cursor) = grid_state.cursor.with_position(
                         PreferredGridPosition::InDirectionByOffset(Direction::Left, 1),

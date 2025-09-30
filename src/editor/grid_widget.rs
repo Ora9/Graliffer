@@ -112,9 +112,10 @@ impl GridWidget {
                             cursor::PreferredGridPosition::At(grid_pos),
                             cursor::PreferredCharPosition::AtEnd,
                             &frame_guard.grid,
-                        ) {
-                            state.cursor = cursor;
-                        }
+                        )
+                    {
+                        state.cursor = cursor;
+                    }
                 }
             }
 

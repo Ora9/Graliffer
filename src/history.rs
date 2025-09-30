@@ -50,15 +50,11 @@ impl Artifact {
     // }
 
     pub fn last_redo_action(&self) -> Option<FrameAction> {
-        self.actions.last().and_then(|action| {
-            action.redo.clone()
-        })
+        self.actions.last().and_then(|action| action.redo.clone())
     }
 
     pub fn last_undo_action(&self) -> Option<FrameAction> {
-        self.actions.last().and_then(|action| {
-            action.undo.clone()
-        })
+        self.actions.last().and_then(|action| action.undo.clone())
     }
 
     fn redo(&self, frame: &mut Frame) {
@@ -132,14 +128,15 @@ impl History {
 
     pub fn undo(&mut self, frame: &mut Frame) -> Artifact {
         if let Some(last_artifact) = self.cursor.checked_sub(1)
-            && let Some(artifact) = self.artifacts.get(last_artifact) {
-                artifact.undo(frame);
-                self.cursor = last_artifact;
+            && let Some(artifact) = self.artifacts.get(last_artifact)
+        {
+            artifact.undo(frame);
+            self.cursor = last_artifact;
 
-                artifact.clone()
-            } else {
-                Artifact::EMPTY
-            }
+            artifact.clone()
+        } else {
+            Artifact::EMPTY
+        }
     }
 
     /// Redo the last undone action, and return the artifact
