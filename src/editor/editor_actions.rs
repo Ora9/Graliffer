@@ -1,15 +1,32 @@
 use egui::{Event, Key};
 
 use crate::{
-    Editor, FrameAction,
     editor::{
-        View,
-        cursor::{PreferredCharPosition, PreferredGridPosition},
-        grid_widget::GridWidgetState,
-    },
-    grid::{Cell, Position},
-    utils::Direction,
+        cursor::{PreferredCharPosition, PreferredGridPosition}, grid_widget::GridWidgetState, View
+    }, grid::{Cell, Position}, utils::Direction, Editor, Frame, FrameAction
 };
+
+/// Helper function to move the cursor when said action is FrameAction::GridSet
+/// To make the cursor follow undo/redo manipulations
+fn move_cursor_back_to_action(editor: &Editor, frame: &Frame, action: FrameAction) {
+    match action {
+        FrameAction::GridSet(grid_pos, _) => {
+            let mut grid_state =
+                GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
+
+            if let Ok(cursor) = grid_state.cursor.with_position(
+                PreferredGridPosition::At(grid_pos),
+                PreferredCharPosition::AtEnd,
+                &frame.grid,
+            ) {
+                grid_state.cursor = cursor
+            }
+
+            grid_state.set(&editor.egui_ctx, View::Grid);
+        },
+        _ => {}
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum EditorAction {
@@ -128,11 +145,21 @@ impl EditorAction {
         use EditorAction::*;
         match self {
             Redo => {
-                editor.history.redo(&mut frame);
+                let artifact = editor.history.redo(&mut frame);
+
+                if let Some(action) = artifact.last_redo_action() {
+                    move_cursor_back_to_action(&editor, &frame, action);
+                }
+
                 editor.history_merge.cancel_all_merge();
             }
             Undo => {
-                editor.history.undo(&mut frame);
+                let artifact = editor.history.undo(&mut frame);
+
+                if let Some(action) = artifact.last_undo_action() {
+                    move_cursor_back_to_action(&editor, &frame, action);
+                }
+
                 editor.history_merge.cancel_all_merge();
             }
 

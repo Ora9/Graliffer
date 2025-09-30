@@ -49,6 +49,18 @@ impl Artifact {
     //     self.actions.push(action);
     // }
 
+    pub fn last_redo_action(&self) -> Option<FrameAction> {
+        self.actions.last().and_then(|action| {
+            action.redo.clone()
+        })
+    }
+
+    pub fn last_undo_action(&self) -> Option<FrameAction> {
+        self.actions.last().and_then(|action| {
+            action.undo.clone()
+        })
+    }
+
     fn redo(&self, frame: &mut Frame) {
         for action in self.actions.iter() {
             if let Some(redo) = action.redo.to_owned() {
@@ -118,27 +130,30 @@ impl History {
         }
     }
 
-    pub fn undo(&mut self, frame: &mut Frame) {
-        let Some(last_artifact) = self.cursor.checked_sub(1) else {
-            return;
-        };
+    pub fn undo(&mut self, frame: &mut Frame) -> Artifact {
+        if let Some(last_artifact) = self.cursor.checked_sub(1)
+            && let Some(artifact) = self.artifacts.get(last_artifact) {
+                artifact.undo(frame);
+                self.cursor = last_artifact;
 
-        if let Some(artifact) = self.artifacts.get(last_artifact) {
-            artifact.undo(frame);
-
-            // Append the action of undoing
-            // self.artifacts.push(artifact.invert_actions());
-            self.cursor = last_artifact;
-        }
+                artifact.clone()
+            } else {
+                Artifact::EMPTY
+            }
     }
 
-    pub fn redo(&mut self, frame: &mut Frame) {
+    /// Redo the last undone action, and return the artifact
+    pub fn redo(&mut self, frame: &mut Frame) -> Artifact {
         if let Some(artifact) = self.artifacts.get(self.cursor) {
             artifact.redo(frame);
 
             // Append the action of redoing
             // self.artifacts.push(artifact.to_owned());
             self.cursor = self.cursor.saturating_add(1);
+
+            artifact.clone()
+        } else {
+            Artifact::EMPTY
         }
 
         // // skip empty artifacts

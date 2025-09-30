@@ -78,7 +78,7 @@ impl Cursor {
     }
 
     #[must_use = "this function does not mutate the given cursor, it returns the result of the operation"]
-    fn grid_with(
+    pub fn grid_with(
         &self,
         preferred_grid_position: PreferredGridPosition,
         grid: &Grid,
