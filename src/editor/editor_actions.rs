@@ -149,6 +149,7 @@ impl EditorAction {
                     ),
                     Direction::Right => {
                         if char_pos >= frame.grid.get(grid_pos).len() {
+                            editor.history_merge.cancel_all_merge();
                             (
                                 PreferredGridPosition::InDirectionUntilNonEmpty(*direction),
                                 PreferredCharPosition::AtStart,
@@ -162,6 +163,7 @@ impl EditorAction {
                     }
                     Direction::Left => {
                         if char_pos == 0 {
+                            editor.history_merge.cancel_all_merge();
                             (
                                 PreferredGridPosition::InDirectionUntilNonEmpty(*direction),
                                 PreferredCharPosition::AtEnd,
@@ -198,6 +200,7 @@ impl EditorAction {
                     grid_state.cursor = cursor;
                 }
 
+                editor.history_merge.cancel_all_merge();
                 grid_state.set(&editor.egui_ctx, View::Grid);
             }
 
@@ -214,6 +217,7 @@ impl EditorAction {
                     ),
                     Direction::Right => {
                         if char_pos >= frame.grid.get(grid_pos).len() {
+                            editor.history_merge.cancel_all_merge();
                             (
                                 PreferredGridPosition::InDirectionByOffset(*direction, 1),
                                 PreferredCharPosition::AtStart,
@@ -227,6 +231,7 @@ impl EditorAction {
                     }
                     Direction::Left => {
                         if char_pos == 0 {
+                            editor.history_merge.cancel_all_merge();
                             (
                                 PreferredGridPosition::InDirectionByOffset(*direction, 1),
                                 PreferredCharPosition::AtEnd,
@@ -263,47 +268,124 @@ impl EditorAction {
                     grid_state.cursor = cursor;
                 }
 
+                editor.history_merge.cancel_all_merge();
                 grid_state.set(&editor.egui_ctx, View::Grid);
             }
 
             GridDeleteCell => {
-                let grid_state =
+                let mut grid_state =
                     GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
 
-                let pos = grid_state.cursor.grid_position();
-                frame.grid.set(pos, Cell::new_trim(""));
+                let grid_pos = grid_state.cursor.grid_position();
+
+                let artifact = frame.act(FrameAction::GridSet(grid_pos, Cell::new_trim("")));
+
+                if let Ok(cursor) = grid_state.cursor.char_with(
+                    PreferredCharPosition::AtStart,
+                    &frame.grid,
+                ) {
+                    grid_state.cursor = cursor;
+                }
+
+                if editor.history_merge.should_merge_deletion() {
+                    editor.history.merge_with_last(artifact);
+                } else {
+                    editor.history.append(artifact);
+                }
+
+                editor.history_merge.update_deletion_timeout();
+                editor.history_merge.cancel_insertion_merge();
+
+                frame.grid.set(grid_pos, Cell::new_trim(""));
 
                 grid_state.set(&editor.egui_ctx, View::Grid);
             }
 
             GridDeleteOrCursorStepBackward => {
-                let grid_state =
+                let mut grid_state =
                     GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
 
-                let _pos = grid_state.cursor.grid_position();
+                let grid_pos = grid_state.cursor.grid_position();
+                let char_pos = grid_state.cursor.char_position();
+
+                if char_pos > 0 {
+                    let mut cell = frame.grid.get(grid_pos);
+
+                    let char_deleted = cell.delete_char_range((char_pos - 1..char_pos)).unwrap_or(0);
+                    let artifact = frame.act(FrameAction::GridSet(grid_pos, cell));
+
+                    if let Ok(cursor) = grid_state.cursor.char_with(
+                        PreferredCharPosition::BackwardBy(char_deleted),
+                        &frame.grid,
+                    ) {
+                        grid_state.cursor = cursor;
+                    }
+
+                    if editor.history_merge.should_merge_deletion() {
+                        editor.history.merge_with_last(artifact);
+                    } else {
+                        editor.history.append(artifact);
+                    }
+
+                    editor.history_merge.update_deletion_timeout();
+                    editor.history_merge.cancel_insertion_merge();
+
+                } else {
+                    if let Ok(cursor) = grid_state.cursor.with_position(
+                        PreferredGridPosition::InDirectionByOffset(Direction::Left, 1),
+                        PreferredCharPosition::AtEnd,
+                        &frame.grid,
+                    ) {
+                        grid_state.cursor = cursor;
+                    }
+
+                    editor.history_merge.cancel_all_merge();
+                }
 
                 grid_state.set(&editor.egui_ctx, View::Grid);
             }
 
-            GridDeleteForeward => {}
+            GridDeleteForeward => {
+                let grid_state =
+                    GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
+
+                let grid_pos = grid_state.cursor.grid_position();
+                let char_pos = grid_state.cursor.char_position();
+
+                let mut cell = frame.grid.get(grid_pos);
+
+                let _ = cell.delete_char_range((char_pos..char_pos + 1)).unwrap_or(0);
+                let artifact = frame.act(FrameAction::GridSet(grid_pos, cell));
+
+                if editor.history_merge.should_merge_deletion() {
+                    editor.history.merge_with_last(artifact);
+                } else {
+                    editor.history.append(artifact);
+                }
+
+                editor.history_merge.update_deletion_timeout();
+                editor.history_merge.cancel_insertion_merge();
+
+                grid_state.set(&editor.egui_ctx, View::Grid);
+            }
 
             GridInsertAtCursor(string) => {
                 let mut grid_state =
                     GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
 
-                let pos = grid_state.cursor.grid_position();
+                let grid_pos = grid_state.cursor.grid_position();
 
-                let mut cell = frame.grid.get(pos);
+                let mut cell = frame.grid.get(grid_pos);
 
                 let char_inserted = cell
                     .insert_at(string, grid_state.cursor.char_position())
                     .unwrap_or(0);
 
                 if char_inserted > 0 {
-                    let artifact = frame.act(FrameAction::GridSet(pos, cell));
+                    let artifact = frame.act(FrameAction::GridSet(grid_pos, cell));
 
                     if let Ok(cursor) = grid_state.cursor.with_position(
-                        PreferredGridPosition::At(pos),
+                        PreferredGridPosition::At(grid_pos),
                         PreferredCharPosition::ForwardBy(char_inserted),
                         &frame.grid,
                     ) {
