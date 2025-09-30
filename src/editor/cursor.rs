@@ -1,5 +1,3 @@
-use anyhow::{Context, bail};
-
 use crate::{
     grid::{Grid, Position},
     utils::Direction,
@@ -66,7 +64,7 @@ impl Cursor {
         self.char_position
     }
 
-    #[must_use]
+    #[must_use = "this function does not mutate the given cursor, it returns the result of the operation"]
     pub fn with_position(
         &self,
         preferred_grid_position: PreferredGridPosition,
@@ -79,7 +77,7 @@ impl Cursor {
         Ok(cursor)
     }
 
-    #[must_use]
+    #[must_use = "this function does not mutate the given cursor, it returns the result of the operation"]
     fn grid_with(
         &self,
         preferred_grid_position: PreferredGridPosition,
@@ -95,19 +93,15 @@ impl Cursor {
             InDirectionUntilNonEmpty(direction) => {
                 let mut pos = self.grid_position;
 
-                loop {
-                    match pos.checked_step(direction, 1) {
-                        Ok(next) => {
-                            pos = next;
-                            if grid.get(pos).is_empty() {
-                                continue;
-                            } else {
-                                break;
-                            }
-                        }
-                        Err(_) => break,
+                while let Ok(next) = pos.checked_step(direction, 1) {
+                    pos = next;
+                    if grid.get(pos).is_empty() {
+                        continue;
+                    } else {
+                        break;
                     }
                 }
+
                 pos
             }
         };
@@ -118,7 +112,7 @@ impl Cursor {
         })
     }
 
-    #[must_use]
+    #[must_use = "this function does not mutate the given cursor, it returns the result of the operation"]
     pub fn char_with(
         &self,
         preferred_char_position: PreferredCharPosition,

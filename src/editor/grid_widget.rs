@@ -108,15 +108,13 @@ impl GridWidget {
 
                     if let Ok(frame_guard) = self.frame.try_lock()
                         && let Ok(grid_pos) = Position::from_numeric(hovered_cell_x, hovered_cell_y)
-                    {
-                        if let Ok(cursor) = state.cursor.with_position(
+                        && let Ok(cursor) = state.cursor.with_position(
                             cursor::PreferredGridPosition::At(grid_pos),
                             cursor::PreferredCharPosition::AtEnd,
                             &frame_guard.grid,
                         ) {
                             state.cursor = cursor;
                         }
-                    }
                 }
             }
 
