@@ -73,18 +73,18 @@ impl Cursor {
         preferred_char_position: PreferredCharPosition,
         grid: &Grid,
     ) -> Result<Self, anyhow::Error> {
-        Ok(Self::new(
-           self.grid_with(preferred_grid_position, grid)?,
-           self.char_with(preferred_char_position, grid)?,
-        ))
+        let cursor = self.grid_with(preferred_grid_position, grid)?;
+        let cursor = cursor.char_with(preferred_char_position, grid)?;
+
+        Ok(cursor)
     }
 
     #[must_use]
-    fn grid_with(&self, preferred_grid_position: PreferredGridPosition, _grid: &Grid) -> Result<Position, anyhow::Error> {
+    fn grid_with(&self, preferred_grid_position: PreferredGridPosition, _grid: &Grid) -> Result<Self, anyhow::Error> {
         use PreferredGridPosition::*;
-        match preferred_grid_position {
-            Unchanged => Ok(self.grid_position),
-            At(position) => Ok(position),
+        let grid_position = match preferred_grid_position {
+            Unchanged => self.grid_position,
+            At(position) => position,
             InDirectionByOffset(direction, offset) => {
                 use Direction::*;
                 match direction {
@@ -92,34 +92,44 @@ impl Cursor {
                     Right => self.grid_position.checked_increment_x(offset as u32),
                     Down => self.grid_position.checked_increment_y(offset as u32),
                     Left => self.grid_position.checked_decrement_x(offset as u32),
-                }.context("could not step out of the grid")
+                }.context("could not step out of the grid")?
             }
             InDirectionUntilNonEmpty(_direction) => {
-                Ok(Position::from_numeric(5, 5).unwrap())
+                Position::from_numeric(5, 5).unwrap()
 
                 // unimplemented!()
             }
-        }
+        };
+
+        Ok(Self {
+            grid_position,
+            char_position: self.char_position
+        })
     }
 
     #[must_use]
-    pub fn char_with(&self, preferred_char_position: PreferredCharPosition, grid: &Grid) -> Result<usize, anyhow::Error> {
+    pub fn char_with(&self, preferred_char_position: PreferredCharPosition, grid: &Grid) -> Result<Self, anyhow::Error> {
         use PreferredCharPosition::*;
-        match preferred_char_position {
-            Unchanged => Ok(self.char_position),
-            AtStart => Ok(0),
-            AtEnd => Ok(grid.get(self.grid_position).len()),
+        let char_position = match preferred_char_position {
+            Unchanged => self.char_position,
+            AtStart => 0,
+            AtEnd => grid.get(self.grid_position).len(),
             At(char_position) => {
                 let max_length = grid.get(self.grid_position).len();
-                Ok(char_position.min(max_length))
+                char_position.min(max_length)
             }
             ForwardBy(offset) => {
                 let cell_length = grid.get(self.grid_position).len();
-                Ok(self.char_position.saturating_add(offset).min(cell_length))
+                self.char_position.saturating_add(offset).min(cell_length)
             }
             BackwardBy(offset) => {
-                Ok(self.char_position.saturating_sub(offset))
+                self.char_position.saturating_sub(offset)
             }
-        }
+        };
+
+        Ok(Self {
+            grid_position: self.grid_position,
+            char_position
+        })
     }
 }
