@@ -29,6 +29,8 @@ fn move_cursor_back_to_action(editor: &Editor, frame: &Frame, action: FrameActio
     }
 }
 
+/// The range of a deletion, used by [`FrameAction::GridDelete`] relative to the
+/// cursor char position
 #[derive(Debug, Clone, Copy)]
 pub enum GridDeleteRange {
     Foreward,
@@ -36,15 +38,18 @@ pub enum GridDeleteRange {
     WholeCell,
 }
 
+/// The behavior of the cursor if the cell is already empty when attempting to
+/// delete, either step backward (left) or do not move
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GridDeleteIfEmpty {
     StepBackward,
     StayInPlace,
 }
 
+/// A collection of differents behavior for the cursor
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CursorMovement {
-    /// The default behavior when pressing an arrow key, stepping to the next
+    /// The default when pressing an arrow key, stepping to the next
     /// character in a cell, or to the next cell if the cursor is at the border
     /// of a cell
     StepCharThenGrid(Direction),
@@ -72,11 +77,13 @@ pub enum EditorAction {
     Cut,
     Paste(String),
 
+    /// Move the cursor with the given [`Movement`]
     CursorMove(CursorMovement),
 
     /// Delete a range of the cell under the cursor
     GridDelete(GridDeleteRange, GridDeleteIfEmpty),
 
+    /// Insert a text at the cursor position
     GridInsertAtCursor(String),
 }
 
