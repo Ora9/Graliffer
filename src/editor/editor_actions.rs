@@ -58,7 +58,7 @@ pub enum CursorMovement {
     DashUntilBoudsOrNonEmpty(Direction),
 
     /// Move the cursor to a given position in the grid
-    Jump(Position)
+    Jump(Position),
 }
 
 #[derive(Debug, Clone)]
@@ -134,9 +134,13 @@ impl EditorAction {
                 if matches!(arrow, Key::Tab | Key::Space | Key::Enter) {
                     Some(Self::CursorMove(CursorMovement::StepGrid(direction)))
                 } else if modifiers.command {
-                    Some(Self::CursorMove(CursorMovement::DashUntilBoudsOrNonEmpty(direction)))
+                    Some(Self::CursorMove(CursorMovement::DashUntilBoudsOrNonEmpty(
+                        direction,
+                    )))
                 } else {
-                    Some(Self::CursorMove(CursorMovement::StepCharThenGrid(direction)))
+                    Some(Self::CursorMove(CursorMovement::StepCharThenGrid(
+                        direction,
+                    )))
                 }
             }
 
@@ -202,7 +206,7 @@ impl EditorAction {
                         let artifact = editor.history.undo(&mut frame);
                         artifact.last_undo_action()
                     }
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 };
 
                 if let Some(action) = action_opt {
@@ -229,12 +233,9 @@ impl EditorAction {
                 }
             }
 
-            Cut => {
-            }
+            Cut => {}
 
-            Paste(_text) => {
-
-            }
+            Paste(_text) => {}
 
             CursorMove(movement) => {
                 let frame = editor
@@ -259,58 +260,54 @@ impl EditorAction {
                         PreferredGridPosition::InDirectionByOffset(*direction, 1),
                         PreferredCharPosition::AtEnd,
                     ),
-                    CursorMovement::StepCharThenGrid(direction) => {
-                        match direction {
-                            Direction::Down | Direction::Up => (
-                                PreferredGridPosition::InDirectionByOffset(*direction, 1),
-                                PreferredCharPosition::AtMost(grid_state.cursor.char_position()),
-                            ),
+                    CursorMovement::StepCharThenGrid(direction) => match direction {
+                        Direction::Down | Direction::Up => (
+                            PreferredGridPosition::InDirectionByOffset(*direction, 1),
+                            PreferredCharPosition::AtMost(grid_state.cursor.char_position()),
+                        ),
 
-                            Direction::Right if at_end => (
-                                PreferredGridPosition::InDirectionByOffset(*direction, 1),
-                                PreferredCharPosition::AtStart,
-                            ),
-                            Direction::Right => (
-                                PreferredGridPosition::Unchanged,
-                                PreferredCharPosition::ForwardBy(1),
-                            ),
+                        Direction::Right if at_end => (
+                            PreferredGridPosition::InDirectionByOffset(*direction, 1),
+                            PreferredCharPosition::AtStart,
+                        ),
+                        Direction::Right => (
+                            PreferredGridPosition::Unchanged,
+                            PreferredCharPosition::ForwardBy(1),
+                        ),
 
-                            Direction::Left if at_start => (
-                                PreferredGridPosition::InDirectionByOffset(*direction, 1),
-                                PreferredCharPosition::AtEnd,
-                            ),
-                            Direction::Left => (
-                                PreferredGridPosition::Unchanged,
-                                PreferredCharPosition::BackwardBy(1),
-                            ),
-                        }
+                        Direction::Left if at_start => (
+                            PreferredGridPosition::InDirectionByOffset(*direction, 1),
+                            PreferredCharPosition::AtEnd,
+                        ),
+                        Direction::Left => (
+                            PreferredGridPosition::Unchanged,
+                            PreferredCharPosition::BackwardBy(1),
+                        ),
                     },
-                    CursorMovement::DashUntilBoudsOrNonEmpty(direction) => {
-                        match direction {
-                            Direction::Up | Direction::Down => (
-                                PreferredGridPosition::InDirectionUntilNonEmpty(*direction),
-                                PreferredCharPosition::AtEnd,
-                            ),
+                    CursorMovement::DashUntilBoudsOrNonEmpty(direction) => match direction {
+                        Direction::Up | Direction::Down => (
+                            PreferredGridPosition::InDirectionUntilNonEmpty(*direction),
+                            PreferredCharPosition::AtEnd,
+                        ),
 
-                            Direction::Right if at_end => (
-                                PreferredGridPosition::InDirectionUntilNonEmpty(*direction),
-                                PreferredCharPosition::AtStart,
-                            ),
-                            Direction::Right => (
-                                PreferredGridPosition::Unchanged,
-                                PreferredCharPosition::AtEnd,
-                            ),
+                        Direction::Right if at_end => (
+                            PreferredGridPosition::InDirectionUntilNonEmpty(*direction),
+                            PreferredCharPosition::AtStart,
+                        ),
+                        Direction::Right => (
+                            PreferredGridPosition::Unchanged,
+                            PreferredCharPosition::AtEnd,
+                        ),
 
-                            Direction::Left if at_start => (
-                                PreferredGridPosition::InDirectionUntilNonEmpty(*direction),
-                                PreferredCharPosition::AtEnd,
-                            ),
-                            Direction::Left => (
-                                PreferredGridPosition::Unchanged,
-                                PreferredCharPosition::AtStart,
-                            )
-                        }
-                    }
+                        Direction::Left if at_start => (
+                            PreferredGridPosition::InDirectionUntilNonEmpty(*direction),
+                            PreferredCharPosition::AtEnd,
+                        ),
+                        Direction::Left => (
+                            PreferredGridPosition::Unchanged,
+                            PreferredCharPosition::AtStart,
+                        ),
+                    },
                 };
 
                 if preferred_char_pos != PreferredCharPosition::Unchanged {
@@ -353,24 +350,24 @@ impl EditorAction {
                     let mut cell = frame.grid.get(grid_pos);
 
                     let range = match grid_delete_range {
-                        GridDeleteRange::Backward => char_pos - 1 .. char_pos,
-                        GridDeleteRange::Foreward => char_pos .. char_pos + 1,
-                        GridDeleteRange::WholeCell => 0 .. cell.len(),
+                        GridDeleteRange::Backward => char_pos - 1..char_pos,
+                        GridDeleteRange::Foreward => char_pos..char_pos + 1,
+                        GridDeleteRange::WholeCell => 0..cell.len(),
                     };
 
                     let char_deleted = cell.delete_char_range(range).unwrap_or(0);
 
                     let preferred_char_pos = match grid_delete_range {
-                        GridDeleteRange::Backward => PreferredCharPosition::BackwardBy(char_deleted),
+                        GridDeleteRange::Backward => {
+                            PreferredCharPosition::BackwardBy(char_deleted)
+                        }
                         GridDeleteRange::Foreward => PreferredCharPosition::ForwardBy(char_deleted),
                         GridDeleteRange::WholeCell => PreferredCharPosition::AtEnd,
                     };
 
                     let artifact = frame.act(FrameAction::GridSet(grid_pos, cell));
 
-                    if let Ok(cursor) = grid_state
-                        .cursor
-                        .char_with(preferred_char_pos, &frame.grid)
+                    if let Ok(cursor) = grid_state.cursor.char_with(preferred_char_pos, &frame.grid)
                     {
                         grid_state.cursor = cursor;
                     }
