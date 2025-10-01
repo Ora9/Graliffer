@@ -233,9 +233,14 @@ impl EditorAction {
                 }
             }
 
-            Cut => {}
+            Cut => {
+                editor.act(EditorAction::Copy);
+                editor.act(EditorAction::GridDelete(GridDeleteRange::WholeCell, GridDeleteIfEmpty::StayInPlace));
+            }
 
-            Paste(_text) => {}
+            Paste(text) => {
+                editor.act(EditorAction::GridInsertAtCursor(text.clone()));
+            }
 
             CursorMove(movement) => {
                 let frame = editor
