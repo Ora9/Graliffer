@@ -10,7 +10,7 @@ pub enum PreferredCharPosition {
     AtEnd,
     ForwardBy(usize),
     BackwardBy(usize),
-    At(usize),
+    AtMost(usize),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -123,7 +123,7 @@ impl Cursor {
             Unchanged => self.char_position,
             AtStart => 0,
             AtEnd => grid.get(self.grid_position).len(),
-            At(char_position) => {
+            AtMost(char_position) => {
                 let max_length = grid.get(self.grid_position).len();
                 char_position.min(max_length)
             }
