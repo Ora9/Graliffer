@@ -7,7 +7,7 @@ use crate::{
         cursor::{PreferredCharPosition, PreferredGridPosition},
         grid_widget::GridWidgetState,
     },
-    grid::{Cell, Position},
+    grid::Position,
     utils::Direction,
 };
 
@@ -187,29 +187,25 @@ impl EditorAction {
     pub fn act(&self, editor: &mut Editor) {
         use EditorAction::*;
         match self {
-            Redo => {
+            Redo | Undo => {
                 let mut frame = editor
                     .frame
                     .lock()
                     .expect("Should be able to get the frame");
 
-                let artifact = editor.history.redo(&mut frame);
+                let action_opt = match self {
+                    Redo => {
+                        let artifact = editor.history.redo(&mut frame);
+                        artifact.last_redo_action()
+                    }
+                    Undo => {
+                        let artifact = editor.history.undo(&mut frame);
+                        artifact.last_undo_action()
+                    }
+                    _ => unreachable!()
+                };
 
-                if let Some(action) = artifact.last_redo_action() {
-                    move_cursor_back_to_action(editor, &frame, action);
-                }
-
-                editor.history_merge.cancel_all_merge();
-            }
-            Undo => {
-                let mut frame = editor
-                    .frame
-                    .lock()
-                    .expect("Should be able to get the frame");
-
-                let artifact = editor.history.undo(&mut frame);
-
-                if let Some(action) = artifact.last_undo_action() {
+                if let Some(action) = action_opt {
                     move_cursor_back_to_action(editor, &frame, action);
                 }
 
@@ -217,7 +213,7 @@ impl EditorAction {
             }
 
             Copy => {
-                let mut frame = editor
+                let frame = editor
                     .frame
                     .lock()
                     .expect("Should be able to get the frame");
@@ -236,7 +232,7 @@ impl EditorAction {
             Cut => {
             }
 
-            Paste(text) => {
+            Paste(_text) => {
 
             }
 
