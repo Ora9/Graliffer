@@ -3,7 +3,7 @@ use crate::{
     utils::Direction,
 };
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PreferredCharPosition {
     Unchanged,
     AtStart,
@@ -13,7 +13,7 @@ pub enum PreferredCharPosition {
     AtMost(usize),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PreferredGridPosition {
     Unchanged,
     At(Position),

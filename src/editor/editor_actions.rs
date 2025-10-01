@@ -241,7 +241,7 @@ impl EditorAction {
             }
 
             CursorMove(movement) => {
-                let mut frame = editor
+                let frame = editor
                     .frame
                     .lock()
                     .expect("Should be able to get the frame");
@@ -315,10 +315,12 @@ impl EditorAction {
                             )
                         }
                     }
-
                 };
 
-                dbg!(preferred_grid_pos, preferred_char_pos);
+                if preferred_char_pos != PreferredCharPosition::Unchanged {
+                    editor.history_merge.cancel_all_merge();
+                }
+
                 if let Ok(cursor) = grid_state.cursor.with_position(
                     preferred_grid_pos,
                     preferred_char_pos,
@@ -328,152 +330,6 @@ impl EditorAction {
                     grid_state.set(&editor.egui_ctx, View::Grid);
                 }
             }
-
-            // CursorDashIn(direction) => {
-
-            //     let (preferred_grid_pos, preferred_char_pos) = match direction {
-            //         Direction::Up | Direction::Down => (
-            //             PreferredGridPosition::InDirectionUntilNonEmpty(*direction),
-            //             PreferredCharPosition::AtEnd,
-            //         ),
-            //         Direction::Right => {
-            //             if char_pos >= frame.grid.get(grid_pos).len() {
-            //                 editor.history_merge.cancel_all_merge();
-            //                 (
-            //                     PreferredGridPosition::InDirectionUntilNonEmpty(*direction),
-            //                     PreferredCharPosition::AtStart,
-            //                 )
-            //             } else {
-            //                 (
-            //                     PreferredGridPosition::Unchanged,
-            //                     PreferredCharPosition::AtEnd,
-            //                 )
-            //             }
-            //         }
-            //         Direction::Left => {
-            //             if char_pos == 0 {
-            //                 editor.history_merge.cancel_all_merge();
-            //                 (
-            //                     PreferredGridPosition::InDirectionUntilNonEmpty(*direction),
-            //                     PreferredCharPosition::AtEnd,
-            //                 )
-            //             } else {
-            //                 (
-            //                     PreferredGridPosition::Unchanged,
-            //                     PreferredCharPosition::AtStart,
-            //                 )
-            //             }
-            //         }
-            //     };
-
-            //     if let Ok(cursor) = grid_state.cursor.with_position(
-            //         preferred_grid_pos,
-            //         preferred_char_pos,
-            //         &frame.grid,
-            //     ) {
-            //         grid_state.cursor = cursor;
-            //     }
-
-            // }
-
-            // CursorLeapIn(direction) => {
-            //     let mut frame = editor
-            //         .frame
-            //         .lock()
-            //         .expect("Should be able to get the frame");
-
-            //     let mut grid_state =
-            //         GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
-
-            //     if let Ok(cursor) = grid_state.cursor.with_position(
-            //         PreferredGridPosition::InDirectionByOffset(*direction, 1),
-            //         PreferredCharPosition::AtEnd,
-            //         &frame.grid,
-            //     ) {
-            //         grid_state.cursor = cursor;
-            //     }
-
-            //     editor.history_merge.cancel_all_merge();
-            //     grid_state.set(&editor.egui_ctx, View::Grid);
-            // }
-
-            // CursorStepIn(direction) => {
-            //     let mut frame = editor
-            //         .frame
-            //         .lock()
-            //         .expect("Should be able to get the frame");
-
-            //     let mut grid_state =
-            //         GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
-            //     let grid_pos = grid_state.cursor.grid_position();
-            //     let char_pos = grid_state.cursor.char_position();
-
-            //     let (preferred_grid_pos, preferred_char_pos) = match direction {
-            //         Direction::Down | Direction::Up => (
-            //             PreferredGridPosition::InDirectionByOffset(*direction, 1),
-            //             PreferredCharPosition::At(grid_state.cursor.char_position()),
-            //         ),
-            //         Direction::Right => {
-            //             if char_pos >= frame.grid.get(grid_pos).len() {
-            //                 editor.history_merge.cancel_all_merge();
-            //                 (
-            //                     PreferredGridPosition::InDirectionByOffset(*direction, 1),
-            //                     PreferredCharPosition::AtStart,
-            //                 )
-            //             } else {
-            //                 (
-            //                     PreferredGridPosition::Unchanged,
-            //                     PreferredCharPosition::ForwardBy(1),
-            //                 )
-            //             }
-            //         }
-            //         Direction::Left => {
-            //             if char_pos == 0 {
-            //                 editor.history_merge.cancel_all_merge();
-            //                 (
-            //                     PreferredGridPosition::InDirectionByOffset(*direction, 1),
-            //                     PreferredCharPosition::AtEnd,
-            //                 )
-            //             } else {
-            //                 (
-            //                     PreferredGridPosition::Unchanged,
-            //                     PreferredCharPosition::BackwardBy(1),
-            //                 )
-            //             }
-            //         }
-            //     };
-
-            //     if let Ok(cursor) = grid_state.cursor.with_position(
-            //         preferred_grid_pos,
-            //         preferred_char_pos,
-            //         &frame.grid,
-            //     ) {
-            //         grid_state.cursor = cursor;
-            //     }
-
-            //     grid_state.set(&editor.egui_ctx, View::Grid);
-            // }
-
-            // CursorMoveTo(position) => {
-            //     let mut frame = editor
-            //         .frame
-            //         .lock()
-            //         .expect("Should be able to get the frame");
-
-            //     let mut grid_state =
-            //         GridWidgetState::get(&editor.egui_ctx, View::Grid).unwrap_or_default();
-
-            //     if let Ok(cursor) = grid_state.cursor.with_position(
-            //         PreferredGridPosition::At(*position),
-            //         PreferredCharPosition::AtEnd,
-            //         &frame.grid,
-            //     ) {
-            //         grid_state.cursor = cursor;
-            //     }
-
-            //     editor.history_merge.cancel_all_merge();
-            //     grid_state.set(&editor.egui_ctx, View::Grid);
-            // }
 
             GridDelete(grid_delete_range, grid_delete_if_empty) => {
                 let mut grid_state =
