@@ -6,7 +6,7 @@ use std::{
     thread,
 };
 
-use egui::{Context, Id, Widget};
+use egui::{Color32, Context, Id, Stroke, Vec2, Widget};
 
 use crate::{
     Frame,
@@ -52,8 +52,32 @@ impl Editor {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let mut fonts = egui::FontDefinitions::default();
         egui_phosphor::add_to_fonts(&mut fonts, egui_phosphor::Variant::Regular);
-
         cc.egui_ctx.set_fonts(fonts);
+
+        cc.egui_ctx.style_mut(|style| {
+            style.spacing.item_spacing = Vec2 { x: 10.0, y: 4.0 };
+            style.spacing.button_padding = Vec2 { x: 10.0, y: 2.0 };
+            style.spacing.indent = 25.0;
+        });
+
+        cc.egui_ctx.style_mut_of(egui::Theme::Dark, |style| {
+            style.visuals.panel_fill = Color32::from_rgb(19, 22, 22);
+            style.visuals.window_fill = Color32::from_rgb(25, 29, 30);
+            style.visuals.faint_bg_color = Color32::from_additive_luminance(10);
+            style.visuals.extreme_bg_color = Color32::from_rgb(0, 0, 0);
+            style.visuals.selection.bg_fill = Color32::from_rgb(108, 48, 130);
+
+            //
+            style.visuals.widgets.inactive.weak_bg_fill = Color32::from_rgb(43, 43, 43);
+            style.visuals.widgets.inactive.bg_fill = Color32::from_rgb(43, 43, 43);
+
+            // Text color
+            style.visuals.widgets.noninteractive.fg_stroke.color = Color32::from_rgb(210, 210, 210);
+            style.visuals.widgets.inactive.fg_stroke.color = Color32::from_rgb(210, 210, 210);
+
+
+            dbg!(&style);
+        });
 
         // Customize egui here with cc.egui_ctx.set_fonts and cc.egui_ctx.set_visuals.
         // Restore app state using cc.storage (requires the "persistence" feature).

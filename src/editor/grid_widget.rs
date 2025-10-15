@@ -204,19 +204,17 @@ impl Widget for GridWidget {
                     (frame.grid.get(cell_grid_pos), frame.head.position)
                 };
 
-                let bg_color = /*if state.has_focus && state.cursor.grid_position == grid_pos {
-                    egui::Color32::from_gray(45)
-                } else */ if head_pos == cell_grid_pos {
-                    egui::Color32::from_hex("#445E93").unwrap()
+                let cell_bg_color = if head_pos == cell_grid_pos {
+                    ui.visuals().widgets.active.bg_fill
                 } else {
-                    egui::Color32::from_gray(27)
+                    egui::Color32::TRANSPARENT
                 };
 
                 let (stroke, stroke_kind) = if state.cursor.grid_position() == cell_grid_pos {
                     (
                         egui::Stroke::new(
                             state.screen_transform.scaling * 2.0,
-                            egui::Color32::from_gray(45),
+                            ui.visuals().faint_bg_color,
                         ),
                         egui::StrokeKind::Outside,
                     )
@@ -224,7 +222,7 @@ impl Widget for GridWidget {
                     (
                         egui::Stroke::new(
                             state.screen_transform.scaling * 1.0,
-                            egui::Color32::from_gray(45),
+                            ui.visuals().faint_bg_color,
                         ),
                         egui::StrokeKind::Inside,
                     )
@@ -235,7 +233,7 @@ impl Widget for GridWidget {
                 painter.rect(
                     cell_screen_rect,
                     bg_corner_radius,
-                    bg_color,
+                    cell_bg_color,
                     stroke,
                     stroke_kind,
                 );
@@ -245,7 +243,7 @@ impl Widget for GridWidget {
                     egui::Align2::CENTER_CENTER,
                     cell.content(),
                     egui::FontId::monospace(state.screen_transform.scaling * 12.0),
-                    egui::Color32::WHITE,
+                    ui.visuals().widgets.inactive.fg_stroke.color
                 );
 
                 // dbg!(state.cursor.grid_position() == cell_grid_pos);
@@ -256,7 +254,7 @@ impl Widget for GridWidget {
                         egui::Align2::LEFT_TOP,
                         state.cursor.char_position(),
                         egui::FontId::monospace(state.screen_transform.scaling * 9.0),
-                        egui::Color32::WHITE,
+                        ui.visuals().widgets.inactive.fg_stroke.color
                     );
 
                     // Blocking
@@ -298,8 +296,8 @@ impl Widget for GridWidget {
                                 y: state.screen_transform.scaling * 13.0,
                             },
                         ),
-                        2.0,
-                        egui::Color32::WHITE,
+                        state.screen_transform.scaling * 0.2,
+                        ui.visuals().widgets.inactive.fg_stroke.color
                     );
                 }
             }
