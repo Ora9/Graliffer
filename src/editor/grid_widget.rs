@@ -257,10 +257,10 @@ impl Widget for GridWidget {
                         ui.visuals().widgets.inactive.fg_stroke.color
                     );
 
-                    // Blocking
-                    // (total, before_cursor)
-                    let (content_total_width, content_pre_cursor_width) = ui
-                        .fonts(move |fonts| {
+                    // This is blocking, calculate the cell's content total width
+                    // and placement of the cursor
+                    let (content_total_width, content_pre_cursor_width) =
+                        ui.fonts_mut(|fonts| {
                             cell.content()
                                 .chars()
                                 .enumerate()

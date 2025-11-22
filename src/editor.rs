@@ -7,6 +7,7 @@ use std::{
 };
 
 use egui::{Color32, Context, Id, Stroke, Vec2, Widget};
+use serde::Serialize;
 
 use crate::{
     Frame,
@@ -74,9 +75,6 @@ impl Editor {
             // Text color
             style.visuals.widgets.noninteractive.fg_stroke.color = Color32::from_rgb(210, 210, 210);
             style.visuals.widgets.inactive.fg_stroke.color = Color32::from_rgb(210, 210, 210);
-
-
-            dbg!(&style);
         });
 
         // Customize egui here with cc.egui_ctx.set_fonts and cc.egui_ctx.set_visuals.
@@ -175,12 +173,27 @@ impl Editor {
         }
     }
 
-    async fn load_file(&self) {
-        println!("Loading file..");
-        thread::sleep(std::time::Duration::from_secs(1));
-        println!("just kidding..");
+    fn load_file(&self) {
+        let frame_clone = self.frame.clone();
 
-        //     use rfd::FileDialog;
+        std::thread::spawn(move || {
+            let files = rfd::FileDialog::new()
+                .add_filter("text", &["txt", "rs"])
+                .add_filter("rust", &["rs", "toml"])
+                .set_directory("/")
+                .pick_file()
+                .unwrap();
+
+            dbg!(files);
+            // files.rea
+
+            // dbg!(data);
+
+            if let Ok(mut frame) = frame_clone.lock() {
+                frame.grid.set(Position::ORIGIN, Cell::new_trim("prt"));
+            }
+        });
+
 
         //     println!("Open File!");
 
@@ -188,17 +201,7 @@ impl Editor {
 
         //     thread::spawn(async move || {
         //         dbg!("in thread");
-        //         let files = FileDialog::new()
-        //             .add_filter("text", &["txt", "rs"])
-        //             .add_filter("rust", &["rs", "toml"])
-        //             .set_directory("/")
-        //             .pick_file()
-        //             .unwrap();
 
-        //         dbg!(files);
-        //         // let data = files.read();
-        //         // dbg!(frame_arc.lock().unwrap());
-        //         let mut frame = frame_arc.lock().unwrap();
 
         //         frame.act(Box::new(crate::grid::GridAction::Set(
         //             Position::from_numeric(5, 5).unwrap(),
@@ -274,7 +277,7 @@ impl eframe::App for Editor {
             egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("Graliffer", |ui| {
                     if ui.button("Open file").clicked() {
-                        // self.load_file();
+                        self.load_file();
                     }
 
                     if ui.button("About Graliffer").clicked() {
@@ -290,7 +293,10 @@ impl eframe::App for Editor {
                 });
                 ui.menu_button("File", |ui| {
                     if ui.button("Open file").clicked() {
-                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                        if let Ok(frame_guard) = self.frame.try_lock() {
+                            println!("{}", serde_json::to_string_pretty(&*frame_guard).unwrap());
+                        }
+                        // ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                     }
                     if ui.button("Open example").clicked() {
                         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
