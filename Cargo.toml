@@ -20,3 +20,6 @@ unused = "allow"
 [workspace.dependencies]
 grai = { path = "crates/grai" }
 graliffer = { path = "crates/graliffer" }
+
+# External
+unicode-segmentation = "1.12"
