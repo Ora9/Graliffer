@@ -1,18 +1,22 @@
-[package]
-name = "graliffer"
+[workspace.package]
+description = " Graliffer is an exotic programming language using a 2d grid holding code and data"
+repository = "https://github.com/Ora9/Graliffer"
+license = "MIT"
 version = "0.1.0"
 edition = "2024"
 
-[dependencies]
-anyhow = "1.0"
-unicode-segmentation = "1.12"
-strum = "0.27"
-strum_macros = "0.27"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0.144"
-eframe = "0.33.2"
-egui = "0.33.2"
-egui-phosphor = "0.11"
-egui_tiles = "0.14.0"
-rfd = "0.15.4"
-smol = "2.0.2"
+[workspace]
+resolver = "2"
+members = [
+    "crates/graliffer",     # Graliffer tui
+    "crates/grai",          # Graliffer interpreter
+]
+default-members = ["crates/grai"]
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+unused = "allow"
+
+[workspace.dependencies]
+grai = { path = "crates/grai" }
+graliffer = { path = "crates/graliffer" }
