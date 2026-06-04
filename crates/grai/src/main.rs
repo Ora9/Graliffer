@@ -1,3 +1,7 @@
+use grai::{Cell, Grid, Position};
+
 fn main() {
-    println!("Graliffer interpreter!");
+    let mut grid = Grid::new();
+
+    grid.set(Position::ORIGIN, Cell::new_trim("prout"));
 }
