@@ -395,6 +395,7 @@ impl Position {
     }
 
     /// "Take a step"
+    /// TODO: docs
     pub fn checked_step(&self, direction: Direction, value: u32) -> Result<Self, PositionError> {
         match direction {
             Direction::Up => self.checked_decrement_y_by(value),
