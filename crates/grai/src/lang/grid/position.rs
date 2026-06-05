@@ -134,7 +134,8 @@ impl Position {
         Ok(Self::from_granary_digits(x, y))
     }
 
-    /// Obtain a `Position` given a string in format `XX` where each `X` is a valid textual representation
+    /// Obtain a `Position` given a string in format `XY` where `X` is the horizontal component of
+    /// the position, and `Y` is the vertical, each in a valid textual representation
     ///
     /// # Errors
     /// Returns an error if :
@@ -174,7 +175,9 @@ impl Position {
         (self.x_as_textual(), self.y_as_textual())
     }
 
-    /// Returns the textual representation of a `Position` as `String`
+    /// Returns the textual representation of a `Position` as `String` in format `XY` where `X` is
+    /// the horizontal component of the position, and `Y` is the vertical, each in textual
+    /// representation
     pub fn as_textual_string(&self) -> String {
         format!("{}{}", self.x_as_textual(), self.y_as_textual())
     }
