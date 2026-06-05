@@ -9,6 +9,8 @@ edition.workspace = true
 [dependencies]
 unicode-segmentation.workspace = true
 thiserror = "2.0.18"
+strum = "0.28"
+strum_macros = "0.28"
 
 [lints]
 workspace = true
