@@ -11,8 +11,6 @@
 
 use std::fmt::Debug;
 
-use crate::GranaryError::WouldUnderflowDigit;
-
 #[derive(Debug, thiserror::Error)]
 pub enum GranaryError {
     #[error("invalid numeric representation, expected to be in range [0-63], found `{0}`")]
@@ -288,12 +286,12 @@ impl GranaryDigit {
     /// # Examples
     /// ```
     /// # use grai::GranaryDigit;
-    ///
     /// let zero = GranaryDigit::ZERO;
     /// let ten = GranaryDigit::from_numeric(10).unwrap();
     /// let five = GranaryDigit::from_numeric(5).unwrap();
     /// let fifteen = GranaryDigit::from_numeric(15).unwrap();
     /// let max = GranaryDigit::from_numeric(GranaryDigit::MAX_NUMERIC).unwrap();
+    ///
     /// assert_eq!(five.checked_increment_by(10).unwrap(), fifteen);
     /// assert_eq!(ten.checked_increment_by(5).unwrap(), fifteen);
     /// assert_eq!(ten.checked_increment_by(0).unwrap(), ten);
