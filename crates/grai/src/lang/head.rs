@@ -35,7 +35,7 @@ impl Head {
     /// assert_eq!(head.position, pos);
     /// ```
     pub fn move_to(&mut self, position: Position) {
-        self.position = position
+        self.position = position;
     }
 
     /// Change the [`Direction`], without changing the [`Position`], next "step", will be in that direction
@@ -50,6 +50,6 @@ impl Head {
     /// assert_eq!(head.direction, Direction::Up);
     /// ```
     pub fn direct_to(&mut self, direction: Direction) {
-        self.direction = direction
+        self.direction = direction;
     }
 }
