@@ -34,6 +34,21 @@ impl Position {
         y: GranaryDigit::ZERO,
     };
 
+    /// Returns a `Position` given two [`GranaryDigits`]
+    ///
+    /// # Example
+    /// ```
+    /// # use grai::{Position, granary::GranaryDigit};
+    /// let x = GranaryDigit::from_numeric(0).unwrap();
+    /// let y = GranaryDigit::from_numeric(0).unwrap();
+    /// let pos = Position::from_granary_digits(x, y);
+    /// assert_eq!(pos.as_numeric(), (0, 0));
+    ///
+    /// let x = GranaryDigit::from_numeric(5).unwrap();
+    /// let y = GranaryDigit::from_numeric(10).unwrap();
+    /// let pos = Position::from_granary_digits(x, y);
+    /// assert_eq!(pos.as_numeric(), (5, 10));
+    /// ```
     pub fn from_granary_digits(x: GranaryDigit, y: GranaryDigit) -> Self {
         Self { x, y }
     }
@@ -98,5 +113,40 @@ impl Position {
         })?;
 
         Ok(Self::from_granary_digits(x, y))
+    }
+
+    /// Returns the textual representation of a `Position` as a tuple in form `(x, y)`
+    pub fn as_textual(&self) -> (char, char) {
+        (self.x_as_textual(), self.y_as_textual())
+    }
+
+    /// Returns the textual representation of a `Position` as `String`
+    pub fn as_textual_string(&self) -> String {
+        format!("{}{}", self.x_as_textual(), self.y_as_textual())
+    }
+
+    /// Returns the numeric representation of a `Position` as a tuple in form `(x, y)`
+    pub fn as_numeric(&self) -> (u32, u32) {
+        (self.x(), self.y())
+    }
+
+    /// Returns the numeric representation of the `x` (horizontal) component of a `Position`
+    pub fn x(&self) -> u32 {
+        self.x.as_numeric()
+    }
+
+    /// Returns the textual representation of the `x` (horizontal) component of a `Position`
+    pub fn x_as_textual(&self) -> char {
+        self.x.as_textual()
+    }
+
+    /// Returns the numeric representation of the `y` (vertical) component of a `Position`
+    pub fn y(&self) -> u32 {
+        self.y.as_numeric()
+    }
+
+    /// Returns the textual representation of the `y` (vertical) component of a `Position`
+    pub fn y_as_textual(&self) -> char {
+        self.y.as_textual()
     }
 }

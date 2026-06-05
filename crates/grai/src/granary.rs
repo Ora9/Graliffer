@@ -39,7 +39,7 @@ pub enum GranaryError {
 /// # Examples
 ///
 /// ```
-/// # use grai::GranaryDigit;
+/// # use grai::granary::GranaryDigit;
 /// let pos = GranaryDigit::from_textual('A').unwrap();
 /// assert_eq!(pos.as_numeric(), 0);
 ///
@@ -62,7 +62,7 @@ impl GranaryDigit {
     ///
     /// # Example
     /// ```
-    /// # use grai::GranaryDigit;
+    /// # use grai::granary::GranaryDigit;
     /// assert!( GranaryDigit::is_valid_numeric(0));
     /// assert!( GranaryDigit::is_valid_numeric(25));
     /// assert!( GranaryDigit::is_valid_numeric(63));
@@ -76,7 +76,7 @@ impl GranaryDigit {
     ///
     /// # Examples
     /// ```
-    /// # use grai::GranaryDigit;
+    /// # use grai::granary::GranaryDigit;
     /// assert_eq!(GranaryDigit::clamp_numeric(0), 0);
     /// assert_eq!(GranaryDigit::clamp_numeric(25), 25);
     /// assert_eq!(GranaryDigit::clamp_numeric(63), 63);
@@ -92,7 +92,7 @@ impl GranaryDigit {
     ///
     /// # Example
     /// ```
-    /// # use grai::GranaryDigit;
+    /// # use grai::granary::GranaryDigit;
     /// assert!( GranaryDigit::is_valid_textual('A'));
     /// assert!( GranaryDigit::is_valid_textual('/'));
     /// assert!( GranaryDigit::is_valid_textual('q'));
@@ -110,7 +110,7 @@ impl GranaryDigit {
     ///
     /// # Example
     /// ```
-    /// # use grai::GranaryDigit;
+    /// # use grai::granary::GranaryDigit;
     /// assert_ne!(GranaryDigit::numeric_to_textual(0).unwrap(), 'a');
     /// assert_eq!(GranaryDigit::numeric_to_textual(5).unwrap(), 'F');
     /// assert_eq!(GranaryDigit::numeric_to_textual(26).unwrap(), 'a');
@@ -139,7 +139,7 @@ impl GranaryDigit {
     ///
     /// # Example
     /// ```
-    /// # use grai::GranaryDigit;
+    /// # use grai::granary::GranaryDigit;
     /// assert_eq!(GranaryDigit::textual_to_numeric('Y').unwrap(), 24);
     /// assert_eq!(GranaryDigit::textual_to_numeric('5').unwrap(), 57);
     /// assert_eq!(GranaryDigit::textual_to_numeric('+').unwrap(), 62);
@@ -166,7 +166,7 @@ impl GranaryDigit {
     ///
     /// # Example
     /// ```
-    /// # use grai::GranaryDigit;
+    /// # use grai::granary::GranaryDigit;
     /// let digit = GranaryDigit::from_numeric(0).unwrap();
     /// assert_eq!(digit.as_numeric(), 0);
     ///
@@ -194,7 +194,7 @@ impl GranaryDigit {
     ///
     /// # Examples
     /// ```
-    /// # use grai::GranaryDigit;
+    /// # use grai::granary::GranaryDigit;
     /// let digit = GranaryDigit::from_textual('A').unwrap();
     /// assert_eq!(digit.as_numeric(), 0);
     ///
@@ -226,7 +226,7 @@ impl GranaryDigit {
     ///
     /// Examples
     /// ```
-    /// # use grai::GranaryDigit;
+    /// # use grai::granary::GranaryDigit;
     /// let zero = GranaryDigit::ZERO;
     /// let five = GranaryDigit::from_numeric(5).unwrap();
     /// let ten = GranaryDigit::from_numeric(10).unwrap();
@@ -255,7 +255,7 @@ impl GranaryDigit {
     ///
     /// Examples
     /// ```
-    /// # use grai::GranaryDigit;
+    /// # use grai::granary::GranaryDigit;
     /// let zero = GranaryDigit::ZERO;
     /// let five = GranaryDigit::from_numeric(5).unwrap();
     /// let ten = GranaryDigit::from_numeric(10).unwrap();
@@ -285,7 +285,7 @@ impl GranaryDigit {
     ///
     /// # Examples
     /// ```
-    /// # use grai::GranaryDigit;
+    /// # use grai::granary::GranaryDigit;
     /// let zero = GranaryDigit::ZERO;
     /// let ten = GranaryDigit::from_numeric(10).unwrap();
     /// let five = GranaryDigit::from_numeric(5).unwrap();
@@ -314,7 +314,7 @@ impl GranaryDigit {
     ///
     /// # Examples
     /// ```
-    /// # use grai::GranaryDigit;
+    /// # use grai::granary::GranaryDigit;
     /// let zero = GranaryDigit::ZERO;
     /// let five = GranaryDigit::from_numeric(5).unwrap();
     /// let ten = GranaryDigit::from_numeric(10).unwrap();
