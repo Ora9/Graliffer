@@ -1,11 +1,10 @@
-mod word;
-pub use word::*;
+mod opcode;
+pub use opcode::*;
 
-mod grid;
-pub use grid::*;
+mod operand;
+pub use operand::*;
 
-mod stack;
-pub use stack::*;
-
-mod head;
-pub use head::*;
+pub enum Word {
+    Operand(Operand),
+    Opcode(Opcode),
+}
