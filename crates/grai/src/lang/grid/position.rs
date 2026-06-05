@@ -357,4 +357,14 @@ impl Position {
                 })?,
         ))
     }
+
+    /// "Take a step"
+    pub fn checked_step(&self, direction: Direction, value: u32) -> Result<Self, PositionError> {
+        match direction {
+            Direction::Up => self.checked_decrement_y_by(value),
+            Direction::Right => self.checked_increment_x_by(value),
+            Direction::Down => self.checked_increment_y_by(value),
+            Direction::Left => self.checked_decrement_x_by(value),
+        }
+    }
 }
