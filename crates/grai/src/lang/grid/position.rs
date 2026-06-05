@@ -292,6 +292,7 @@ impl Position {
     /// assert_eq!(zero_twelve.checked_increment_x_by(GranaryDigit::MAX_NUMERIC).unwrap(), max_twelve);
     /// assert!(max_twelve.checked_increment_x_by(1).is_err());
     /// ```
+    #[must_use = "this returns the result of an operation, without modifying the original"]
     pub fn checked_increment_x_by(&self, value: u32) -> Result<Self, PositionError> {
         Ok(Self::from_granary_digits(
             self.x
@@ -322,6 +323,7 @@ impl Position {
     /// assert_eq!(twelve_zero.checked_increment_y_by(GranaryDigit::MAX_NUMERIC).unwrap(), twelve_max);
     /// assert!(twelve_max.checked_increment_y_by(1).is_err());
     /// ```
+    #[must_use = "this returns the result of an operation, without modifying the original"]
     pub fn checked_increment_y_by(&self, value: u32) -> Result<Self, PositionError> {
         Ok(Self::from_granary_digits(
             self.x,
@@ -352,6 +354,7 @@ impl Position {
     /// assert_eq!(max_twelve.checked_decrement_x_by(GranaryDigit::MAX_NUMERIC).unwrap(), zero_twelve);
     /// assert!(zero_twelve.checked_decrement_x_by(1).is_err());
     /// ```
+    #[must_use = "this returns the result of an operation, without modifying the original"]
     pub fn checked_decrement_x_by(&self, value: u32) -> Result<Self, PositionError> {
         Ok(Self::from_granary_digits(
             self.x
@@ -382,6 +385,7 @@ impl Position {
     /// assert_eq!(twelve_max.checked_decrement_y_by(GranaryDigit::MAX_NUMERIC).unwrap(), twelve_zero);
     /// assert!(twelve_zero.checked_decrement_y_by(1).is_err());
     /// ```
+    #[must_use = "this returns the result of an operation, without modifying the original"]
     pub fn checked_decrement_y_by(&self, value: u32) -> Result<Self, PositionError> {
         Ok(Self::from_granary_digits(
             self.x,
@@ -396,6 +400,7 @@ impl Position {
 
     /// "Take a step"
     /// TODO: docs
+    #[must_use = "this returns the result of an operation, without modifying the original"]
     pub fn checked_step(&self, direction: Direction, value: u32) -> Result<Self, PositionError> {
         match direction {
             Direction::Up => self.checked_decrement_y_by(value),
