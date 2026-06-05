@@ -1,4 +1,4 @@
-use crate::{Direction, Position};
+use crate::{Direction, Position, PositionError};
 
 pub struct Head {
     pub position: Position,
@@ -52,4 +52,8 @@ impl Head {
     pub fn direct_to(&mut self, direction: Direction) {
         self.direction = direction;
     }
+
+    // pub fn step(&mut self) -> Result<(), PositionError> {
+    //     self.position = self.position.checked_step(self.direction, 1)?;
+    // }
 }

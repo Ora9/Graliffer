@@ -217,6 +217,7 @@ impl Position {
     /// assert_eq!(zero.checked_add(five_ten).unwrap(), five_ten);
     /// assert_eq!(max.checked_add(zero).unwrap(), max);
     /// assert!(max.checked_add(ten_twenty).is_err());
+    /// ```
     #[must_use = "this returns the result of an operation, without modifying the original"]
     pub fn checked_add(&self, other: Self) -> Result<Self, PositionError> {
         let x = self
