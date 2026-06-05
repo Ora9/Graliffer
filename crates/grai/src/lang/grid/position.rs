@@ -8,13 +8,6 @@ use crate::{
     granary::{GranaryDigit, GranaryError},
 };
 
-// #[derive(Debug, Hash, PartialEq, Eq)]
-// pub struct PositionAxis(GranaryDigit);
-
-// Vimpl PositionAxis {
-//     pub const ORIGIN: Self = Self(GranaryDigit::ZERO);
-// }
-
 #[derive(Debug, thiserror::Error)]
 pub enum PositionError {
     #[error("invalid granary for the {axis} axis")]
