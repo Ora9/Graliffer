@@ -9,6 +9,8 @@
 //!
 //! Example : `A = 0`, `z = 51`, `/ = 63`
 
+use std::fmt::Debug;
+
 use crate::GranaryError::WouldUnderflowDigit;
 
 #[derive(Debug)]
@@ -39,7 +41,7 @@ pub enum GranaryError {
 /// let pos = GranaryDigit::from_numeric(51).unwrap();
 /// assert_eq!(pos.as_textual(), 'z');
 /// ```
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct GranaryDigit(u8);
 
 impl GranaryDigit {
@@ -369,5 +371,16 @@ impl TryFrom<char> for GranaryDigit {
 
     fn try_from(value: char) -> Result<Self, Self::Error> {
         GranaryDigit::from_textual(value)
+    }
+}
+
+impl Debug for GranaryDigit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "GranaryDigit({}, {})",
+            self.as_numeric(),
+            self.as_textual(),
+        )
     }
 }
