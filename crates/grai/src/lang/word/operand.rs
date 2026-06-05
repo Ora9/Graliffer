@@ -1,4 +1,4 @@
-use crate::{Cell, Operand::Address, Position, PositionError};
+use crate::{Cell, Position, PositionError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum OperandError {
@@ -29,6 +29,10 @@ impl Literal {
 
     pub fn from_string_trim(string: &str) -> Self {
         Self::new(Cell::new_trim(string))
+    }
+
+    pub fn as_cell(&self) -> Cell {
+        self.0.clone()
     }
 }
 
@@ -113,6 +117,14 @@ impl Operand {
                 }
             }
             _ => Self::Literal(Literal::from_cell(cell)),
+        }
+    }
+
+    pub fn as_cell(&self) -> Cell {
+        match self {
+            Self::Literal(literal) => literal.as_cell(),
+            Self::Address(address) => address.as_cell(),
+            Self::Pointer(pointer) => pointer.as_cell(),
         }
     }
 }
