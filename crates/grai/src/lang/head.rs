@@ -53,7 +53,8 @@ impl Head {
         self.direction = direction;
     }
 
-    // pub fn step(&mut self) -> Result<(), PositionError> {
-    //     self.position = self.position.checked_step(self.direction, 1)?;
-    // }
+    pub fn step(&mut self) -> Result<(), PositionError> {
+        self.position = self.position.checked_step(self.direction, 1)?;
+        Ok(())
+    }
 }
