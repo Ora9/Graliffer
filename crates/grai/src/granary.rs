@@ -238,7 +238,7 @@ impl GranaryDigit {
     /// assert_eq!(fifteen.checked_add(zero).unwrap(), fifteen);
     /// assert!(max.checked_add(ten).is_err());
     /// ```
-    #[must_use = "this returns the result of the operation, without modifying the original"]
+    #[must_use = "this returns the result of an operation, without modifying the original"]
     pub fn checked_add(&self, other: Self) -> Result<Self, GranaryError> {
         let sum = self
             .0
@@ -268,7 +268,7 @@ impl GranaryDigit {
     /// assert!(ten.checked_sub(fifteen).is_err());
     /// assert!(ten.checked_sub(max).is_err());
     /// ```
-    #[must_use = "this returns the result of the operation, without modifying the original"]
+    #[must_use = "this returns the result of an operation, without modifying the original"]
     pub fn checked_sub(&self, other: Self) -> Result<Self, GranaryError> {
         let diff = self
             .0
@@ -278,7 +278,7 @@ impl GranaryDigit {
         Self::from_numeric(diff.into())
     }
 
-    /// Perform an addition between a [`GranaryDigit`] and a `u32`
+    /// Perform an addition between a [`GranaryDigit`] and an `u32`
     ///
     /// # Errors
     /// Returns an error if the addition could not be performed (overflowing one digit).
@@ -298,7 +298,7 @@ impl GranaryDigit {
     /// assert_eq!(zero.checked_increment_by(GranaryDigit::MAX_NUMERIC).unwrap(), max);
     /// assert!(max.checked_increment_by(1).is_err());
     /// ```
-    #[must_use = "this returns the result of the operation, without modifying the original"]
+    #[must_use = "this returns the result of an operation, without modifying the original"]
     pub fn checked_increment_by(&self, value: u32) -> Result<Self, GranaryError> {
         let sum = (self.0 as u32)
             .checked_add(value)
@@ -307,7 +307,7 @@ impl GranaryDigit {
         Self::from_numeric(sum)
     }
 
-    /// Perform a substraction between a [`GranaryDigit`] and a `u32`
+    /// Perform a substraction between a [`GranaryDigit`] and an `u32`
     ///
     /// # Errors
     /// Returns an error if the substraction could not be performed (underflowing one digit).
@@ -327,7 +327,7 @@ impl GranaryDigit {
     /// assert_eq!(max.checked_decrement(GranaryDigit::MAX_NUMERIC).unwrap(), zero);
     /// assert!(zero.checked_decrement(1).is_err());
     /// ```
-    #[must_use = "this returns the result of the operation, without modifying the original"]
+    #[must_use = "this returns the result of an operation, without modifying the original"]
     pub fn checked_decrement(&self, value: u32) -> Result<Self, GranaryError> {
         let diff = (self.0 as u32)
             .checked_sub(value)
