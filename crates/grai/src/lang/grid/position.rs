@@ -1,7 +1,10 @@
 use std::fmt::Display;
 
+use unicode_segmentation::{Graphemes, UnicodeSegmentation};
+
 use crate::{
-    Axis,
+    Axis::{self, Vertical},
+    Direction,
     granary::{GranaryDigit, GranaryError},
 };
 
@@ -32,6 +35,10 @@ pub enum PositionError {
         #[source]
         granary_error: GranaryError,
     },
+    #[error(
+        "the given string does not respect the format, expected to be `XX` where each `X` is a base64 character, found `{0}`"
+    )]
+    WrongFormat(String),
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
@@ -96,7 +103,7 @@ impl Position {
         Ok(Self::from_granary_digits(x, y))
     }
 
-    /// Obtain a `Position` given two valid textual representations
+    /// Obtain a `Position` given two char in a valid textual representation
     ///
     /// # Errors
     /// Returns an error if one or more the given textual representation are invalid.
@@ -125,6 +132,41 @@ impl Position {
         })?;
 
         Ok(Self::from_granary_digits(x, y))
+    }
+
+    /// Obtain a `Position` given a string in format `XX` where each `X` is a valid textual representation
+    ///
+    /// # Errors
+    /// Returns an error if :
+    /// - the string does not appear to be in the correct format
+    /// - one or more the given textual representation are invalid. See [`Granary`](granary#representation).
+    ///
+    /// # Examples
+    /// ```
+    /// # use grai::Position;
+    /// let pos = Position::from_string("AA").unwrap();
+    /// assert_eq!(pos.as_numeric(), (0, 0));
+    ///
+    /// let pos = Position::from_string("a5").unwrap();
+    /// assert_eq!(pos.as_numeric(), (26, 57));
+    ///
+    /// assert!(Position::from_string("+A").is_ok());
+    /// assert!(Position::from_string("A=").is_err());
+    /// assert!(Position::from_string("    AA").is_err());
+    /// assert!(Position::from_string("AA excess").is_ok());
+    /// assert!(Position::from_string("A").is_err());
+    /// ```
+    pub fn from_string(string: &str) -> Result<Self, PositionError> {
+        // let mut chars = value.graphemes(true).take(2);
+        let mut chars = string.chars();
+        let x = chars.next();
+        let y = chars.next();
+
+        if let (Some(x), Some(y)) = (x, y) {
+            Position::from_textual(x, y)
+        } else {
+            Err(PositionError::WrongFormat(string.to_string()))
+        }
     }
 
     /// Returns the textual representation of a `Position` as a tuple in form `(x, y)`
@@ -161,9 +203,7 @@ impl Position {
     pub fn y_as_textual(&self) -> char {
         self.y.as_textual()
     }
-}
 
-impl Position {
     /// Performs an addition on two [`Position`]
     ///
     /// Errors
@@ -366,5 +406,13 @@ impl Position {
             Direction::Down => self.checked_increment_y_by(value),
             Direction::Left => self.checked_decrement_x_by(value),
         }
+    }
+}
+
+impl TryFrom<&str> for Position {
+    type Error = PositionError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Position::from_string(value)
     }
 }
