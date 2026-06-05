@@ -1,6 +1,9 @@
 mod lang;
 pub use lang::*;
 
+mod frame;
+pub use frame::*;
+
 mod grid;
 pub use grid::*;
 
