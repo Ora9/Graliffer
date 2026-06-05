@@ -9,6 +9,7 @@ pub use position::*;
 mod direction;
 pub use direction::*;
 
+#[derive(Debug)]
 pub struct Grid(HashMap<Position, Cell>);
 
 impl Grid {
