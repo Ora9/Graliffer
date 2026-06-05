@@ -16,17 +16,9 @@ impl Stack {
         self.0.pop()
     }
 
-    // fn pop_err(&mut self) -> Result<Operand, anyhow::Error> {
-    //     self.data.pop().ok_or(anyhow::anyhow!("Could not pop an element from the stack"))
-    // }
-
     pub fn get_last(&self) -> Option<&Operand> {
         self.0.last()
     }
-
-    // pub fn get_last_err(&self) -> Result<&Operand, anyhow::Error> {
-    //     self.data.last().ok_or(anyhow::anyhow!("Could not pop an element from the stack"))
-    // }
 
     // pub fn iter(&self) -> Iter<'_, Operand> {
     //     self.0.iter()
