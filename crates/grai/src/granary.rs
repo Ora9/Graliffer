@@ -13,11 +13,18 @@ use std::fmt::Debug;
 
 use crate::GranaryError::WouldUnderflowDigit;
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum GranaryError {
-    InvalidNumericRepresentation,
-    InvalidTextualRepresentation,
+    #[error("invalid numeric representation, expected to be in range [0-63], found `{0}`")]
+    InvalidNumericRepresentation(u32),
+    #[error(
+        "invalid textual representation, expected to be in character set [A-Za-z0-9/+], found `{0}`"
+    )]
+    InvalidTextualRepresentation(String),
+
+    #[error("this operation would overflow")]
     WouldOverflowDigit,
+    #[error("this operation would underflow")]
     WouldUnderflowDigit,
 }
 
@@ -119,7 +126,7 @@ impl GranaryDigit {
             62 => 43,                   // +
             63 => 47,                   // /
             _ => {
-                return Err(GranaryError::InvalidNumericRepresentation);
+                return Err(GranaryError::InvalidNumericRepresentation(value));
             }
         };
 
@@ -149,7 +156,7 @@ impl GranaryDigit {
             48..=57 => Ok(value_u32 - 48 + 52),  // 0-9
             43 => Ok(62),                        // +
             47 => Ok(63),                        // /
-            _ => Err(GranaryError::InvalidTextualRepresentation),
+            _ => Err(GranaryError::InvalidTextualRepresentation(value.into())),
         }
     }
 
@@ -173,7 +180,7 @@ impl GranaryDigit {
     /// ```
     pub fn from_numeric(value: u32) -> Result<Self, GranaryError> {
         if !GranaryDigit::is_valid_numeric(value) {
-            Err(GranaryError::InvalidNumericRepresentation)
+            Err(GranaryError::InvalidNumericRepresentation(value))
         } else {
             Ok(Self(
                 u8::try_from(value).expect("we should have already returned"),

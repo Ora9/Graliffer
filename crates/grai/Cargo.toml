@@ -8,7 +8,7 @@ edition.workspace = true
 
 [dependencies]
 unicode-segmentation.workspace = true
-
+thiserror = "2.0.18"
 
 [lints]
 workspace = true
