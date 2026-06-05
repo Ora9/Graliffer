@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
 use unicode_segmentation::{Graphemes, UnicodeSegmentation};
 
@@ -41,7 +41,7 @@ pub enum PositionError {
     WrongFormat(String),
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Position {
     x: GranaryDigit,
     y: GranaryDigit,
@@ -414,5 +414,17 @@ impl TryFrom<&str> for Position {
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         Position::from_string(value)
+    }
+}
+
+impl Debug for Position {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Position (`{}`, ({}, {}))",
+            self.as_textual_string(),
+            self.x(),
+            self.y()
+        )
     }
 }
