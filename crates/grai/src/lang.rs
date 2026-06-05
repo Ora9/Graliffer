@@ -1,5 +1,5 @@
-mod syntax;
-pub use syntax::*;
+mod word;
+pub use word::*;
 
 mod grid;
 pub use grid::*;
