@@ -1,5 +1,6 @@
-use crate::{Direction, Position, PositionError};
+use crate::{Action, Direction, Position, PositionError, State};
 
+#[derive(Debug)]
 pub struct Head {
     pub position: Position,
     pub direction: Direction,
@@ -56,5 +57,32 @@ impl Head {
     pub fn step(&mut self) -> Result<(), PositionError> {
         self.position = self.position.checked_step(self.direction, 1)?;
         Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub enum HeadAction {
+    MoveTo(Position),
+    DirectTo(Direction),
+    Step,
+}
+
+impl Action for HeadAction {}
+
+impl State for Head {
+    type Action = HeadAction;
+
+    fn act(&mut self, action: &HeadAction) {
+        match action {
+            HeadAction::Step => {
+                self.step();
+            }
+            HeadAction::MoveTo(position) => {
+                self.move_to(*position);
+            }
+            HeadAction::DirectTo(direction) => {
+                self.direct_to(*direction);
+            }
+        };
     }
 }

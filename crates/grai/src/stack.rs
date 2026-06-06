@@ -1,4 +1,4 @@
-use crate::Operand;
+use crate::{Action, Operand, State};
 
 #[derive(Debug, Default)]
 pub struct Stack(Vec<Operand>);
@@ -23,4 +23,20 @@ impl Stack {
     // pub fn iter(&self) -> Iter<'_, Operand> {
     //     self.0.iter()
     // }
+}
+
+#[derive(Debug)]
+pub enum StackAction {
+    Push,
+    Pop,
+}
+
+impl Action for StackAction {}
+
+impl State for Stack {
+    type Action = StackAction;
+
+    fn act(&mut self, action: &Self::Action) {
+        dbg!("stackaction", action);
+    }
 }
