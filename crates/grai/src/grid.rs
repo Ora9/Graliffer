@@ -9,7 +9,7 @@ pub use position::*;
 mod direction;
 pub use direction::*;
 
-use crate::{Action, State};
+use crate::{Action, ActionBox, Revert, State};
 
 #[derive(Debug)]
 pub struct Grid(HashMap<Position, Cell>);
@@ -50,11 +50,13 @@ impl State for Grid {
     type Action = GridAction;
     type Error = ();
 
-    fn act(&mut self, action: &GridAction) -> Result<(), Self::Error> {
+    fn act(&mut self, action: &GridAction) -> Result<Revert, Self::Error> {
         match action {
             GridAction::Set(position, cell) => {
+                let last_cell = self.get(*position);
                 self.set(*position, cell.clone());
-                Ok(())
+
+                Ok(Revert::new(GridAction::Set(*position, last_cell)))
             }
         }
     }

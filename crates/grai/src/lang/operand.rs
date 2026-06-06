@@ -15,7 +15,7 @@ pub enum OperandError {
     InvalidPointer(#[source] PositionError),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Literal(Cell);
 
 impl Literal {
@@ -36,7 +36,7 @@ impl Literal {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Address(Position);
 
 impl Address {
@@ -63,7 +63,7 @@ impl Address {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Pointer(Position);
 
 impl Pointer {
@@ -90,7 +90,7 @@ impl Pointer {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Operand {
     Literal(Literal),
     Address(Address),

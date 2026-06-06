@@ -1,4 +1,4 @@
-use crate::{Action, Direction, Position, PositionError, State};
+use crate::{Action, Direction, Position, PositionError, Revert, State};
 
 #[derive(Debug)]
 pub struct Head {
@@ -73,19 +73,25 @@ impl State for Head {
     type Action = HeadAction;
     type Error = ();
 
-    fn act(&mut self, action: &HeadAction) -> Result<(), Self::Error> {
+    fn act(&mut self, action: &HeadAction) -> Result<Revert, Self::Error> {
         match action {
             HeadAction::Step => {
+                let last_pos = self.position;
                 self.step();
-                Ok(())
+
+                Ok(Revert::new(HeadAction::MoveTo(last_pos)))
             }
             HeadAction::MoveTo(position) => {
+                let last_pos = self.position;
                 self.move_to(*position);
-                Ok(())
+
+                Ok(Revert::new(HeadAction::MoveTo(last_pos)))
             }
             HeadAction::DirectTo(direction) => {
+                let last_dir = self.direction;
                 self.direct_to(*direction);
-                Ok(())
+
+                Ok(Revert::new(HeadAction::DirectTo(last_dir)))
             }
         }
     }

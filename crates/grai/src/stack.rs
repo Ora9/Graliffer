@@ -1,4 +1,4 @@
-use crate::{Action, Operand, State};
+use crate::{Action, ActionBox, Operand, Revert, State};
 
 #[derive(Debug, Default)]
 pub struct Stack(Vec<Operand>);
@@ -27,7 +27,7 @@ impl Stack {
 
 #[derive(Debug)]
 pub enum StackAction {
-    Push,
+    Push(Operand),
     Pop,
 }
 
@@ -37,8 +37,21 @@ impl State for Stack {
     type Action = StackAction;
     type Error = ();
 
-    fn act(&mut self, action: &Self::Action) -> Result<(), Self::Error> {
-        dbg!("stackaction", action);
-        Ok(())
+    fn act(&mut self, action: &StackAction) -> Result<Revert, Self::Error> {
+        match action {
+            StackAction::Push(operand) => {
+                self.push(operand.clone());
+                Ok(Revert::new(StackAction::Pop))
+            }
+            StackAction::Pop => {
+                let popped = self.pop();
+
+                if let Some(popped) = self.pop() {
+                    Ok(Revert::new(StackAction::Push(popped)))
+                } else {
+                    Ok(Revert::None)
+                }
+            }
+        }
     }
 }
