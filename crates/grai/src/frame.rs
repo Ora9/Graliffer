@@ -1,6 +1,6 @@
 use std::any::Any;
 
-use crate::{Action, Grid, Head, HeadAction, Stack, StackAction, State};
+use crate::{Action, Grid, GridAction, Head, HeadAction, Stack, StackAction, State};
 
 #[derive(Debug)]
 pub struct Frame {
@@ -17,8 +17,10 @@ impl Frame {
             self.head.act(head_action);
         } else if let Some(stack_action) = action.downcast_ref::<StackAction>() {
             self.stack.act(stack_action);
+        } else if let Some(grid_action) = action.downcast_ref::<GridAction>() {
+            self.grid.act(grid_action);
         } else {
-            dbg!("not");
+            eprintln!("unknown action");
         }
     }
 }

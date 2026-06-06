@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{any::Any, collections::HashMap};
 
 mod cell;
 pub use cell::*;
@@ -8,6 +8,8 @@ pub use position::*;
 
 mod direction;
 pub use direction::*;
+
+use crate::{Action, State};
 
 #[derive(Debug)]
 pub struct Grid(HashMap<Position, Cell>);
@@ -33,6 +35,25 @@ impl Grid {
             cell.clone()
         } else {
             Cell::default()
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum GridAction {
+    Set(Position, Cell),
+}
+
+impl Action for GridAction {}
+
+impl State for Grid {
+    type Action = GridAction;
+
+    fn act(&mut self, action: &Self::Action) {
+        match action {
+            GridAction::Set(position, cell) => {
+                self.set(*position, cell.clone());
+            }
         }
     }
 }
