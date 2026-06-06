@@ -48,11 +48,13 @@ impl Action for GridAction {}
 
 impl State for Grid {
     type Action = GridAction;
+    type Error = ();
 
-    fn act(&mut self, action: &Self::Action) {
+    fn act(&mut self, action: &GridAction) -> Result<(), Self::Error> {
         match action {
             GridAction::Set(position, cell) => {
                 self.set(*position, cell.clone());
+                Ok(())
             }
         }
     }

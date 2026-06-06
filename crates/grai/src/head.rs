@@ -71,18 +71,22 @@ impl Action for HeadAction {}
 
 impl State for Head {
     type Action = HeadAction;
+    type Error = ();
 
-    fn act(&mut self, action: &HeadAction) {
+    fn act(&mut self, action: &HeadAction) -> Result<(), Self::Error> {
         match action {
             HeadAction::Step => {
                 self.step();
+                Ok(())
             }
             HeadAction::MoveTo(position) => {
                 self.move_to(*position);
+                Ok(())
             }
             HeadAction::DirectTo(direction) => {
                 self.direct_to(*direction);
+                Ok(())
             }
-        };
+        }
     }
 }

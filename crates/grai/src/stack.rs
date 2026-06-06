@@ -35,8 +35,10 @@ impl Action for StackAction {}
 
 impl State for Stack {
     type Action = StackAction;
+    type Error = ();
 
-    fn act(&mut self, action: &Self::Action) {
+    fn act(&mut self, action: &Self::Action) -> Result<(), Self::Error> {
         dbg!("stackaction", action);
+        Ok(())
     }
 }
