@@ -11,7 +11,7 @@ fn main() -> Result<(), PositionError> {
         frame.head.position.checked_increment_x_by(5).unwrap(),
     ));
 
-    frame.act(GridAction::Set(frame.head.position, Cell::new_trim("pro")));
+    dbg!(frame.act(GridAction::Set(frame.head.position, Cell::new_trim("pro"))));
 
     dbg!(&frame);
     // grid.set(

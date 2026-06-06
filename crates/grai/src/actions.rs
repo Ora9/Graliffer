@@ -9,6 +9,7 @@ pub trait State {
 
 pub trait Action: Any + Debug {}
 
+#[derive(Debug)]
 pub enum Revert {
     Action(ActionBox),
     None,
@@ -20,6 +21,7 @@ impl Revert {
     }
 }
 
+#[derive(Debug)]
 pub enum ActionBox {
     None,
     Action(Box<dyn Action>),

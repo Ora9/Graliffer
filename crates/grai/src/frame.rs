@@ -1,4 +1,4 @@
-use std::any::Any;
+use std::any::{Any, type_name, type_name_of_val};
 
 use crate::{
     Action, ActionBox, Grid, GridAction, Head, HeadAction, Revert, Stack, StackAction, State,
@@ -12,6 +12,9 @@ pub enum FrameError {
     GridError,
     #[error("stack error")]
     StackError,
+
+    #[error("unknown action, found {0}")]
+    UnknownAction(String),
 }
 
 #[derive(Debug)]
@@ -23,6 +26,7 @@ pub struct Frame {
 
 impl Frame {
     pub fn act(&mut self, action: impl Action + 'static) -> Result<Revert, FrameError> {
+        let action_type_name = type_name_of_val(&action);
         let action = &action as &dyn Any;
 
         if let Some(head_action) = action.downcast_ref::<HeadAction>() {
@@ -38,8 +42,13 @@ impl Frame {
                 .act(grid_action)
                 .map_err(|_| FrameError::HeadError)
         } else {
-            eprintln!("unknown action");
-            panic!()
+            Err(FrameError::UnknownAction(
+                action_type_name
+                    .split("::")
+                    .last()
+                    .unwrap_or("unknown action")
+                    .to_string(),
+            ))
         }
     }
 }
