@@ -39,6 +39,12 @@ impl Grid {
     }
 }
 
+impl Default for Grid {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug)]
 pub enum GridAction {
     Set(Position, Cell),
