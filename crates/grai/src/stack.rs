@@ -1,4 +1,4 @@
-use crate::{Action, ActionBox, Operand, Revert, State};
+use crate::{Action, Apply, Operand, Revert, State};
 
 #[derive(Debug, Default)]
 pub struct Stack(Vec<Operand>);

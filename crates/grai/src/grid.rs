@@ -9,7 +9,7 @@ pub use position::*;
 mod direction;
 pub use direction::*;
 
-use crate::{Action, ActionBox, Revert, State};
+use crate::{Action, Apply, Revert, State};
 
 #[derive(Debug)]
 pub struct Grid(HashMap<Position, Cell>);

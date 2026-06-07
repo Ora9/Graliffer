@@ -1,8 +1,6 @@
 use std::any::{Any, type_name, type_name_of_val};
 
-use crate::{
-    Action, ActionBox, Grid, GridAction, Head, HeadAction, Revert, Stack, StackAction, State,
-};
+use crate::{Action, Apply, Grid, GridAction, Head, HeadAction, Revert, Stack, StackAction, State};
 
 #[derive(Debug, thiserror::Error)]
 pub enum FrameError {

@@ -11,24 +11,21 @@ pub trait Action: Any + Debug {}
 
 #[derive(Debug)]
 pub enum Revert {
-    Action(ActionBox),
+    Action(Apply),
     None,
 }
 
 impl Revert {
     pub fn new(action: impl Action) -> Self {
-        Self::Action(ActionBox::new(action))
+        Self::Action(Apply::new(action))
     }
 }
 
 #[derive(Debug)]
-pub enum ActionBox {
-    None,
-    Action(Box<dyn Action>),
-}
+pub struct Apply(Box<dyn Action>);
 
-impl ActionBox {
+impl Apply {
     pub fn new(action: impl Action) -> Self {
-        Self::Action(Box::new(action))
+        Self(Box::new(action))
     }
 }
