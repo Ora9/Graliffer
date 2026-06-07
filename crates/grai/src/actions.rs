@@ -45,7 +45,6 @@ pub struct Timeline<S>
 where
     S: State,
 {
-    // act: Box<dyn FnMut(&mut S, S::Action) -> Result<Revert, S::Error>>,
     state: Rc<RefCell<S>>,
 }
 
@@ -57,18 +56,6 @@ impl<S: State> Timeline<S> {
     pub fn test(&self, action: S::Action) -> Result<Revert, S::Error> {
         let mut state = self.state.try_borrow_mut().unwrap();
 
-        let r = state.act(&action);
-        dbg!(&state);
-
-        r
-        // state.act(S::Action::new
-
-        //     Box::new(crate::GridAction::Set(
-        //     Position::from_numeric(5, 20).unwrap(),
-        //     Cell::new_trim("yey"),
-        // )));
-
-        // self.act()
-        // panic!()
+        state.act(&action)
     }
 }

@@ -24,43 +24,11 @@ pub struct Frame {
     pub stack: Stack,
 }
 
-impl Frame {
-    // pub fn act(&mut self, action: impl Action + 'static) -> Result<Revert, FrameError> {
-    //     let action = &action as &dyn Any;
-
-    //     if let Some(head_action) = action.downcast_ref::<HeadAction>() {
-    //         self.head
-    //             .act(head_action)
-    //             .map_err(|_| FrameError::HeadError)
-    //     } else if let Some(stack_action) = action.downcast_ref::<StackAction>() {
-    //         self.stack
-    //             .act(stack_action)
-    //             .map_err(|_| FrameError::StackError)
-    //     } else if let Some(grid_action) = action.downcast_ref::<GridAction>() {
-    //         self.grid
-    //             .act(grid_action)
-    //             .map_err(|_| FrameError::HeadError)
-    //     } else {
-    //         Err(FrameError::UnknownAction(
-    //             action_type_name
-    //                 .split("::")
-    //                 .last()
-    //                 .unwrap_or("unknown action")
-    //                 .to_string(),
-    //         ))
-    //     }
-    // }
-}
-
 impl State for Frame {
     type Error = FrameError;
     type Action = Box<dyn Any>;
 
     fn act(&mut self, action: &Self::Action) -> Result<Revert, Self::Error> {
-        // let action_type_name = type_name_of_val(&action);
-
-        // dbg!(action_type_name);
-
         if let Some(head_action) = action.downcast_ref::<HeadAction>() {
             self.head
                 .act(head_action)
@@ -74,8 +42,6 @@ impl State for Frame {
                 .act(grid_action)
                 .map_err(|_| FrameError::HeadError)
         } else {
-            dbg!("pouet");
-
             Err(FrameError::UnknownAction(
                 type_name_of_val(action)
                     .split("::")

@@ -21,7 +21,7 @@ fn main() -> Result<(), PositionError> {
         )))
         .unwrap();
 
-    dbg!(&frame);
+    // dbg!(&frame);
 
     Ok(())
 }
