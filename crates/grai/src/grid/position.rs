@@ -399,8 +399,10 @@ impl Position {
         ))
     }
 
-    /// "Take a step"
-    /// TODO: docs
+    /// "Take a step" in the given [`Direction`]
+    ///
+    /// The top-left corner is [`Position::ORIGIN`] (0, 0) with `X` increasing to the right and `Y` increasing downwards
+    /// TODO: some tests
     #[must_use = "this returns the result of an operation, without modifying the original"]
     pub fn checked_step(&self, direction: Direction, value: u32) -> Result<Self, PositionError> {
         match direction {
