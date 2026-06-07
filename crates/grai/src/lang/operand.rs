@@ -52,7 +52,7 @@ impl Address {
             .strip_prefix(Self::PREFIX)
             .ok_or(OperandError::InvalidAddressFormat(cell.content()))?;
 
-        let pos = Position::from_string(pos).map_err(|err| OperandError::InvalidAddress(err))?;
+        let pos = Position::from_string(pos).map_err(OperandError::InvalidAddress)?;
 
         Ok(Self::from_position(pos))
     }
@@ -79,7 +79,7 @@ impl Pointer {
             .strip_prefix(Self::PREFIX)
             .ok_or(OperandError::InvalidPointerFormat(cell.content()))?;
 
-        let pos = Position::from_string(pos).map_err(|err| OperandError::InvalidPointer(err))?;
+        let pos = Position::from_string(pos).map_err(OperandError::InvalidPointer)?;
 
         Ok(Self::from_position(pos))
     }
