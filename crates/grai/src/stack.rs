@@ -4,18 +4,22 @@ use crate::{Action, Apply, Operand, Revert, State};
 pub struct Stack(Vec<Operand>);
 
 impl Stack {
+    /// Obtain a new empty `Stack`
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Add an operand at the top of the stack
     pub fn push(&mut self, operand: Operand) {
         self.0.push(operand);
     }
 
+    /// Remove the operand on top of the stack
     pub fn pop(&mut self) -> Option<Operand> {
         self.0.pop()
     }
 
+    /// Get the operand on top of the stack
     pub fn get_last(&self) -> Option<&Operand> {
         self.0.last()
     }
