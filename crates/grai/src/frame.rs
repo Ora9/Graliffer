@@ -1,6 +1,8 @@
 use std::any::{Any, type_name, type_name_of_val};
 
-use crate::{Action, Apply, Grid, GridAction, Head, HeadAction, Revert, Stack, StackAction, State};
+use crate::{
+    Action, ActionBox, Apply, Grid, GridAction, Head, HeadAction, Revert, Stack, StackAction, State,
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum FrameError {
@@ -23,9 +25,41 @@ pub struct Frame {
 }
 
 impl Frame {
-    pub fn act(&mut self, action: impl Action + 'static) -> Result<Revert, FrameError> {
-        let action_type_name = type_name_of_val(&action);
-        let action = &action as &dyn Any;
+    // pub fn act(&mut self, action: impl Action + 'static) -> Result<Revert, FrameError> {
+    //     let action = &action as &dyn Any;
+
+    //     if let Some(head_action) = action.downcast_ref::<HeadAction>() {
+    //         self.head
+    //             .act(head_action)
+    //             .map_err(|_| FrameError::HeadError)
+    //     } else if let Some(stack_action) = action.downcast_ref::<StackAction>() {
+    //         self.stack
+    //             .act(stack_action)
+    //             .map_err(|_| FrameError::StackError)
+    //     } else if let Some(grid_action) = action.downcast_ref::<GridAction>() {
+    //         self.grid
+    //             .act(grid_action)
+    //             .map_err(|_| FrameError::HeadError)
+    //     } else {
+    //         Err(FrameError::UnknownAction(
+    //             action_type_name
+    //                 .split("::")
+    //                 .last()
+    //                 .unwrap_or("unknown action")
+    //                 .to_string(),
+    //         ))
+    //     }
+    // }
+}
+
+impl State for Frame {
+    type Error = FrameError;
+    type Action = Box<dyn Any>;
+
+    fn act(&mut self, action: &Self::Action) -> Result<Revert, Self::Error> {
+        // let action_type_name = type_name_of_val(&action);
+
+        // dbg!(action_type_name);
 
         if let Some(head_action) = action.downcast_ref::<HeadAction>() {
             self.head
@@ -40,8 +74,10 @@ impl Frame {
                 .act(grid_action)
                 .map_err(|_| FrameError::HeadError)
         } else {
+            dbg!("pouet");
+
             Err(FrameError::UnknownAction(
-                action_type_name
+                type_name_of_val(action)
                     .split("::")
                     .last()
                     .unwrap_or("unknown action")

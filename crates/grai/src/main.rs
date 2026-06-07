@@ -1,25 +1,27 @@
-use grai::{Cell, Frame, Grid, GridAction, Head, HeadAction, Position, PositionError, Stack};
+use std::{cell::RefCell, rc::Rc};
+
+use grai::{
+    ActionBox, Cell, Frame, Grid, GridAction, Head, HeadAction, Position, PositionError, Stack,
+    Timeline,
+};
 
 fn main() -> Result<(), PositionError> {
-    let mut frame = Frame {
+    let mut frame = Rc::new(RefCell::new(Frame {
         grid: Grid::new(),
         head: Head::default(),
         stack: Stack::default(),
-    };
+    }));
 
-    frame.act(HeadAction::MoveTo(
-        frame.head.position.checked_increment_x_by(5).unwrap(),
-    ));
+    let timeline = Timeline::new(frame.clone());
 
-    dbg!(frame.act(GridAction::Set(frame.head.position, Cell::new_trim("pro"))));
+    timeline
+        .test(Box::new(GridAction::Set(
+            Position::from_numeric(5, 8).unwrap(),
+            Cell::new_trim("yey"),
+        )))
+        .unwrap();
 
     dbg!(&frame);
-    // grid.set(
-    //     Position::from_numeric(50, 0).unwrap(),
-    //     Cell::new_trim("ouinon"),
-    // );
-
-    // dbg!(grid);
 
     Ok(())
 }
