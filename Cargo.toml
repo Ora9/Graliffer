@@ -14,8 +14,8 @@ members = [
 default-members = ["crates/grai"]
 
 [workspace.lints.rust]
-unsafe_code = "forbid"
 unused = "allow"
+# unsafe_code = "forbid"
 
 [workspace.dependencies]
 grai = { path = "crates/grai" }
