@@ -1,7 +1,7 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{any::Any, cell::RefCell, rc::Rc};
 
 use grai::{
-    ActionBox, Cell, Frame, Grid, GridAction, Head, HeadAction, Position, PositionError, Stack,
+    AnyAction, Cell, Frame, Grid, GridAction, Head, HeadAction, Position, PositionError, Stack,
     Timeline,
 };
 
@@ -12,14 +12,12 @@ fn main() -> Result<(), PositionError> {
         stack: Stack::default(),
     }));
 
-    let timeline = Timeline::new(frame.clone());
+    let mut timeline = Timeline::new(frame.clone());
 
-    timeline
-        .test(Box::new(GridAction::Set(
-            Position::from_numeric(5, 8).unwrap(),
-            Cell::new_trim("yey"),
-        )))
-        .unwrap();
+    timeline.act(AnyAction::new(GridAction::Set(
+        Position::from_numeric(5, 8).unwrap(),
+        Cell::new_trim("yey"),
+    )));
 
     // dbg!(&frame);
 

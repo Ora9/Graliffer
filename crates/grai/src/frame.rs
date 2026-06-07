@@ -1,7 +1,7 @@
-use std::any::{Any, type_name, type_name_of_val};
+use std::any::type_name_of_val;
 
 use crate::{
-    Action, ActionBox, Apply, Grid, GridAction, Head, HeadAction, Revert, Stack, StackAction, State,
+    Action, AnyAction, Apply, Grid, GridAction, Head, HeadAction, Revert, Stack, StackAction, State,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -26,7 +26,7 @@ pub struct Frame {
 
 impl State for Frame {
     type Error = FrameError;
-    type Action = Box<dyn Any>;
+    type Action = AnyAction;
 
     fn act(&mut self, action: &Self::Action) -> Result<Revert, Self::Error> {
         if let Some(head_action) = action.downcast_ref::<HeadAction>() {
