@@ -1,6 +1,23 @@
-#[derive(Debug, Default)]
+use crate::ui::Console;
+
+#[derive(Debug)]
 pub struct App {
-    pub should_quit: bool,
+    pub should_run: bool,
+
+    pub console: Console,
+
+    pub focused: Focused,
+}
+
+impl Default for App {
+    fn default() -> Self {
+        Self {
+            should_run: true,
+            focused: Focused::Grid,
+
+            console: Console::new(),
+        }
+    }
 }
 
 impl App {
@@ -13,6 +30,13 @@ impl App {
 
     /// Set should_quit to true to quit the application.
     pub fn quit(&mut self) {
-        self.should_quit = true;
+        self.should_run = false;
     }
+}
+
+#[derive(Debug)]
+pub enum Focused {
+    Grid,
+    Stack,
+    Console,
 }

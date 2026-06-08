@@ -2,8 +2,8 @@ use std::{io, panic};
 
 use color_eyre::Result;
 use ratatui::crossterm::{
+    self,
     event::{DisableMouseCapture, EnableMouseCapture},
-    execute,
     terminal::{self, EnterAlternateScreen, LeaveAlternateScreen},
 };
 
@@ -33,10 +33,8 @@ impl Tui {
     /// It enables the raw mode and sets terminal properties.
     pub fn enter(&mut self) -> Result<()> {
         terminal::enable_raw_mode()?;
-        execute!(io::stderr(), EnterAlternateScreen, EnableMouseCapture)?;
+        crossterm::execute!(io::stdout(), EnterAlternateScreen, EnableMouseCapture)?;
 
-        // Define a custom panic hook to reset the terminal properties.
-        // This way, you won't have your terminal messed up if an unexpected error happens.
         let panic_hook = panic::take_hook();
         panic::set_hook(Box::new(move |panic| {
             Self::reset().expect("failed to reset the terminal");
@@ -63,7 +61,7 @@ impl Tui {
     /// the terminal properties if unexpected errors occur.
     fn reset() -> Result<()> {
         terminal::disable_raw_mode()?;
-        execute!(io::stderr(), LeaveAlternateScreen, DisableMouseCapture)?;
+        crossterm::execute!(io::stdout(), LeaveAlternateScreen, DisableMouseCapture)?;
         Ok(())
     }
 

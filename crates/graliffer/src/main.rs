@@ -27,7 +27,7 @@ fn main() -> Result<()> {
     let mut tui = Tui::new(terminal, events);
     tui.enter()?;
 
-    while !app.should_quit {
+    while app.should_run {
         tui.draw(&mut app)?;
 
         match tui.events.next()? {
