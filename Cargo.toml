@@ -8,8 +8,9 @@ edition = "2024"
 [workspace]
 resolver = "2"
 members = [
-    "crates/graliffer",     # Graliffer tui
-    "crates/grai",          # Graliffer interpreter
+    "crates/graliffer",         # Graliffer tui
+    "crates/grai",              # Graliffer interpreter
+    "crates/graliffer_archive" # An archive of the first graliffer impl
 ]
 default-members = ["crates/grai"]
 

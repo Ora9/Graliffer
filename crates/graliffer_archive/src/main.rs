@@ -1,4 +1,4 @@
-use graliffer::Editor;
+use graliffer_archive::Editor;
 
 fn main() {
     let native_options = eframe::NativeOptions::default();
