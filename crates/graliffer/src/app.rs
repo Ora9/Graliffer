@@ -1,3 +1,5 @@
+use std::ops::AddAssign;
+
 use crate::ui::{Console, ConsoleState};
 
 #[derive(Debug)]
@@ -23,7 +25,9 @@ impl App {
     }
 
     /// Handles the tick event of the terminal.
-    pub fn tick(&self) {}
+    pub fn tick(&mut self) {
+        self.console_state.scroll_offset = self.console_state.scroll_offset.wrapping_add(1);
+    }
 
     /// Set should_quit to true to quit the application.
     pub fn quit(&mut self) {

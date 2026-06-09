@@ -22,9 +22,9 @@ use crate::app;
 
 #[derive(Debug)]
 pub struct ConsoleState {
-    content: Vec<String>,
-    scrollbar_interaction: ScrollBarInteraction,
-    scroll_offset: usize,
+    pub(crate) content: Vec<String>,
+    pub(crate) scrollbar_interaction: ScrollBarInteraction,
+    pub(crate) scroll_offset: usize,
 }
 
 impl ConsoleState {
@@ -106,6 +106,7 @@ impl StatefulWidget for Console {
         let scrollbar = ScrollBar::vertical(scroll_lengths)
             .track_style(Style::new().bg(Color::Reset))
             .arrow_style(Style::new().bg(Color::Reset))
+            .thumb_style(Style::new().bg(Color::Reset))
             .glyph_set(glyph_set)
             .arrows(ScrollBarArrows::Both)
             .offset(state.scroll_offset);
