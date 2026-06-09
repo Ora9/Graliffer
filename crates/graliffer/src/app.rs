@@ -1,4 +1,7 @@
-use std::ops::AddAssign;
+use std::{iter, ops::AddAssign};
+
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent};
+use rand::seq::SliceRandom;
 
 use crate::ui::{Console, ConsoleState};
 
@@ -11,11 +14,26 @@ pub struct App {
 
 impl Default for App {
     fn default() -> Self {
-        Self {
+        let mut app = Self {
             should_run: true,
             focused: Focused::Grid,
-            console_state: ConsoleState::new(15),
+            console_state: ConsoleState::new(1000),
+        };
+
+        let mut rng = rand::rng();
+        let phrase = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.".to_string();
+
+        let mut shuffler = || {
+            let mut phrase = phrase.split(" ").collect::<Vec<&str>>();
+            phrase.shuffle(&mut rng);
+            phrase.join(" ").to_string()
+        };
+
+        for i in 0..100 {
+            app.console_state.append_line(shuffler());
         }
+
+        app
     }
 }
 
@@ -26,9 +44,27 @@ impl App {
 
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {
-        self.console_state.scroll_down_by(1);
+        // self.console_state.scroll_down_by(1);
 
         // self.console_state.scroll_offset = self.console_state.scroll_offset.wrapping_add(1);
+    }
+
+    pub fn handle_key_events(&mut self, key_event: KeyEvent) {
+        match key_event.code {
+            KeyCode::Esc | KeyCode::Char('q') => self.quit(),
+            KeyCode::Char('c') | KeyCode::Char('C')
+                if key_event.modifiers == KeyModifiers::CONTROL =>
+            {
+                self.quit()
+            }
+            // KeyCode::Right | KeyCode::Char('j') => app.increment_counter(),
+            // KeyCode::Left | KeyCode::Char('k') => app.decrement_counter(),
+            _ => {}
+        };
+    }
+
+    pub fn handle_mouse_event(&mut self, mouse_event: MouseEvent) {
+        self.console_state.handle_mouse_event(mouse_event);
     }
 
     /// Set should_quit to true to quit the application.

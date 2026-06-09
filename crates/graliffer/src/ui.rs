@@ -56,7 +56,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
 
     let grid_inner_area = grid_area.inner(Margin::from(1));
 
-    let dbg_paragraph = Paragraph::new(format!("{:#?}", app.console_state));
+    let dbg_paragraph = Paragraph::new(format!("{:#?}", app.console_state.layouts()));
 
     dbg_paragraph.render(grid_inner_area, frame.buffer_mut());
 

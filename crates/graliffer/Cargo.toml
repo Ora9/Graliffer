@@ -11,7 +11,9 @@ color-eyre = "0.6.3"
 crossterm = "0.29.0"
 ratatui = "0.30.1"
 # tui-scrollview = "0.6.4"
-tui-scrollbar = "0.2.4"
+tui-scrollbar = { version = "0.2.4", features = ["crossterm"] }
+# tui-logger = { version = "0.18.2", features = ["crossterm"] }
+# log = "0.4.32"
 lipsum = "0.9"
 rand = { version = "0.10.1", features = ["thread_rng"] }
 

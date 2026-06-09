@@ -11,14 +11,17 @@ pub mod ui;
 
 pub mod tui;
 use tui::Tui;
-
-pub mod update;
-use update::update;
+// use logger::TuiLoggerFile;
 
 fn main() -> Result<()> {
     let mut app = App::new();
 
     color_eyre::install()?;
+
+    // tui_logger::init_logger(log::LevelFilter::Trace)?;
+
+    // tui_logger::set_default_level(log::LevelFilter::Trace);
+    // tui_logger::set_log_file(TuiLoggerFile::new("/tmp/graliffer_log_file.txt"));
 
     let backend = CrosstermBackend::new(std::io::stderr());
     let terminal = Terminal::new(backend)?;
@@ -34,8 +37,10 @@ fn main() -> Result<()> {
             Event::Tick => {
                 app.tick();
             }
-            Event::Key(key_event) => update(&mut app, key_event),
-            Event::Mouse(_) => {}
+            Event::Key(key_event) => app.handle_key_events(key_event),
+            Event::Mouse(mouse_event) => {
+                app.handle_mouse_event(mouse_event);
+            }
             Event::Resize(_, _) => {}
         };
     }
