@@ -1,11 +1,9 @@
-use crate::ui::Console;
+use crate::ui::{Console, ConsoleState};
 
 #[derive(Debug)]
 pub struct App {
     pub should_run: bool,
-
-    pub console: Console,
-
+    pub console_state: ConsoleState,
     pub focused: Focused,
 }
 
@@ -14,8 +12,7 @@ impl Default for App {
         Self {
             should_run: true,
             focused: Focused::Grid,
-
-            console: Console::new(),
+            console_state: ConsoleState::new(),
         }
     }
 }

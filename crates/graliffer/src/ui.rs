@@ -4,7 +4,7 @@ use ratatui::{
     style::{Color, Style, Stylize},
     symbols::merge::MergeStrategy,
     text::{Line, Span},
-    widgets::{Block, BorderType, Borders, Paragraph},
+    widgets::{Block, BorderType, Borders, Paragraph, Widget},
 };
 
 use crate::app::App;
@@ -71,7 +71,8 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         stack,
     );
 
-    app.console.render(frame, output);
+    frame.render_stateful_widget(Console::new(), output, &mut app.console_state);
+    // app.console.render(frame, output);
 
     // frame.render_widget(
     //     Block::bordered()
