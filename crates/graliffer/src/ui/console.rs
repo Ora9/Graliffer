@@ -1,4 +1,4 @@
-use std::iter;
+use std::{iter, ops::AddAssign};
 
 use rand::seq::{IteratorRandom, SliceRandom};
 use ratatui::{
@@ -22,30 +22,139 @@ use crate::app;
 
 #[derive(Debug)]
 pub struct ConsoleState {
-    pub(crate) content: Vec<String>,
-    pub(crate) scrollbar_interaction: ScrollBarInteraction,
-    pub(crate) scroll_offset: usize,
+    max_line_history: usize,
+    stick_to_bottom: bool,
+
+    content: Vec<String>,
+
+    // Scroll offset from the bottom
+    scroll_offset: usize,
+    content_area_height: Option<usize>,
+
+    scrollbar_interaction: ScrollBarInteraction,
 }
 
 impl ConsoleState {
-    pub fn new() -> Self {
-        let phrase = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.".to_string();
+    pub fn new(line_history: usize) -> Self {
+        let mut state = Self {
+            max_line_history: line_history,
+            stick_to_bottom: true,
+
+            content: Vec::new(),
+
+            scroll_offset: 0,
+            content_area_height: None,
+
+            scrollbar_interaction: ScrollBarInteraction::default(),
+        };
 
         let mut rng = rand::rng();
+        let phrase = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.".to_string();
+
+        let mut line_number = 0;
 
         let shuffler = || {
             let mut phrase = phrase.split(" ").collect::<Vec<&str>>();
             phrase.shuffle(&mut rng);
-            phrase.join(" ").to_string()
+
+            line_number.add_assign(1);
+
+            format!("{} {}", line_number, phrase.join(" "))
         };
+
         let content = iter::repeat_with(shuffler)
             .take(100)
             .collect::<Vec<String>>();
 
-        Self {
-            content,
-            scroll_offset: 0,
-            scrollbar_interaction: ScrollBarInteraction::default(),
+        state.set_content(content);
+
+        state
+    }
+
+    fn apply_max_history(&mut self) {
+        self.content
+            .drain(..(self.content.len() - self.max_line_history));
+    }
+
+    pub fn need_scroll(&self) -> bool {
+        match self.content_area_height {
+            Some(content_area_height) => self.lines() > content_area_height,
+            None => false,
+        }
+    }
+
+    /// Is `0` when self.need_scroll() is `false` (when content does not exceed the container)
+    pub fn max_scroll(&self) -> usize {
+        self.lines()
+            .saturating_sub(self.content_area_height.unwrap_or(0))
+    }
+
+    pub fn at_top(&self) -> bool {
+        self.scroll_offset == 0
+    }
+
+    pub fn at_bottom(&self) -> bool {
+        self.scroll_offset == self.max_scroll()
+    }
+
+    pub fn content(&self) -> &Vec<String> {
+        &self.content
+    }
+
+    pub fn lines(&self) -> usize {
+        self.content.len()
+    }
+
+    pub fn set_content(&mut self, mut content: Vec<String>) {
+        self.content = content;
+        self.apply_max_history();
+
+        if self.stick_to_bottom {
+            self.scroll_to_bottom();
+        }
+    }
+
+    pub fn append_line(&mut self, line: String) {
+        self.content.insert(0, line);
+        self.apply_max_history();
+
+        if self.stick_to_bottom {
+            self.scroll_to_bottom();
+        }
+    }
+
+    pub fn append_string(&mut self, string: String) {
+        if let Some(mut last_line) = self.content.first_mut() {
+            last_line.push_str(&string);
+        } else {
+            self.append_line(string);
+        }
+    }
+
+    pub fn scroll_to_bottom(&mut self) {
+        if self.need_scroll() {
+            self.scroll_offset = self.max_scroll();
+        }
+    }
+
+    /// Scroll to bottom, and stay at the bottom (continue scrolling on new content)
+    pub fn stick_to_bottom(&mut self) {
+        self.stick_to_bottom = true;
+        self.scroll_to_bottom();
+    }
+
+    pub fn scroll_down_by(&mut self, lines: usize) {
+        if self.need_scroll() {
+            self.scroll_offset = self
+                .scroll_offset
+                .saturating_add(lines)
+                .min(self.max_scroll());
+        }
+    }
+
+    pub fn scroll_up_by(&mut self, lines: usize) {
+        if self.need_scroll() {
+            self.scroll_offset = self.scroll_offset.saturating_sub(lines).max(0);
         }
     }
 }
@@ -89,40 +198,11 @@ impl StatefulWidget for Console {
             Constraint::Length(1),
         ]));
 
-        let scroll_lengths = ScrollLengths {
-            content_len: state.content.len(),
-            viewport_len: content_area.height as usize,
-        };
+        let content_len = state.lines();
+        let content_area_height = content_area.height as usize;
 
-        // let scroll_metrics =
-        //     ScrollMetrics::new(scroll_lengths, state.scroll_offset, content_area.height);
-
-        let glyph_set = GlyphSet {
-            arrow_vertical_start: '↑',
-            arrow_vertical_end: '↓',
-            ..Default::default()
-        };
-
-        let scrollbar = ScrollBar::vertical(scroll_lengths)
-            .track_style(Style::new().bg(Color::Reset))
-            .arrow_style(Style::new().bg(Color::Reset))
-            .thumb_style(Style::new().bg(Color::Reset))
-            .glyph_set(glyph_set)
-            .arrows(ScrollBarArrows::Both)
-            .offset(state.scroll_offset);
-
-        // .render_widget(&vertical, vertical_bar);
-        // let vertical_lengths = ScrollLengths {
-        //     content_len: v_metrics.content_len(),
-        //     viewport_len: v_metrics.viewport_len(),
-        // };
-        // let vertical = ScrollBar::vertical(vertical_lengths)
-        //     .arrows(ScrollBarArrows::Both)
-        //     .offset(self.vertical_offset)
-        //     .scroll_step(SUBCELL)
-        //     .track_style(track_style)
-        //     .thumb_style(thumb_style)
-        //     .arrow_style(arrow_style);
+        // Update content_area_height based on the widget height
+        state.content_area_height = Some(content_area_height);
 
         let content_lines = state
             .content
@@ -130,11 +210,6 @@ impl StatefulWidget for Console {
             .skip(state.scroll_offset)
             .take(content_area.height as usize)
             .cloned();
-        // .clone();
-        // .collect::<String>();
-
-        // let paragraph = Paragraph::new(content_lines.lines().count().to_string());
-        // let paragraph = Paragraph::new(content_lines.to_string());
 
         let paragraph = Paragraph::new(Text::from(
             content_lines
@@ -142,27 +217,30 @@ impl StatefulWidget for Console {
                 .unwrap_or("".to_string()),
         ));
 
-        // let mut scroll_view = ScrollView::new(Size {
-        //     width: inner_area.width,
-        //     height: content_lines as u16,
-        // })
-        // .horizontal_scrollbar_visibility(ScrollbarVisibility::Never);
-
-        // scroll_view.render(inner_area, buf, &mut state.scrollview_state);
-
         paragraph.render(content_area, buf);
-        scrollbar.render(scrollbar_area, buf);
         block.render(area, buf);
+
+        if content_len > content_area_height {
+            let scroll_lengths = ScrollLengths {
+                content_len,
+                viewport_len: content_area_height,
+            };
+
+            let glyph_set = GlyphSet {
+                arrow_vertical_start: '↑',
+                arrow_vertical_end: '↓',
+                ..Default::default()
+            };
+
+            let scrollbar = ScrollBar::vertical(scroll_lengths)
+                .track_style(Style::new().bg(Color::Reset))
+                .arrow_style(Style::new().bg(Color::Reset))
+                .thumb_style(Style::new().bg(Color::Reset))
+                .glyph_set(glyph_set)
+                .arrows(ScrollBarArrows::Both)
+                .offset(state.scroll_offset);
+
+            scrollbar.render(scrollbar_area, buf);
+        }
     }
 }
-//     pub fn render(&self, frame: &mut Frame, area: Rect) {
-
-//         // frame.render_widget(
-//         //     Paragraph::new(content).scroll((
-//         //         vertical.get_position() as u16,
-//         //         horizontal.get_position() as u16,
-//         //     )),
-//         //     area,
-//         // );
-//     }
-// }

@@ -1,6 +1,6 @@
 use ratatui::{
     Frame,
-    layout::{Alignment, Constraint, Direction, Layout, Spacing},
+    layout::{Alignment, Constraint, Direction, Layout, Margin, Spacing},
     style::{Color, Style, Stylize},
     symbols::merge::MergeStrategy,
     text::{Line, Span},
@@ -20,42 +20,45 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         &Layout::vertical(vec![Constraint::Fill(1), Constraint::Percentage(20)])
             .spacing(Spacing::Overlap(1)),
     );
-    let [grid, stack] = editor.layout(
+    let [grid_area, stack] = editor.layout(
         &Layout::horizontal(vec![Constraint::Fill(1), Constraint::Percentage(20)])
             .spacing(Spacing::Overlap(1)),
     );
 
-    frame.render_widget(
-        Block::bordered()
-            .border_type(BorderType::Rounded)
-            .title(Line::from(vec![
+    let grid_block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .title(Line::from(vec![
+            "┤".into(),
+            "¹".blue().into(),
+            "Grid".into(),
+            "├".into(),
+        ]))
+        .title(
+            Line::from(vec![
                 "┤".into(),
-                "¹".blue().into(),
-                "Grid".into(),
+                "²".blue().into(),
+                "Stack".into(),
                 "├".into(),
-            ]))
-            .title(
-                Line::from(vec![
-                    "┤".into(),
-                    "²".blue().into(),
-                    "Stack".into(),
-                    "├".into(),
-                ])
-                .alignment(Alignment::Center),
-            )
-            .title(
-                Line::from(vec![
-                    "┤".into(),
-                    "²".blue().into(),
-                    "Stack".into(),
-                    "├".into(),
-                ])
-                .alignment(Alignment::Center),
-            ),
-        // .title_bottom("prout"),
-        // Paragraph::new("Grid").block(Block::new().borders(Borders::all())),
-        grid,
-    );
+            ])
+            .alignment(Alignment::Center),
+        )
+        .title(
+            Line::from(vec![
+                "┤".into(),
+                "²".blue().into(),
+                "Stack".into(),
+                "├".into(),
+            ])
+            .alignment(Alignment::Center),
+        );
+
+    grid_block.render(grid_area, frame.buffer_mut());
+
+    let grid_inner_area = grid_area.inner(Margin::from(1));
+
+    let dbg_paragraph = Paragraph::new(format!("{:#?}", app.console_state));
+
+    dbg_paragraph.render(grid_inner_area, frame.buffer_mut());
 
     frame.render_widget(
         Block::bordered()
