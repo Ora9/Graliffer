@@ -5,7 +5,7 @@ use ratatui::{
     Frame,
     buffer::Buffer,
     layout::{Alignment, Constraint, Layout, Margin, Rect, Size},
-    style::Stylize,
+    style::{Color, Style, Stylize},
     symbols::merge::MergeStrategy,
     text::{Line, Text},
     widgets::{
@@ -14,7 +14,9 @@ use ratatui::{
 };
 // use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
-use tui_scrollbar::{ScrollBar, ScrollBarInteraction, ScrollLengths, ScrollMetrics};
+use tui_scrollbar::{
+    GlyphSet, ScrollBar, ScrollBarArrows, ScrollBarInteraction, ScrollLengths, ScrollMetrics,
+};
 
 use crate::app;
 
@@ -95,7 +97,18 @@ impl StatefulWidget for Console {
         // let scroll_metrics =
         //     ScrollMetrics::new(scroll_lengths, state.scroll_offset, content_area.height);
 
-        let scrollbar = ScrollBar::vertical(scroll_lengths).offset(state.scroll_offset);
+        let glyph_set = GlyphSet {
+            arrow_vertical_start: '↑',
+            arrow_vertical_end: '↓',
+            ..Default::default()
+        };
+
+        let scrollbar = ScrollBar::vertical(scroll_lengths)
+            .track_style(Style::new().bg(Color::Reset))
+            .arrow_style(Style::new().bg(Color::Reset))
+            .glyph_set(glyph_set)
+            .arrows(ScrollBarArrows::Both)
+            .offset(state.scroll_offset);
 
         // .render_widget(&vertical, vertical_bar);
         // let vertical_lengths = ScrollLengths {
