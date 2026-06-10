@@ -450,25 +450,3 @@ impl Debug for Position {
         )
     }
 }
-
-// impl Serialize for Position {
-//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-//     where
-//         S: Serializer,
-//     {
-//         serializer.serialize_str(self.as_textual_string().as_str())
-//     }
-// }
-
-// impl Deserialize for Position {
-//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-//     where
-//         D: serde::Deserializer<'de>,
-//     {
-//         enum Fields {
-//             X,
-//             Y,
-//         };
-
-//     }
-// }
