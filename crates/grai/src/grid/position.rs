@@ -1,5 +1,6 @@
 use std::fmt::{Debug, Display};
 
+use serde::{Deserialize, Serialize, Serializer};
 use unicode_segmentation::{Graphemes, UnicodeSegmentation};
 
 use crate::{
@@ -34,7 +35,9 @@ pub enum PositionError {
     WrongFormat(String),
 }
 
-#[derive(Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(try_from = "String")]
+#[serde(into = "String")]
 pub struct Position {
     x: GranaryDigit,
     y: GranaryDigit,
@@ -422,6 +425,20 @@ impl TryFrom<&str> for Position {
     }
 }
 
+impl TryFrom<String> for Position {
+    type Error = PositionError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Position::from_string(&value)
+    }
+}
+
+impl From<Position> for String {
+    fn from(value: Position) -> Self {
+        value.as_textual_string()
+    }
+}
+
 impl Debug for Position {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -433,3 +450,25 @@ impl Debug for Position {
         )
     }
 }
+
+// impl Serialize for Position {
+//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+//     where
+//         S: Serializer,
+//     {
+//         serializer.serialize_str(self.as_textual_string().as_str())
+//     }
+// }
+
+// impl Deserialize for Position {
+//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+//     where
+//         D: serde::Deserializer<'de>,
+//     {
+//         enum Fields {
+//             X,
+//             Y,
+//         };
+
+//     }
+// }

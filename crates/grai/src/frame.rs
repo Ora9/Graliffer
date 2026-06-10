@@ -1,5 +1,7 @@
 use std::any::type_name_of_val;
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
     Action, AnyAction, Apply, Grid, GridAction, Head, HeadAction, Revert, Stack, StackAction, State,
 };
@@ -17,7 +19,7 @@ pub enum FrameError {
     UnknownAction(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Frame {
     pub head: Head,
     pub grid: Grid,

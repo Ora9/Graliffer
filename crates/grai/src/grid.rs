@@ -8,10 +8,11 @@ pub use position::*;
 
 mod direction;
 pub use direction::*;
+use serde::{Deserialize, Serialize};
 
 use crate::{Action, Apply, Revert, State};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Grid(HashMap<Position, Cell>);
 
 impl Grid {

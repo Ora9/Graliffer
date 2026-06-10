@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::{Cell, Position, PositionError};
 
 #[derive(Debug, thiserror::Error)]
@@ -15,7 +17,7 @@ pub enum OperandError {
     InvalidPointer(#[source] PositionError),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Literal(Cell);
 
 impl Literal {
@@ -36,7 +38,7 @@ impl Literal {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Address(Position);
 
 impl Address {
@@ -63,7 +65,7 @@ impl Address {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Pointer(Position);
 
 impl Pointer {
@@ -90,7 +92,7 @@ impl Pointer {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Operand {
     Literal(Literal),
     Address(Address),

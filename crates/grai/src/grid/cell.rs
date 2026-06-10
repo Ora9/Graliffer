@@ -1,6 +1,7 @@
+use serde::{Deserialize, Serialize};
 use unicode_segmentation::UnicodeSegmentation;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Cell(String);
 
 pub struct TooBig;

@@ -11,6 +11,8 @@
 
 use std::fmt::Debug;
 
+use serde::{Deserialize, Serialize};
+
 #[derive(Debug, thiserror::Error)]
 pub enum GranaryError {
     #[error("invalid numeric representation, expected to be in range [0-63], found `{0}`")]
@@ -46,7 +48,7 @@ pub enum GranaryError {
 /// let pos = GranaryDigit::from_numeric(51).unwrap();
 /// assert_eq!(pos.as_textual(), 'z');
 /// ```
-#[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct GranaryDigit(u8);
 
 impl GranaryDigit {
