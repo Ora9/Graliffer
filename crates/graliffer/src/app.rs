@@ -4,12 +4,13 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent};
 use rand::seq::SliceRandom;
 use ratatui::layout::Position;
 
-use crate::ui::{Console, ConsoleState};
+use crate::ui::{Console, ConsoleState, GridState};
 
 #[derive(Debug)]
 pub struct App {
     pub should_run: bool,
     pub console_state: ConsoleState,
+    pub grid_state: GridState,
     pub focused: Focused,
 }
 
@@ -19,6 +20,7 @@ impl Default for App {
             should_run: true,
             focused: Focused::Grid,
             console_state: ConsoleState::new(1000),
+            grid_state: GridState::new(),
         };
 
         let mut rng = rand::rng();
