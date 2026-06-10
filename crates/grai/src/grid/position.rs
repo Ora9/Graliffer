@@ -450,3 +450,9 @@ impl Debug for Position {
         )
     }
 }
+
+impl Default for Position {
+    fn default() -> Self {
+        Self::ORIGIN
+    }
+}
