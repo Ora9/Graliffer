@@ -1,17 +1,11 @@
-use std::{iter, ops::AddAssign};
-
 use crossterm::event::MouseEvent;
-use rand::seq::{IteratorRandom, SliceRandom};
 use ratatui::{
-    Frame,
     buffer::Buffer,
-    layout::{Alignment, Constraint, Layout, Margin, Rect, Size},
+    layout::{Alignment, Constraint, Layout, Margin, Rect},
     style::{Color, Style, Stylize},
     symbols::merge::MergeStrategy,
     text::{Line, Text},
-    widgets::{
-        Block, BorderType, GraphType::Area, Paragraph, ScrollbarState, StatefulWidget, Widget,
-    },
+    widgets::{Block, BorderType, Paragraph, StatefulWidget, Widget},
 };
 
 use tui_scrollbar::{
@@ -48,11 +42,43 @@ impl ConsoleState {
             scrollbar_interaction: ScrollBarInteraction::default(),
         }
     }
-}
 
-impl ConsoleState {
     pub fn layouts(&self) -> Option<ConsoleLayout> {
         self.layouts
+    }
+
+    pub fn max_line_history(&self) -> usize {
+        self.max_line_history
+    }
+
+    pub fn content(&self) -> &Vec<String> {
+        &self.content
+    }
+
+    pub fn lines(&self) -> usize {
+        self.content.len()
+    }
+
+    pub fn set_content(&mut self, mut content: Vec<String>) {
+        self.content = content;
+        self.apply_max_history();
+
+        self.scroll_to_bottom_if_sticky();
+    }
+
+    pub fn append_line(&mut self, line: String) {
+        self.content.push(line);
+        self.apply_max_history();
+
+        self.scroll_to_bottom_if_sticky();
+    }
+
+    pub fn append_string(&mut self, string: String) {
+        if let Some(mut last_line) = self.content.last_mut() {
+            last_line.push_str(&string);
+        } else {
+            self.append_line(string);
+        }
     }
 }
 
@@ -137,36 +163,6 @@ impl ConsoleState {
         self.scroll_offset == self.max_scroll()
     }
 
-    pub fn content(&self) -> &Vec<String> {
-        &self.content
-    }
-
-    pub fn lines(&self) -> usize {
-        self.content.len()
-    }
-
-    pub fn set_content(&mut self, mut content: Vec<String>) {
-        self.content = content;
-        self.apply_max_history();
-
-        self.scroll_to_bottom_if_sticky();
-    }
-
-    pub fn append_line(&mut self, line: String) {
-        self.content.push(line);
-        self.apply_max_history();
-
-        self.scroll_to_bottom_if_sticky();
-    }
-
-    pub fn append_string(&mut self, string: String) {
-        if let Some(mut last_line) = self.content.last_mut() {
-            last_line.push_str(&string);
-        } else {
-            self.append_line(string);
-        }
-    }
-
     pub fn scroll_to_bottom(&mut self) {
         if self.need_scroll() {
             self.scroll_offset = self.max_scroll();
@@ -205,6 +201,16 @@ impl ConsoleState {
 pub struct ConsoleLayout {
     viewport_area: Rect,
     vertical_scrollbar_area: Rect,
+}
+
+impl ConsoleLayout {
+    pub fn viewport_area(&self) -> Rect {
+        self.viewport_area
+    }
+
+    pub fn vertical_scrollbar_area(&self) -> Rect {
+        self.vertical_scrollbar_area
+    }
 }
 
 #[derive(Debug)]

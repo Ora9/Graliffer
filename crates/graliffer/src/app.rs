@@ -2,6 +2,7 @@ use std::{iter, ops::AddAssign};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent};
 use rand::seq::SliceRandom;
+use ratatui::layout::Position;
 
 use crate::ui::{Console, ConsoleState};
 
@@ -64,7 +65,22 @@ impl App {
     }
 
     pub fn handle_mouse_event(&mut self, mouse_event: MouseEvent) {
-        self.console_state.handle_mouse_event(mouse_event);
+        // TODO: this is a temporary solution to filter event targets based on position
+        if let Some(console_layouts) = self.console_state.layouts() {
+            // if mouse_event console_layouts.viewport_area()
+
+            let contained = console_layouts
+                .viewport_area()
+                .union(console_layouts.vertical_scrollbar_area())
+                .contains(Position {
+                    x: mouse_event.column,
+                    y: mouse_event.row,
+                });
+
+            if contained {
+                self.console_state.handle_mouse_event(mouse_event);
+            }
+        }
     }
 
     /// Set should_quit to true to quit the application.
