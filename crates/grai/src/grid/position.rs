@@ -443,7 +443,7 @@ impl Debug for Position {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Position (`{}`, ({}, {}))",
+            "Position ({} / ({}, {}))",
             self.as_textual_string(),
             self.x(),
             self.y()

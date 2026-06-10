@@ -385,7 +385,7 @@ impl Debug for GranaryDigit {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "GranaryDigit({}, {})",
+            "GranaryDigit({} / {})",
             self.as_numeric(),
             self.as_textual(),
         )
