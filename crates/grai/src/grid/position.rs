@@ -49,6 +49,30 @@ impl Position {
         y: GranaryDigit::ZERO,
     };
 
+    /// Obtain a `Position` given two valid `u32` numbers
+    ///
+    /// Same as [`Position::from_numeric()`]
+    ///
+    /// # Errors
+    /// Returns an error if one of the given numerical representation is invalid.
+    /// See [`granary`](granary#representation).
+    ///
+    /// # Examples
+    /// ```
+    /// # use grai::Position;
+    /// let pos = Position::from_numeric(0, 0).unwrap();
+    /// assert_eq!(pos.as_numeric(), (0, 0));
+    ///
+    /// let pos = Position::from_numeric(16, 32).unwrap();
+    /// assert_eq!(pos.as_numeric(), (16, 32));
+    ///
+    /// assert!(Position::from_numeric(63, 0).is_ok());
+    /// assert!(Position::from_numeric(64, 0).is_err());
+    /// ```
+    pub fn new(x: u32, y: u32) -> Result<Self, PositionError> {
+        Self::from_numeric(x, y)
+    }
+
     /// Returns a `Position` given two [`GranaryDigits`]
     ///
     /// # Example

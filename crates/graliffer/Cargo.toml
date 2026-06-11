@@ -7,6 +7,8 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+grai.workspace = true
+
 color-eyre = "0.6.3"
 crossterm = "0.29.0"
 ratatui = "0.30.1"

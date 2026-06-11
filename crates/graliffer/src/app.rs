@@ -1,4 +1,4 @@
-use std::{iter, ops::AddAssign};
+use std::{cell::RefCell, iter, ops::AddAssign, rc::Rc};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent};
 use rand::seq::SliceRandom;
@@ -14,13 +14,58 @@ pub struct App {
     pub focused: Focused,
 }
 
-impl Default for App {
-    fn default() -> Self {
+impl App {
+    pub fn new() -> Self {
+        let mut grid = grai::Grid::new();
+
+        grid.set(
+            grai::Position::from_string("AA").unwrap(),
+            grai::Cell::new_trim("100"),
+        );
+        grid.set(
+            grai::Position::from_string("BA").unwrap(),
+            grai::Cell::new_trim("&BB"),
+        );
+        grid.set(
+            grai::Position::from_string("CA").unwrap(),
+            grai::Cell::new_trim("div"),
+        );
+        grid.set(
+            grai::Position::from_string("BB").unwrap(),
+            grai::Cell::new_trim("@CB"),
+        );
+        grid.set(
+            grai::Position::from_string("CB").unwrap(),
+            grai::Cell::new_trim("3"),
+        );
+
+        grid.set(
+            grai::Position::from_string("EA").unwrap(),
+            grai::Cell::new_trim("20"),
+        );
+        grid.set(
+            grai::Position::from_string("FA").unwrap(),
+            grai::Cell::new_trim("sub"),
+        );
+        grid.set(
+            grai::Position::from_string("HA").unwrap(),
+            grai::Cell::new_trim("@AB"),
+        );
+        grid.set(
+            grai::Position::from_string("IA").unwrap(),
+            grai::Cell::new_trim("set"),
+        );
+        let mut frame = Rc::new(RefCell::new(grai::Frame {
+            grid,
+            head: grai::Head::default(),
+            stack: grai::Stack::default(),
+        }));
+
         let mut app = Self {
             should_run: true,
             focused: Focused::Grid,
             console_state: ConsoleState::new(1000),
-            grid_state: GridState::new(),
+            grid_state: GridState::new(frame),
         };
 
         let mut rng = rand::rng();
@@ -37,12 +82,6 @@ impl Default for App {
         }
 
         app
-    }
-}
-
-impl App {
-    pub fn new() -> Self {
-        Self::default()
     }
 
     /// Handles the tick event of the terminal.
