@@ -1,5 +1,8 @@
+use std::env;
+
 use color_eyre::Result;
 use event::{Event, EventHandler};
+use log::debug;
 use ratatui::{Terminal, backend::CrosstermBackend};
 
 pub mod app;
@@ -11,17 +14,26 @@ pub mod ui;
 
 pub mod tui;
 use tui::Tui;
-// use logger::TuiLoggerFile;
 
 fn main() -> Result<()> {
     let mut app = App::new();
 
     color_eyre::install()?;
 
-    // tui_logger::init_logger(log::LevelFilter::Trace)?;
+    tui_logger::init_logger(log::LevelFilter::Trace)?;
+    tui_logger::set_default_level(log::LevelFilter::Trace);
 
-    // tui_logger::set_default_level(log::LevelFilter::Trace);
-    // tui_logger::set_log_file(TuiLoggerFile::new("/tmp/graliffer_log_file.txt"));
+    let mut temp_dir = env::temp_dir();
+    temp_dir.push("graliffer.log");
+
+    let file_options = tui_logger::TuiLoggerFile::new(temp_dir.to_str().unwrap())
+        .output_level(Some(tui_logger::TuiLoggerLevelOutput::Abbreviated))
+        .output_file(false)
+        .output_separator(':');
+
+    tui_logger::set_log_file(file_options);
+    debug!(target:"App", "Logging to {}", temp_dir.to_str().unwrap());
+    debug!(target:"App", "Logging initialized");
 
     let backend = CrosstermBackend::new(std::io::stderr());
     let terminal = Terminal::new(backend)?;
