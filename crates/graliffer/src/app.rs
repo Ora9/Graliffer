@@ -55,6 +55,10 @@ impl App {
             grai::Position::from_string("IA").unwrap(),
             grai::Cell::new_trim("set"),
         );
+        grid.set(
+            grai::Position::from_string("aa").unwrap(),
+            grai::Cell::new_trim("jmp"),
+        );
         let mut frame = Rc::new(RefCell::new(grai::Frame {
             grid,
             head: grai::Head::default(),
@@ -103,6 +107,8 @@ impl App {
             // KeyCode::Left | KeyCode::Char('k') => app.decrement_counter(),
             _ => {}
         };
+
+        self.grid_state.handle_key_event(key_event);
     }
 
     pub fn handle_mouse_event(&mut self, mouse_event: MouseEvent) {
@@ -120,6 +126,17 @@ impl App {
 
             if contained {
                 self.console_state.handle_mouse_event(mouse_event);
+            }
+        }
+
+        if let Some(grid_layout) = self.grid_state.layout() {
+            let contained = grid_layout.contains(Position {
+                x: mouse_event.column,
+                y: mouse_event.row,
+            });
+
+            if contained {
+                self.grid_state.handle_mouse_event(mouse_event);
             }
         }
     }
