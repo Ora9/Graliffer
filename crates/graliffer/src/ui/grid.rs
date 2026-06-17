@@ -134,14 +134,6 @@ impl GridState {
 
                     self.offset_x = start_offset_x.saturating_add_signed(pointer_x_delta as isize);
                     self.offset_y = start_offset_y.saturating_add_signed(pointer_y_delta as isize);
-
-                    // let x_offset = (drag_from.x as i16).saturating_sub_unsigned(pointer_pos.x);
-                    // let y_offset = (drag_from.y as i16).saturating_sub_unsigned(pointer_pos.y);
-
-                    // self.offset_x = self.offset_x.saturating_add_signed(x_offset as isize);
-                    // self.offset_y = self.offset_y.saturating_add_signed(y_offset as isize);
-
-                    debug!("grid_offset x: {}, y: {}", self.offset_x, self.offset_y);
                 }
             }
             _ => {
