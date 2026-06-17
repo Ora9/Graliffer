@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use ratatui::{
     buffer::Buffer,
-    layout::{Alignment, Constraint, Layout, Margin, Offset, Rect, Spacing},
+    layout::{Alignment, Margin, Offset, Position, Rect},
     style::{Color, Stylize},
     symbols::{border, merge::MergeStrategy},
     text::{Line, Span, Text},
@@ -119,33 +119,71 @@ impl StatefulWidget for GridWidget {
 
         // A separate buffer is used to render the grid,
         // this is used to mask everything that is outside of the grid widget viewport
-        let mut grid_buf = Buffer::empty(area);
+        // this is because widget drawn outside the buffer are clamped to the border, but we want to
+        // have widgets drawn partialy onto the viewport
+        let overdraw_cells = 1;
+        let overdraw_margin = Margin::new(
+            (cell_width * overdraw_cells * 2) as u16,
+            (cell_height * overdraw_cells * 2) as u16,
+        );
+        let mut overdraw_buf = Buffer::empty(
+            pane_viewport
+                .offset(Offset::new(
+                    overdraw_margin.horizontal as i32,
+                    overdraw_margin.vertical as i32,
+                ))
+                .outer(overdraw_margin),
+        );
+        let overdraw_viewport = overdraw_buf.area().inner(overdraw_margin);
+
+        let in_view_top = (state.offset_y / (cell_height + border)).saturating_sub(overdraw_cells);
+        let in_view_left = (state.offset_x / (cell_width + border)).saturating_sub(overdraw_cells);
+
+        let in_view_bottom = state
+            .offset_y
+            .saturating_add(overdraw_viewport.height as usize)
+            .saturating_div(cell_height + border)
+            .saturating_add(overdraw_cells)
+            .min(GranaryDigit::MAX_NUMERIC as usize);
+
+        let in_view_right = state
+            .offset_x
+            .saturating_add(overdraw_viewport.width as usize)
+            .saturating_div(cell_width + border)
+            .saturating_add(overdraw_cells)
+            .min(GranaryDigit::MAX_NUMERIC as usize);
 
         let frame = state
             .frame
             .try_borrow()
             .expect("could not borrow the frame");
 
-        for cell_x in 0..(in_view_right - in_view_left) {
-            for cell_y in 0..(in_view_bottom - in_view_top) {
-                let cell_area = Rect {
-                    x: (viewport_area.x as usize + (cell_x * (cell_width + border))) as u16,
-                    y: (viewport_area.y as usize + (cell_y * (cell_height + border))) as u16,
-                    width: (cell_width + border * 2) as u16,
-                    height: (cell_height + border * 2) as u16,
-                };
+        for cell_x in in_view_left..in_view_right {
+            for cell_y in in_view_top..in_view_bottom {
+                let x = (overdraw_viewport.x as usize)
+                    .saturating_add(cell_x * (cell_width + border))
+                    .saturating_sub(state.offset_x) as u16;
+
+                let y = (overdraw_viewport.y as usize)
+                    .saturating_add(cell_y * (cell_height + border))
+                    .saturating_sub(state.offset_y) as u16;
+
+                let width = (cell_width + border * 2) as u16;
+                let height = (cell_height + border * 2) as u16;
+
+                let cell_area = Rect::new(x, y, width, height);
 
                 let block = Block::bordered()
                     .fg(Color::DarkGray)
                     .merge_borders(MergeStrategy::Exact);
 
-                let pos = grai::Position::from_numeric(cell_x as u32, cell_y as u32)
+                let grid_pos = grai::Position::from_numeric(cell_x as u32, cell_y as u32)
                     .expect("should be able to construct a valid position");
 
-                Paragraph::new(frame.grid.get(pos).content())
+                Paragraph::new(frame.grid.get(grid_pos).content())
                     .block(block)
-                    .white()
-                    .render(cell_area, &mut grid_buf);
+                    .reset()
+                    .render(cell_area, &mut overdraw_buf);
             }
         }
 
@@ -153,5 +191,42 @@ impl StatefulWidget for GridWidget {
 
         buf.merge(&grid_buf);
         grid_block.render(area, buf);
+
+        // our own implementation of Buffer::merge
+        buffer_merge_areas(
+            buf,
+            pane_viewport.as_position(),
+            &overdraw_buf,
+            overdraw_viewport,
+        );
+    }
+}
+
+fn buffer_merge_areas(
+    dest_buf: &mut Buffer,
+    dest_pos: Position,
+    from_buf: &Buffer,
+    from_area: Rect,
+) {
+    let size = from_area.area();
+    for y in from_area.y..(from_area.y + from_area.height) {
+        for x in from_area.x..(from_area.x + from_area.width) {
+            let from_pos = Position::new(x, y);
+            let from_cell = from_buf.cell(from_pos);
+
+            let dest_pos = dest_pos.offset(Offset::new(
+                x.saturating_sub(from_area.left()) as i32,
+                y.saturating_sub(from_area.top()) as i32,
+            ));
+
+            let mut dest_cell = dest_buf.cell_mut(dest_pos);
+
+            if let Some(mut dest_cell) = dest_cell
+                && let Some(from_cell) = from_cell
+            {
+                dest_cell.set_symbol(from_cell.symbol());
+                dest_cell.set_style(from_cell.style());
+            }
+        }
     }
 }
