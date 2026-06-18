@@ -4,14 +4,16 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent};
 use rand::seq::SliceRandom;
 use ratatui::layout::Position;
 
-use crate::ui::{Console, ConsoleState, GridState};
+use crate::ui::{Console, ConsoleState, FocusedPane, GridState};
 
 #[derive(Debug)]
 pub struct App {
     pub should_run: bool,
+
     pub console_state: ConsoleState,
     pub grid_state: GridState,
-    pub focused: Focused,
+
+    pub focused_pane: FocusedPane,
 }
 
 impl App {
@@ -67,9 +69,11 @@ impl App {
 
         let mut app = Self {
             should_run: true,
-            focused: Focused::Grid,
+
             console_state: ConsoleState::new(1000),
             grid_state: GridState::new(frame),
+
+            focused_pane: FocusedPane::Grid,
         };
 
         let mut rng = rand::rng();
@@ -145,11 +149,4 @@ impl App {
     pub fn quit(&mut self) {
         self.should_run = false;
     }
-}
-
-#[derive(Debug)]
-pub enum Focused {
-    Grid,
-    Stack,
-    Console,
 }

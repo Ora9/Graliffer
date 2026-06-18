@@ -247,28 +247,7 @@ impl StatefulWidget for Console {
     type State = ConsoleState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let block = Block::bordered()
-            .border_type(BorderType::Rounded)
-            .merge_borders(MergeStrategy::Fuzzy)
-            .title(Line::from(vec![
-                "┤".into(),
-                "³".blue().into(),
-                "Console".into(),
-                "├".into(),
-            ]))
-            .title_bottom(
-                Line::from(vec![
-                    "┤".into(),
-                    // "²".blue().into(),
-                    "COMMAND".bold().red().into(),
-                    "├".into(),
-                ])
-                .alignment(Alignment::Right),
-            );
-
-        let inner_area = area.inner(Margin::from(1));
-
-        let [viewport_area, vertical_scrollbar_area] = inner_area.layout(&Layout::horizontal([
+        let [viewport_area, vertical_scrollbar_area] = area.layout(&Layout::horizontal([
             Constraint::Fill(1),
             Constraint::Length(1),
         ]));
@@ -296,7 +275,6 @@ impl StatefulWidget for Console {
         ));
 
         paragraph.render(viewport_area, buf);
-        block.render(area, buf);
 
         if state.need_scroll() {
             let lengths = ScrollLengths {

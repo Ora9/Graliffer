@@ -110,14 +110,12 @@ impl GridState {
             x: mouse_event.column.saturating_sub(viewport_area.top()),
             y: mouse_event.row.saturating_sub(viewport_area.left()),
         };
-        debug!("{pointer_pos}");
 
         match mouse_event.kind {
             MouseEventKind::Drag(button) if button.is_left() => {
                 if self.drag_state.idle() {
                     self.drag_state
                         .start_drag(pointer_pos, self.offset_x, self.offset_y);
-                    debug!("start dragging");
                 }
 
                 if let DragState::Dragging {
@@ -139,7 +137,6 @@ impl GridState {
             _ => {
                 if self.drag_state.dragging() {
                     self.drag_state.stop_drag();
-                    debug!("stopped dragging");
                 }
             }
         }
@@ -163,35 +160,8 @@ impl StatefulWidget for GridWidget {
     type State = GridState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let grid_block = Block::bordered()
-            .border_type(BorderType::Rounded)
-            .title(Line::from(vec![
-                "┤".into(),
-                "¹".blue().into(),
-                "Grid".into(),
-                "├".into(),
-            ]))
-            .title(
-                Line::from(vec![
-                    "┤".into(),
-                    "²".blue().into(),
-                    "Stack".into(),
-                    "├".into(),
-                ])
-                .alignment(Alignment::Center),
-            )
-            .title(
-                Line::from(vec![
-                    "┤".into(),
-                    "²".blue().into(),
-                    "Stack".into(),
-                    "├".into(),
-                ])
-                .alignment(Alignment::Center),
-            );
-
-        let pane_viewport = area.inner(Margin::from(1));
-        state.layout = Some(pane_viewport);
+        // let pane_viewport = area.inner(Margin::from(1));
+        state.layout = Some(area);
 
         let cell_height = 1;
         let cell_width = 3;
@@ -207,12 +177,11 @@ impl StatefulWidget for GridWidget {
             (cell_height * overdraw_cells * 2) as u16,
         );
         let mut overdraw_buf = Buffer::empty(
-            pane_viewport
-                .offset(Offset::new(
-                    overdraw_margin.horizontal as i32,
-                    overdraw_margin.vertical as i32,
-                ))
-                .outer(overdraw_margin),
+            area.offset(Offset::new(
+                overdraw_margin.horizontal as i32,
+                overdraw_margin.vertical as i32,
+            ))
+            .outer(overdraw_margin),
         );
         let overdraw_viewport = overdraw_buf.area().inner(overdraw_margin);
 
@@ -269,15 +238,8 @@ impl StatefulWidget for GridWidget {
 
         let _ = frame;
 
-        grid_block.render(area, buf);
-
         // our own implementation of Buffer::merge
-        buffer_merge_areas(
-            buf,
-            pane_viewport.as_position(),
-            &overdraw_buf,
-            overdraw_viewport,
-        );
+        buffer_merge_areas(buf, area.as_position(), &overdraw_buf, overdraw_viewport);
     }
 }
 
