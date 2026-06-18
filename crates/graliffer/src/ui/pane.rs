@@ -7,16 +7,17 @@ use ratatui::{
     widgets::{Block, BorderType, Widget},
 };
 
-use crate::ui::MenuTitle;
+use crate::ui::{MenuBar, MenuTitle};
 
 #[derive(Debug)]
 pub struct PaneBorder {
-    pub menu_title: MenuTitle,
+    pub menu_bar: MenuBar,
+    // pub menu_title: MenuTitle,
 }
 
 impl PaneBorder {
-    pub fn new(menu_title: MenuTitle) -> Self {
-        PaneBorder { menu_title }
+    pub fn new(menu_bar: MenuBar) -> Self {
+        PaneBorder { menu_bar }
     }
 }
 
@@ -27,7 +28,7 @@ impl Widget for PaneBorder {
         let block = Block::bordered()
             .border_type(BorderType::Rounded)
             .merge_borders(MergeStrategy::Fuzzy)
-            .title(self.menu_title.framed());
+            .title(self.menu_bar.as_border());
 
         block.render(area, buf);
     }

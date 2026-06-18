@@ -45,25 +45,38 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         &mut app.console_state,
     );
 
-    PaneBorder::new(MenuTitle::NumberPrefix {
+    // MenuBar::from_title(Menu)
+
+    let grid_pane_title = MenuTitle::NumberPrefix {
         title: "Grid".to_string(),
         prefix: NumberPrefix::Num0,
         focused: app.focused_pane.grid(),
-    })
-    .render(grid_area, frame.buffer_mut());
+    };
 
-    PaneBorder::new(MenuTitle::NumberPrefix {
+    let file_title = MenuTitle::Inline {
+        title: "Files".into(),
+        highlight: "F".into(),
+        focused: false,
+    };
+
+    let grid_menu_bar = MenuBar::empty()
+        .push_title_in_new_group(grid_pane_title)
+        .push_title_in_new_group(file_title);
+
+    PaneBorder::new(grid_menu_bar).render(grid_area, frame.buffer_mut());
+
+    PaneBorder::new(MenuBar::from_title(MenuTitle::NumberPrefix {
         title: "Console".to_string(),
         // highlight: "o".to_string(),
         prefix: NumberPrefix::Num2,
         focused: app.focused_pane.console(),
-    })
+    }))
     .render(output_area, frame.buffer_mut());
 
-    PaneBorder::new(MenuTitle::NumberPrefix {
+    PaneBorder::new(MenuBar::from_title(MenuTitle::NumberPrefix {
         title: "Stack".to_string(),
         prefix: NumberPrefix::Num2,
         focused: app.focused_pane.stack(),
-    })
+    }))
     .render(stack_area, frame.buffer_mut());
 }
