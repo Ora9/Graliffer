@@ -1851,6 +1851,8 @@ dependencies = [
  "log",
  "rand 0.10.1",
  "ratatui",
+ "strum 0.28.0",
+ "strum_macros 0.28.0",
  "tui-logger",
  "tui-scrollbar",
 ]

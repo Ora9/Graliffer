@@ -4,7 +4,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Margin, Rect, Spacing},
     style::{Color, Style, Stylize},
     symbols::merge::MergeStrategy,
-    text::{Line, Span},
+    text::{Line, Span, ToSpan},
     widgets::{Block, BorderType, Borders, Paragraph, StatefulWidget, Widget},
 };
 
@@ -45,38 +45,59 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         &mut app.console_state,
     );
 
-    // MenuBar::from_title(Menu)
+    let input_mode = MenuLine::from_title(MenuTitle::Info("COMMAND".red()))
+        .bottom()
+        .right();
 
     let grid_pane_title = MenuTitle::NumberPrefix {
-        title: "Grid".to_string(),
-        prefix: NumberPrefix::Num0,
+        title: "Grid".to_span(),
+        prefix: NumberPrefix::Num1,
         focused: app.focused_pane.grid(),
     };
 
     let file_title = MenuTitle::Inline {
-        title: "Files".into(),
-        highlight: "F".into(),
+        title: "Files".to_span(),
+        highlight_char: "F".to_string(),
         focused: false,
     };
 
-    let grid_menu_bar = MenuBar::empty()
+    let edit_title = MenuTitle::Inline {
+        title: "Edit".to_span(),
+        highlight_char: "E".to_string(),
+        focused: false,
+    };
+
+    let main_menu_bar = MenuGroup::default()
+        .push_title(file_title)
+        .push_title(edit_title);
+
+    let grid_menu_bar = MenuLine::default()
         .push_title_in_new_group(grid_pane_title)
-        .push_title_in_new_group(file_title);
+        .push_group(main_menu_bar);
 
-    PaneBorder::new(grid_menu_bar).render(grid_area, frame.buffer_mut());
-
-    PaneBorder::new(MenuBar::from_title(MenuTitle::NumberPrefix {
-        title: "Console".to_string(),
+    let console_menu_bar = MenuLine::from_title(MenuTitle::NumberPrefix {
+        title: "Console".to_span(),
         // highlight: "o".to_string(),
         prefix: NumberPrefix::Num2,
         focused: app.focused_pane.console(),
-    }))
-    .render(output_area, frame.buffer_mut());
+    });
 
-    PaneBorder::new(MenuBar::from_title(MenuTitle::NumberPrefix {
-        title: "Stack".to_string(),
-        prefix: NumberPrefix::Num2,
+    let stack_menu_bar = MenuLine::from_title(MenuTitle::NumberPrefix {
+        title: "Stack".to_span(),
+        prefix: NumberPrefix::Num3,
         focused: app.focused_pane.stack(),
-    }))
-    .render(stack_area, frame.buffer_mut());
+    });
+
+    PaneBorder::new()
+        .add_menu_line(grid_menu_bar)
+        .render(grid_area, frame.buffer_mut());
+
+    PaneBorder::new()
+        .add_menu_line(console_menu_bar)
+        .add_menu_line(input_mode)
+        .render(output_area, frame.buffer_mut());
+
+    PaneBorder::new()
+        .add_menu_line(stack_menu_bar)
+        .render(stack_area, frame.buffer_mut());
 }

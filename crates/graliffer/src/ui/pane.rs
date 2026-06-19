@@ -1,3 +1,4 @@
+use log::debug;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
@@ -7,28 +8,43 @@ use ratatui::{
     widgets::{Block, BorderType, Widget},
 };
 
-use crate::ui::{MenuBar, MenuTitle};
+use crate::ui::{MenuLine, MenuLineAlignement, MenuLinePosition, MenuTitle};
 
 #[derive(Debug)]
-pub struct PaneBorder {
-    pub menu_bar: MenuBar,
+pub struct PaneBorder<'a> {
+    menu_lines: Vec<MenuLine<'a>>,
+    // bottom_menu_bar: Option<MenuLine<'a>>,
     // pub menu_title: MenuTitle,
 }
 
-impl PaneBorder {
-    pub fn new(menu_bar: MenuBar) -> Self {
-        PaneBorder { menu_bar }
+impl<'a> PaneBorder<'a> {
+    pub fn new() -> Self {
+        PaneBorder {
+            menu_lines: Vec::default(),
+            // bottom_menu_bar: None,
+        }
+    }
+
+    pub fn add_menu_line(mut self, menu_line: MenuLine<'a>) -> Self {
+        self.menu_lines.push(menu_line);
+        self
     }
 }
 
-impl Widget for PaneBorder {
+impl<'a> Widget for PaneBorder<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         use ratatui::symbols::line;
 
-        let block = Block::bordered()
+        let mut block = Block::bordered()
             .border_type(BorderType::Rounded)
-            .merge_borders(MergeStrategy::Fuzzy)
-            .title(self.menu_bar.as_border());
+            .merge_borders(MergeStrategy::Fuzzy);
+
+        for menu_line in self.menu_lines {
+            match menu_line.position {
+                MenuLinePosition::Top => block = block.title_top(menu_line.as_border()),
+                MenuLinePosition::Bottom => block = block.title_bottom(menu_line.as_border()),
+            }
+        }
 
         block.render(area, buf);
     }
