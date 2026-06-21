@@ -11,10 +11,10 @@ grai.workspace = true
 
 color-eyre = "0.6.3"
 crossterm = "0.29.0"
+
 ratatui = "0.30.1"
-
 tui-scrollbar = { version = "0.2.4", features = ["crossterm"] }
-
+tui-input = { version = "0.15.3", features = ["crossterm"], default-features = false }
 tui-logger = { version = "0.18.2", features = ["crossterm"] }
 log = "0.4.32"
 

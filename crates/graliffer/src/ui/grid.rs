@@ -11,6 +11,7 @@ use ratatui::{
     text::Line,
     widgets::{Block, BorderType, Paragraph, StatefulWidget, Widget},
 };
+use tui_input::Input;
 
 #[derive(Debug, Default)]
 pub struct Cursor(grai::Position);
@@ -58,6 +59,8 @@ impl DragState {
 pub struct GridState {
     frame: Rc<RefCell<grai::Frame>>,
 
+    input: Input,
+
     layout: Option<Rect>,
 
     drag_state: DragState,
@@ -71,6 +74,8 @@ impl GridState {
     pub fn new(frame: Rc<RefCell<grai::Frame>>) -> Self {
         GridState {
             frame,
+
+            input: Input::default(),
 
             layout: None,
 

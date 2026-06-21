@@ -15,6 +15,9 @@ pub mod ui;
 pub mod tui;
 use tui::Tui;
 
+pub mod inputs;
+use inputs::*;
+
 fn main() -> Result<()> {
     let mut app = App::new();
 

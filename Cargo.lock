@@ -1853,6 +1853,7 @@ dependencies = [
  "ratatui",
  "strum 0.28.0",
  "strum_macros 0.28.0",
+ "tui-input",
  "tui-logger",
  "tui-scrollbar",
 ]
@@ -4354,6 +4355,17 @@ name = "ttf-parser"
 version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2df906b07856748fa3f6e0ad0cbaa047052d4a7dd609e231c4f72cee8c36f31"
+
+[[package]]
+name = "tui-input"
+version = "0.15.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0bd014a652e31cf25ea68d11b10a7b09549863449b19387505c9933f11eb05fa"
+dependencies = [
+ "crossterm",
+ "unicode-segmentation",
+ "unicode-width",
+]
 
 [[package]]
 name = "tui-logger"

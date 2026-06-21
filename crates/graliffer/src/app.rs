@@ -4,7 +4,10 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent};
 use rand::seq::SliceRandom;
 use ratatui::layout::Position;
 
-use crate::ui::{Console, ConsoleState, FocusedPane, GridState};
+use crate::{
+    inputs::InputMode,
+    ui::{Console, ConsoleState, FocusedPane, GridState},
+};
 
 #[derive(Debug)]
 pub struct App {
@@ -12,6 +15,8 @@ pub struct App {
 
     pub console_state: ConsoleState,
     pub grid_state: GridState,
+
+    pub input_mode: InputMode,
 
     pub focused_pane: FocusedPane,
 }
@@ -70,6 +75,8 @@ impl App {
         let mut app = Self {
             should_run: true,
 
+            input_mode: InputMode::Command,
+
             console_state: ConsoleState::new(1000),
             grid_state: GridState::new(frame),
 
@@ -99,51 +106,62 @@ impl App {
         // self.console_state.scroll_offset = self.console_state.scroll_offset.wrapping_add(1);
     }
 
-    pub fn handle_key_events(&mut self, key_event: KeyEvent) {
-        match key_event.code {
-            KeyCode::Esc | KeyCode::Char('q') => self.quit(),
-            KeyCode::Char('c') | KeyCode::Char('C')
-                if key_event.modifiers == KeyModifiers::CONTROL =>
-            {
-                self.quit()
-            }
-            // KeyCode::Right | KeyCode::Char('j') => app.increment_counter(),
-            // KeyCode::Left | KeyCode::Char('k') => app.decrement_counter(),
-            _ => {}
-        };
-
-        self.grid_state.handle_key_event(key_event);
-    }
-
-    pub fn handle_mouse_event(&mut self, mouse_event: MouseEvent) {
-        // TODO: this is a temporary solution to filter event targets based on position
-        if let Some(console_layouts) = self.console_state.layouts() {
-            // if mouse_event console_layouts.viewport_area()
-
-            let contained = console_layouts
-                .viewport_area()
-                .union(console_layouts.vertical_scrollbar_area())
-                .contains(Position {
-                    x: mouse_event.column,
-                    y: mouse_event.row,
-                });
-
-            if contained {
-                self.console_state.handle_mouse_event(mouse_event);
-            }
-        }
-
-        if let Some(grid_layout) = self.grid_state.layout() {
-            let contained = grid_layout.contains(Position {
-                x: mouse_event.column,
-                y: mouse_event.row,
-            });
-
-            if contained {
-                self.grid_state.handle_mouse_event(mouse_event);
-            }
+    pub fn input_mode(&mut self, input_mode: InputMode) {
+        self.input_mode = input_mode;
+        if input_mode == InputMode::Insert {
+            self.focused_pane = FocusedPane::Grid
         }
     }
+
+    // pub fn handle_key_events(&mut self, key_event: KeyEvent) {
+    //     match self.input_mode {
+    //         InputMode::Insert => {}
+    //     }
+
+    //     match key_event.code {
+    //         KeyCode::Esc | KeyCode::Char('q') => self.quit(),
+    //         KeyCode::Char('c') | KeyCode::Char('C')
+    //             if key_event.modifiers == KeyModifiers::CONTROL =>
+    //         {
+    //             self.quit()
+    //         }
+    //         // KeyCode::Right | KeyCode::Char('j') => app.increment_counter(),
+    //         // KeyCode::Left | KeyCode::Char('k') => app.decrement_counter(),
+    //         _ => {}
+    //     };
+
+    //     self.grid_state.handle_key_event(key_event);
+    // }
+
+    // pub fn handle_mouse_event(&mut self, mouse_event: MouseEvent) {
+    //     // TODO: this is a temporary solution to filter event targets based on position
+    //     if let Some(console_layouts) = self.console_state.layouts() {
+    //         // if mouse_event console_layouts.viewport_area()
+
+    //         let contained = console_layouts
+    //             .viewport_area()
+    //             .union(console_layouts.vertical_scrollbar_area())
+    //             .contains(Position {
+    //                 x: mouse_event.column,
+    //                 y: mouse_event.row,
+    //             });
+
+    //         if contained {
+    //             self.console_state.handle_mouse_event(mouse_event);
+    //         }
+    //     }
+
+    //     if let Some(grid_layout) = self.grid_state.layout() {
+    //         let contained = grid_layout.contains(Position {
+    //             x: mouse_event.column,
+    //             y: mouse_event.row,
+    //         });
+
+    //         if contained {
+    //             self.grid_state.handle_mouse_event(mouse_event);
+    //         }
+    //     }
+    // }
 
     /// Set should_quit to true to quit the application.
     pub fn quit(&mut self) {
