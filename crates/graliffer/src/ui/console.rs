@@ -50,10 +50,6 @@ impl ConsoleState {
         }
     }
 
-    pub fn focus_mut(&mut self) -> &mut FocusHandle {
-        &mut self.focus_handle
-    }
-
     pub fn layouts(&self) -> Option<ConsoleLayout> {
         self.layouts
     }

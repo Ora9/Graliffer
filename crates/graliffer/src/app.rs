@@ -83,8 +83,6 @@ impl App {
 
         let app_focus = RefCell::new(Focusable::Grid);
 
-        // let grid_focus_handle = FocusHandle::new(Focusable::Grid, app_focus);
-
         let mut app = Self {
             should_run: true,
 
@@ -126,7 +124,7 @@ impl App {
         *self.focused.borrow() == focusable
     }
 
-    pub fn focus(&mut self, focused: Focusable) {
+    pub fn set_focus(&mut self, focused: Focusable) {
         *self.focused.get_mut() = focused
     }
 
@@ -179,10 +177,6 @@ impl FocusHandle {
     pub fn focused(&self) -> bool {
         self.current == *self.app_focus.borrow()
     }
-
-    // pub fn focus(&mut self, focused: bool) {
-    //     self.focused = focused
-    // }
 }
 
 #[derive(Debug, Clone)]
@@ -209,7 +203,7 @@ impl State for App {
                     debug!("about!");
                 }
                 FocusStack => {
-                    self.focus(Focusable::Stack);
+                    self.set_focus(Focusable::Stack);
                 }
             };
             Ok(Revert::None)

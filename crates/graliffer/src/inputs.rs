@@ -1,6 +1,10 @@
 use action::{Action, AnyAction, State};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, ModifierKeyCode, MouseEvent};
-use ratatui::layout::Position;
+use ratatui::{
+    layout::Position,
+    style::Stylize,
+    text::{Span, ToSpan},
+};
 
 use crate::{
     app::{
@@ -87,6 +91,16 @@ impl Keymap {
 pub enum InputMode {
     Insert,
     Command,
+}
+
+impl InputMode {
+    pub fn formated<'a>(&self) -> Span<'a> {
+        use InputMode::*;
+        match self {
+            Command => "COMMAND".red(),
+            Insert => "INSERT".to_span(),
+        }
+    }
 }
 
 impl App {

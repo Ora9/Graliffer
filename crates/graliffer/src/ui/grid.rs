@@ -92,10 +92,6 @@ impl GridState {
         }
     }
 
-    pub fn focus_mut(&mut self) -> &mut FocusHandle {
-        &mut self.focus_handle
-    }
-
     pub fn handle_key_event(&mut self, key_event: KeyEvent) {
         match key_event.code {
             KeyCode::Right => {
