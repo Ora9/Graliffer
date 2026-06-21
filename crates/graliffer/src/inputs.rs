@@ -3,7 +3,10 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, ModifierKeyCode, MouseEv
 use ratatui::layout::Position;
 
 use crate::{
-    app::{App, AppAction},
+    app::{
+        App,
+        AppAction::{self, FocusStack},
+    },
     ui::{ConsoleAction, FocusedPane::Console},
 };
 
@@ -55,6 +58,14 @@ impl Keymap {
                 modifiers: KeyModifiers::CONTROL | KeyModifiers::SHIFT,
             },
             ConsoleAction::Clear,
+        );
+
+        map.push(
+            Keybind {
+                key: KeyCode::Char('f'),
+                modifiers: KeyModifiers::CONTROL,
+            },
+            AppAction::FocusStack,
         );
 
         map

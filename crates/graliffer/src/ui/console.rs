@@ -14,11 +14,12 @@ use tui_scrollbar::{
     ScrollMetrics,
 };
 
-use crate::app;
+use crate::app::{self, FocusHandle};
 
 #[derive(Debug)]
 pub struct ConsoleState {
-    show: bool,
+    focus_handle: FocusHandle,
+
     layouts: Option<ConsoleLayout>,
 
     content: Vec<String>,
@@ -32,9 +33,10 @@ pub struct ConsoleState {
 }
 
 impl ConsoleState {
-    pub fn new(line_history: usize) -> Self {
+    pub fn new(line_history: usize, focus_handle: FocusHandle) -> Self {
         Self {
-            show: true,
+            focus_handle,
+
             layouts: None,
 
             content: Vec::new(),
@@ -46,6 +48,10 @@ impl ConsoleState {
 
             scrollbar_interaction: ScrollBarInteraction::default(),
         }
+    }
+
+    pub fn focus_mut(&mut self) -> &mut FocusHandle {
+        &mut self.focus_handle
     }
 
     pub fn layouts(&self) -> Option<ConsoleLayout> {

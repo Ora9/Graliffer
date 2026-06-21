@@ -1,4 +1,9 @@
-use std::{cell::RefCell, iter, ops::AddAssign, rc::Rc};
+use std::{
+    cell::{Ref, RefCell},
+    iter,
+    ops::AddAssign,
+    rc::Rc,
+};
 
 use action::{Action, AnyAction, Revert, State};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent};
@@ -7,6 +12,7 @@ use rand::seq::SliceRandom;
 use ratatui::layout::Position;
 
 use crate::{
+    app,
     inputs::{InputMode, Keymap},
     ui::{Console, ConsoleAction, ConsoleState, FocusedPane, GridState},
 };
@@ -21,7 +27,7 @@ pub struct App {
     pub input_mode: InputMode,
     pub keymap: Keymap,
 
-    pub focused_pane: FocusedPane,
+    pub focused: RefCell<Focusable>,
 }
 
 impl App {
@@ -75,16 +81,22 @@ impl App {
             stack: grai::Stack::default(),
         }));
 
+        let app_focus = RefCell::new(Focusable::Grid);
+
+        // let grid_focus_handle = FocusHandle::new(Focusable::Grid, app_focus);
+
         let mut app = Self {
             should_run: true,
 
             input_mode: InputMode::Command,
             keymap: Keymap::new(),
 
-            console_state: ConsoleState::new(1000),
-            grid_state: GridState::new(frame),
-
-            focused_pane: FocusedPane::Grid,
+            console_state: ConsoleState::new(
+                1000,
+                FocusHandle::new(Focusable::Console, app_focus.clone()),
+            ),
+            grid_state: GridState::new(frame, FocusHandle::new(Focusable::Grid, app_focus.clone())),
+            focused: app_focus,
         };
 
         let mut rng = rand::rng();
@@ -110,12 +122,20 @@ impl App {
         // self.console_state.scroll_offset = self.console_state.scroll_offset.wrapping_add(1);
     }
 
-    pub fn input_mode(&mut self, input_mode: InputMode) {
-        self.input_mode = input_mode;
-        if input_mode == InputMode::Insert {
-            self.focused_pane = FocusedPane::Grid
-        }
+    pub fn focused(&self, focusable: Focusable) -> bool {
+        *self.focused.borrow() == focusable
     }
+
+    pub fn focus(&mut self, focused: Focusable) {
+        *self.focused.get_mut() = focused
+    }
+
+    // pub fn input_mode(&mut self, input_mode: InputMode) {
+    //     self.input_mode = input_mode;
+    //     if input_mode == InputMode::Insert {
+    //         self.focused_pane = FocusedPane::Grid
+    //     }
+    // }
 
     /// Set should_quit to true to quit the application.
     pub fn quit(&mut self) {
@@ -123,10 +143,53 @@ impl App {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Focusable {
+    Grid,
+    Console,
+    Stack,
+    // Popup(PopupId)
+}
+
+impl Focusable {
+    pub fn grid(&self) -> bool {
+        matches!(self, Self::Grid)
+    }
+
+    pub fn console(&self) -> bool {
+        matches!(self, Self::Console)
+    }
+
+    pub fn stack(&self) -> bool {
+        matches!(self, Self::Stack)
+    }
+}
+
+#[derive(Debug)]
+pub struct FocusHandle {
+    current: Focusable,
+    app_focus: RefCell<Focusable>,
+}
+
+impl FocusHandle {
+    pub fn new(current: Focusable, app_focus: RefCell<Focusable>) -> Self {
+        Self { current, app_focus }
+    }
+
+    pub fn focused(&self) -> bool {
+        self.current == *self.app_focus.borrow()
+    }
+
+    // pub fn focus(&mut self, focused: bool) {
+    //     self.focused = focused
+    // }
+}
+
 #[derive(Debug, Clone)]
 pub enum AppAction {
     Quit,
     About,
+    FocusStack,
 }
 
 impl Action for AppAction {}
@@ -144,6 +207,9 @@ impl State for App {
                 }
                 About => {
                     debug!("about!");
+                }
+                FocusStack => {
+                    self.focus(Focusable::Stack);
                 }
             };
             Ok(Revert::None)

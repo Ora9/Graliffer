@@ -8,7 +8,7 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Paragraph, StatefulWidget, Widget},
 };
 
-use crate::app::App;
+use crate::app::{App, FocusHandle, Focusable};
 
 mod menu;
 pub use menu::*;
@@ -24,7 +24,7 @@ pub use grid::*;
 
 pub fn render(app: &mut App, frame: &mut Frame) {
     let [top_area, output_area] = frame.area().layout(
-        &Layout::vertical(vec![Constraint::Fill(1), Constraint::Percentage(20)])
+        &Layout::vertical(vec![Constraint::Fill(1), Constraint::Percentage(25)])
             .spacing(Spacing::Overlap(1)),
     );
 
@@ -52,7 +52,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     let grid_pane_title = MenuTitle::NumberPrefix {
         title: "Grid".to_span(),
         prefix: NumberPrefix::Num1,
-        focused: app.focused_pane.grid(),
+        focused: app.focused(Focusable::Grid),
     };
 
     let file_title = MenuTitle::Inline {
@@ -79,13 +79,13 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         title: "Console".to_span(),
         // highlight: "o".to_string(),
         prefix: NumberPrefix::Num2,
-        focused: app.focused_pane.console(),
+        focused: app.focused(Focusable::Console),
     });
 
     let stack_menu_bar = MenuLine::from_title(MenuTitle::NumberPrefix {
         title: "Stack".to_span(),
         prefix: NumberPrefix::Num3,
-        focused: app.focused_pane.stack(),
+        focused: app.focused(Focusable::Stack),
     });
 
     PaneBorder::new()
