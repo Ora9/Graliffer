@@ -353,36 +353,29 @@ impl State for ConsoleState {
         match action {
             ScrollUp => {
                 self.scroll_up_by(1);
-                Ok(Revert::None)
             }
             ScrollDown => {
                 self.scroll_down_by(1);
-                Ok(Revert::None)
             }
             ScrollPageUp => {
                 self.scroll_page_up();
-                Ok(Revert::None)
             }
             ScrollPageDown => {
                 self.scroll_page_down();
-                Ok(Revert::None)
             }
             ScrollTop => {
                 self.scroll_to_top();
-                Ok(Revert::None)
             }
             ScrollBottom => {
                 self.stick_to_bottom();
-                Ok(Revert::None)
             }
             ScrollBy(isize) => {
                 self.scroll_by(*isize);
-                Ok(Revert::None)
             }
             Clear => {
                 self.clear_content();
-                Ok(Revert::None)
             }
         }
+        Ok(Revert::None)
     }
 }
