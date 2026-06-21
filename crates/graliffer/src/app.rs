@@ -1,12 +1,14 @@
 use std::{cell::RefCell, iter, ops::AddAssign, rc::Rc};
 
+use action::{Action, AnyAction, Revert, State};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent};
+use log::debug;
 use rand::seq::SliceRandom;
 use ratatui::layout::Position;
 
 use crate::{
-    inputs::InputMode,
-    ui::{Console, ConsoleState, FocusedPane, GridState},
+    inputs::{InputMode, Keymap},
+    ui::{Console, ConsoleAction, ConsoleState, FocusedPane, GridState},
 };
 
 #[derive(Debug)]
@@ -17,6 +19,7 @@ pub struct App {
     pub grid_state: GridState,
 
     pub input_mode: InputMode,
+    pub keymap: Keymap,
 
     pub focused_pane: FocusedPane,
 }
@@ -76,6 +79,7 @@ impl App {
             should_run: true,
 
             input_mode: InputMode::Command,
+            keymap: Keymap::new(),
 
             console_state: ConsoleState::new(1000),
             grid_state: GridState::new(frame),
@@ -113,58 +117,43 @@ impl App {
         }
     }
 
-    // pub fn handle_key_events(&mut self, key_event: KeyEvent) {
-    //     match self.input_mode {
-    //         InputMode::Insert => {}
-    //     }
-
-    //     match key_event.code {
-    //         KeyCode::Esc | KeyCode::Char('q') => self.quit(),
-    //         KeyCode::Char('c') | KeyCode::Char('C')
-    //             if key_event.modifiers == KeyModifiers::CONTROL =>
-    //         {
-    //             self.quit()
-    //         }
-    //         // KeyCode::Right | KeyCode::Char('j') => app.increment_counter(),
-    //         // KeyCode::Left | KeyCode::Char('k') => app.decrement_counter(),
-    //         _ => {}
-    //     };
-
-    //     self.grid_state.handle_key_event(key_event);
-    // }
-
-    // pub fn handle_mouse_event(&mut self, mouse_event: MouseEvent) {
-    //     // TODO: this is a temporary solution to filter event targets based on position
-    //     if let Some(console_layouts) = self.console_state.layouts() {
-    //         // if mouse_event console_layouts.viewport_area()
-
-    //         let contained = console_layouts
-    //             .viewport_area()
-    //             .union(console_layouts.vertical_scrollbar_area())
-    //             .contains(Position {
-    //                 x: mouse_event.column,
-    //                 y: mouse_event.row,
-    //             });
-
-    //         if contained {
-    //             self.console_state.handle_mouse_event(mouse_event);
-    //         }
-    //     }
-
-    //     if let Some(grid_layout) = self.grid_state.layout() {
-    //         let contained = grid_layout.contains(Position {
-    //             x: mouse_event.column,
-    //             y: mouse_event.row,
-    //         });
-
-    //         if contained {
-    //             self.grid_state.handle_mouse_event(mouse_event);
-    //         }
-    //     }
-    // }
-
     /// Set should_quit to true to quit the application.
     pub fn quit(&mut self) {
         self.should_run = false;
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum AppAction {
+    Quit,
+    About,
+}
+
+impl Action for AppAction {}
+
+impl State for App {
+    type Action = AnyAction;
+    type Error = eyre::Error;
+
+    fn act(&mut self, action: &Self::Action) -> Result<Revert, Self::Error> {
+        if let Some(app_action) = action.downcast_ref::<AppAction>() {
+            use AppAction::*;
+            match app_action {
+                Quit => {
+                    self.quit();
+                }
+                About => {
+                    debug!("about!");
+                }
+            };
+            Ok(Revert::None)
+
+            // debug!("app action");
+            // unimplemented!()
+        } else if let Some(console_action) = action.downcast_ref::<ConsoleAction>() {
+            self.console_state.act(console_action)
+        } else {
+            Err(eyre::anyhow!("unknown action"))
+        }
     }
 }

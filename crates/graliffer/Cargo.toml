@@ -8,8 +8,10 @@ edition.workspace = true
 
 [dependencies]
 grai.workspace = true
+action.workspace = true
 
-color-eyre = "0.6.3"
+eyre = "0.6.5"
+color-eyre = "0.6.5"
 crossterm = "0.29.0"
 
 ratatui = "0.30.1"

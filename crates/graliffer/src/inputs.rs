@@ -1,10 +1,14 @@
+use action::{Action, AnyAction, State};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, ModifierKeyCode, MouseEvent};
 use ratatui::layout::Position;
 
-use crate::app::App;
+use crate::{
+    app::{App, AppAction},
+    ui::{ConsoleAction, FocusedPane::Console},
+};
 
 #[derive(Debug)]
-struct Keybind {
+pub struct Keybind {
     modifiers: KeyModifiers,
     key: KeyCode,
 }
@@ -16,22 +20,55 @@ impl Keybind {
             key,
         }
     }
+
+    pub fn matches(&self, key_event: KeyEvent) -> bool {
+        self.key == key_event.code && self.modifiers == key_event.modifiers
+    }
 }
 
 #[derive(Debug, Default)]
-struct Keymap(Vec<(Keybind, String)>);
+pub struct Keymap(Vec<(Keybind, AnyAction)>);
 
 impl Keymap {
     pub fn new() -> Self {
         let mut map = Self::default();
 
-        map.push(Keybind::from_key(KeyCode::Char('q')), "prout".to_string());
+        map.push(Keybind::from_key(KeyCode::Char('q')), AppAction::Quit);
+        map.push(
+            Keybind {
+                key: KeyCode::Char('c'),
+                modifiers: KeyModifiers::CONTROL,
+            },
+            AppAction::Quit,
+        );
+
+        map.push(
+            Keybind {
+                key: KeyCode::Char('a'),
+                modifiers: KeyModifiers::CONTROL,
+            },
+            AppAction::About,
+        );
+        map.push(
+            Keybind {
+                key: KeyCode::Char('c'),
+                modifiers: KeyModifiers::CONTROL | KeyModifiers::SHIFT,
+            },
+            ConsoleAction::Clear,
+        );
 
         map
     }
 
-    pub fn push(&mut self, keybind: Keybind, action: String) {
-        self.0.push((keybind, action));
+    pub fn push(&mut self, keybind: Keybind, action: impl Action) {
+        self.0.push((keybind, AnyAction::new(action)));
+    }
+
+    pub fn find(&self, key_event: KeyEvent) -> Option<AnyAction> {
+        self.0
+            .iter()
+            .find(|item| item.0.matches(key_event))
+            .and_then(|item| Some(item.1.clone()))
     }
 }
 
@@ -43,23 +80,11 @@ pub enum InputMode {
 
 impl App {
     pub fn handle_key_events(&mut self, key_event: KeyEvent) {
-        // match self.input_mode {
-        //     InputMode::Insert => {}
-        // }
+        if let Some(action) = self.keymap.find(key_event) {
+            self.act(&action);
+        }
 
-        match key_event.code {
-            KeyCode::Esc | KeyCode::Char('q') => self.quit(),
-            KeyCode::Char('c') | KeyCode::Char('C')
-                if key_event.modifiers == KeyModifiers::CONTROL =>
-            {
-                self.quit()
-            }
-            // KeyCode::Right | KeyCode::Char('j') => app.increment_counter(),
-            // KeyCode::Left | KeyCode::Char('k') => app.decrement_counter(),
-            _ => {}
-        };
-
-        self.grid_state.handle_key_event(key_event);
+        // self.grid_state.handle_key_event(key_event);
     }
 
     pub fn handle_mouse_event(&mut self, mouse_event: MouseEvent) {

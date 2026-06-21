@@ -1849,8 +1849,10 @@ dependencies = [
 name = "graliffer"
 version = "0.1.0"
 dependencies = [
+ "action",
  "color-eyre",
  "crossterm",
+ "eyre",
  "grai",
  "lipsum",
  "log",
