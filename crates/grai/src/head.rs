@@ -63,7 +63,7 @@ impl Head {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum HeadAction {
     MoveTo(Position),
     DirectTo(Direction),

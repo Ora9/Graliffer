@@ -32,7 +32,7 @@ impl Stack {
     // }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum StackAction {
     Push(Operand),
     Pop,

@@ -13,15 +13,33 @@ pub trait State: Debug {
     fn act(&mut self, action: &Self::Action) -> Result<Revert, Self::Error>;
 }
 
-pub trait Action: Any + Debug {}
+pub trait Action: Any + ActionClone + Debug {}
 
-#[derive(Debug)]
-pub struct AnyAction(Box<dyn Any>);
+pub trait ActionClone {
+    fn dyn_clone(&self) -> Box<dyn Action>;
+}
+
+impl<T: Clone + Action> ActionClone for T {
+    fn dyn_clone(&self) -> Box<dyn Action> {
+        Box::new(self.clone())
+    }
+}
+
+impl Action for Box<dyn Action> {}
+
+impl Clone for Box<dyn Action> {
+    fn clone(&self) -> Self {
+        (**self).dyn_clone()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct AnyAction(Box<dyn Action>);
 
 impl Action for AnyAction {}
 
 impl Deref for AnyAction {
-    type Target = Box<dyn Any>;
+    type Target = Box<dyn Action>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -31,6 +49,10 @@ impl Deref for AnyAction {
 impl AnyAction {
     pub fn new(action: impl Action) -> Self {
         Self(Box::new(action))
+    }
+
+    pub fn downcast_ref<T: Any>(&self) -> Option<&T> {
+        (self.0.deref() as &dyn Any).downcast_ref()
     }
 }
 
