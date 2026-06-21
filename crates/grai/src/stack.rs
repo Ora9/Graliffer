@@ -1,6 +1,7 @@
+use action::{Action, Revert, State};
 use serde::{Deserialize, Serialize};
 
-use crate::{Action, Apply, Operand, Revert, State};
+use crate::Operand;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Stack(Vec<Operand>);

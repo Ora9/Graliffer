@@ -1,10 +1,9 @@
 use std::any::type_name_of_val;
 
+use action::{AnyAction, Revert, State};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    Action, AnyAction, Apply, Grid, GridAction, Head, HeadAction, Revert, Stack, StackAction, State,
-};
+use crate::{Grid, GridAction, Head, HeadAction, Stack, StackAction};
 
 #[derive(Debug, thiserror::Error)]
 pub enum FrameError {

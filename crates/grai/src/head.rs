@@ -1,6 +1,7 @@
+use action::{Action, Revert, State};
 use serde::{Deserialize, Serialize};
 
-use crate::{Action, Direction, Position, PositionError, Revert, State};
+use crate::{Direction, Position, PositionError};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Head {

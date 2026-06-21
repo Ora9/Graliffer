@@ -6,8 +6,6 @@ use std::{
     rc::Rc,
 };
 
-use crate::{Cell, Frame, Position};
-
 pub trait State: Debug {
     type Action: Action;
     type Error;

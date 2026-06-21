@@ -1,9 +1,7 @@
 use std::{any::Any, cell::RefCell, rc::Rc};
 
-use grai::{
-    AnyAction, Cell, Frame, Grid, GridAction, Head, HeadAction, Position, PositionError, Stack,
-    Timeline,
-};
+use action::{AnyAction, Timeline};
+use grai::{Cell, Frame, Grid, GridAction, Head, HeadAction, Position, PositionError, Stack};
 use serde::Serialize;
 
 fn main() -> Result<(), PositionError> {

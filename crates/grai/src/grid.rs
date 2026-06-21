@@ -1,6 +1,7 @@
 use std::{any::Any, collections::HashMap};
 
 mod cell;
+use action::{Action, Revert, State};
 pub use cell::*;
 
 mod position;
@@ -9,8 +10,6 @@ pub use position::*;
 mod direction;
 pub use direction::*;
 use serde::{Deserialize, Serialize};
-
-use crate::{Action, Apply, Revert, State};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Grid(HashMap<Position, Cell>);
