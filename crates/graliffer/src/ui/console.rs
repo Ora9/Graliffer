@@ -1,3 +1,4 @@
+use action::{Action, Revert, State};
 use crossterm::event::MouseEvent;
 use ratatui::{
     buffer::Buffer,
@@ -17,13 +18,15 @@ use crate::app;
 
 #[derive(Debug)]
 pub struct ConsoleState {
+    show: bool,
+    layouts: Option<ConsoleLayout>,
+
     content: Vec<String>,
 
-    layouts: Option<ConsoleLayout>,
     scroll_offset: usize,
+    stick_to_bottom: bool,
 
     max_line_history: usize,
-    stick_to_bottom: bool,
 
     scrollbar_interaction: ScrollBarInteraction,
 }
@@ -31,13 +34,15 @@ pub struct ConsoleState {
 impl ConsoleState {
     pub fn new(line_history: usize) -> Self {
         Self {
+            show: true,
+            layouts: None,
+
             content: Vec::new(),
 
-            layouts: None,
             scroll_offset: 0,
+            stick_to_bottom: true,
 
             max_line_history: line_history,
-            stick_to_bottom: true,
 
             scrollbar_interaction: ScrollBarInteraction::default(),
         }
@@ -50,13 +55,16 @@ impl ConsoleState {
     pub fn max_line_history(&self) -> usize {
         self.max_line_history
     }
+}
+
+/// # Content
+impl ConsoleState {
+    pub fn lines(&self) -> usize {
+        self.content.len()
+    }
 
     pub fn content(&self) -> &Vec<String> {
         &self.content
-    }
-
-    pub fn lines(&self) -> usize {
-        self.content.len()
     }
 
     pub fn set_content(&mut self, mut content: Vec<String>) {
@@ -79,6 +87,10 @@ impl ConsoleState {
         } else {
             self.append_line(string);
         }
+    }
+
+    pub fn clear_content(&mut self) {
+        self.set_content(Vec::default());
     }
 }
 
@@ -169,6 +181,10 @@ impl ConsoleState {
         }
     }
 
+    pub fn scroll_to_top(&mut self) {
+        self.scroll_offset = 0;
+    }
+
     pub fn scroll_to_bottom_if_sticky(&mut self) {
         if self.stick_to_bottom {
             self.scroll_to_bottom();
@@ -193,6 +209,30 @@ impl ConsoleState {
     pub fn scroll_up_by(&mut self, lines: usize) {
         if self.need_scroll() {
             self.scroll_offset = self.scroll_offset.saturating_sub(lines).max(0);
+        }
+    }
+
+    pub fn scroll_by(&mut self, lines: isize) {
+        match lines.signum() {
+            1 => {
+                self.scroll_up_by(lines.unsigned_abs());
+            }
+            -1 => {
+                self.scroll_down_by(lines.unsigned_abs());
+            }
+            0 | _ => {}
+        }
+    }
+
+    pub fn scroll_page_up(&mut self) {
+        if let Some(viewport_height) = self.content_area_height() {
+            self.scroll_up_by(viewport_height);
+        }
+    }
+
+    pub fn scroll_page_down(&mut self) {
+        if let Some(viewport_height) = self.content_area_height() {
+            self.scroll_down_by(viewport_height);
         }
     }
 }
@@ -285,6 +325,64 @@ impl StatefulWidget for Console {
             let scrollbar = Self::build_vertical_scrollbar(metrics);
 
             scrollbar.render(vertical_scrollbar_area, buf);
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum ConsoleAction {
+    ScrollUp,
+    ScrollDown,
+    ScrollPageUp,
+    ScrollPageDown,
+    ScrollTop,
+    ScrollBottom,
+    ScrollBy(isize),
+    Clear,
+}
+
+impl Action for ConsoleAction {}
+
+impl State for ConsoleState {
+    type Action = ConsoleAction;
+    type Error = eyre::Error;
+
+    fn act(&mut self, action: &Self::Action) -> Result<Revert, Self::Error> {
+        use ConsoleAction::*;
+
+        match action {
+            ScrollUp => {
+                self.scroll_up_by(1);
+                Ok(Revert::None)
+            }
+            ScrollDown => {
+                self.scroll_down_by(1);
+                Ok(Revert::None)
+            }
+            ScrollPageUp => {
+                self.scroll_page_up();
+                Ok(Revert::None)
+            }
+            ScrollPageDown => {
+                self.scroll_page_down();
+                Ok(Revert::None)
+            }
+            ScrollTop => {
+                self.scroll_to_top();
+                Ok(Revert::None)
+            }
+            ScrollBottom => {
+                self.stick_to_bottom();
+                Ok(Revert::None)
+            }
+            ScrollBy(isize) => {
+                self.scroll_by(*isize);
+                Ok(Revert::None)
+            }
+            Clear => {
+                self.clear_content();
+                Ok(Revert::None)
+            }
         }
     }
 }
