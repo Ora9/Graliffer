@@ -1,10 +1,13 @@
 use ratatui::{
     Frame,
     buffer::Buffer,
-    layout::{Alignment, Constraint, Direction, Layout, Margin, Rect, Spacing},
+    layout::{Alignment, Constraint, Direction, Layout, Margin, Position, Rect, Size, Spacing},
     style::{Color, Style, Stylize},
-    symbols::merge::MergeStrategy,
-    text::{Line, Span, ToSpan},
+    symbols::{
+        border::{self, Set},
+        merge::MergeStrategy,
+    },
+    text::{Line, Span, Text, ToSpan},
     widgets::{Block, BorderType, Borders, Paragraph, StatefulWidget, Widget},
 };
 
@@ -21,6 +24,9 @@ pub use console::*;
 
 mod grid;
 pub use grid::*;
+
+mod popup;
+pub use popup::*;
 
 pub fn render(app: &mut App, frame: &mut Frame) {
     let [top_area, output_area] = frame.area().layout(
@@ -68,7 +74,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     };
 
     let main_menu_bar = MenuGroup::default()
-        .push_title(file_title)
+        .push_title(file_title.clone())
         .push_title(edit_title);
 
     let grid_menu_bar = MenuLine::default()
@@ -100,4 +106,12 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     PaneBorder::new()
         .add_menu_line(stack_menu_bar)
         .render(stack_area, frame.buffer_mut());
+
+    Popup::new("patate oui")
+        .position(Position::new(8, 1))
+        .size(Size::new(30, 10))
+        .title(file_title.as_border())
+        .render(frame.area(), frame.buffer_mut());
+
+    // Popup::new(Text::from("patate")).render(frame.area(), frame.buffer_mut());
 }
