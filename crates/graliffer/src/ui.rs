@@ -28,6 +28,9 @@ pub use grid::*;
 mod popup;
 pub use popup::*;
 
+mod about;
+pub use about::*;
+
 pub fn render(app: &mut App, frame: &mut Frame) {
     let [top_area, output_area] = frame.area().layout(
         &Layout::vertical(vec![Constraint::Fill(1), Constraint::Percentage(25)])
@@ -107,11 +110,13 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         .add_menu_line(stack_menu_bar)
         .render(stack_area, frame.buffer_mut());
 
-    Popup::new("patate oui")
-        .position(Position::new(8, 1))
-        .size(Size::new(30, 10))
-        .title(file_title.as_border())
-        .render(frame.area(), frame.buffer_mut());
+    if app.show_about {
+        Popup::new(About, Size::new(About::WIDTH, About::HEIGHT))
+            // .position(Position::new(8, 1))
+            // .size(Size::new(30, 10))
+            .title(MenuTitle::Info(Span::raw("About")).as_border())
+            .render(frame.area(), frame.buffer_mut());
+    }
 
     // Popup::new(Text::from("patate")).render(frame.area(), frame.buffer_mut());
 }

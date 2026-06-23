@@ -19,6 +19,7 @@ tui-scrollbar = { version = "0.2.4", features = ["crossterm"] }
 tui-input = { version = "0.15.3", features = ["crossterm"], default-features = false }
 tui-logger = { version = "0.18.2", features = ["crossterm"] }
 log = "0.4.32"
+tui-big-text = "0.8.8"
 
 lipsum = "0.9"
 rand = { version = "0.10.1", features = ["thread_rng"] }

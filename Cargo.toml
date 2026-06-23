@@ -1,5 +1,5 @@
 [workspace.package]
-description = " Graliffer is an exotic programming language using a 2d grid holding code and data"
+description = "Graliffer is an exotic programming language using a 2d grid holding code and data"
 repository = "https://github.com/Ora9/Graliffer"
 license = "MIT"
 version = "0.1.0"

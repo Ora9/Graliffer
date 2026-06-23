@@ -24,6 +24,8 @@ pub struct App {
     pub console_state: ConsoleState,
     pub grid_state: GridState,
 
+    pub show_about: bool,
+
     pub input_mode: InputMode,
     pub keymap: Keymap,
 
@@ -94,6 +96,9 @@ impl App {
                 FocusHandle::new(Focusable::Console, app_focus.clone()),
             ),
             grid_state: GridState::new(frame, FocusHandle::new(Focusable::Grid, app_focus.clone())),
+
+            show_about: false,
+
             focused: app_focus,
         };
 
@@ -153,11 +158,14 @@ impl App {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PopupId(usize);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Focusable {
     Grid,
     Console,
     Stack,
-    // Popup(PopupId)
+    Popup(PopupId),
 }
 
 impl Focusable {
@@ -213,7 +221,8 @@ impl State for App {
                     self.quit();
                 }
                 About => {
-                    debug!("about!");
+                    self.show_about = !self.show_about;
+                    // debug!("about!");
                 }
                 FocusStack => {
                     self.set_focus(Focusable::Stack);

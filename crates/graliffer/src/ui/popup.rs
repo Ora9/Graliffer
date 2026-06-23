@@ -8,70 +8,31 @@ use ratatui::{
     widgets::{Block, Borders, Clear, GraphType::Area, StatefulWidget, Widget},
 };
 
-pub trait KnownSize {
-    fn width(&self) -> usize;
-    fn height(&self) -> usize;
-}
-
-impl KnownSize for Text<'_> {
-    fn width(&self) -> usize {
-        self.width()
-    }
-
-    fn height(&self) -> usize {
-        self.height()
-    }
-}
-
-impl KnownSize for &Text<'_> {
-    fn width(&self) -> usize {
-        Text::width(self)
-    }
-
-    fn height(&self) -> usize {
-        Text::height(self)
-    }
-}
-
-impl KnownSize for &str {
-    fn width(&self) -> usize {
-        Text::from(*self).width()
-    }
-
-    fn height(&self) -> usize {
-        Text::from(*self).height()
-    }
-}
-
-impl KnownSize for String {
-    fn width(&self) -> usize {
-        Text::from(self.as_str()).width()
-    }
-
-    fn height(&self) -> usize {
-        Text::from(self.as_str()).height()
-    }
-}
-
 pub struct Popup<'content, W> {
     pub body: W,
-    pub size: Option<Size>,
+
+    pub size: Size,
     pub position: Option<Position>,
+
     pub title: Line<'content>,
     pub style: Style,
+
     pub borders: Borders,
     pub border_set: Set<'content>,
     pub border_style: Style,
 }
 
 impl<'content, W> Popup<'content, W> {
-    pub fn new(body: W) -> Self {
+    pub fn new(body: W, size: Size) -> Self {
         Self {
             body,
+
+            size,
             position: None,
-            size: None,
+
             title: Line::default(),
             style: Style::default(),
+
             borders: Borders::all(),
             border_set: border::ROUNDED,
             border_style: Style::default(),
@@ -79,7 +40,7 @@ impl<'content, W> Popup<'content, W> {
     }
 
     pub fn size(mut self, size: Size) -> Self {
-        self.size = Some(size);
+        self.size = size;
         self
     }
 
@@ -114,12 +75,11 @@ impl<'content, W> Popup<'content, W> {
     }
 }
 
-impl<W: Widget + KnownSize> Widget for Popup<'_, W> {
+impl<W: Widget> Widget for Popup<'_, W> {
     fn render(self, area: Rect, buf: &mut Buffer)
     where
         Self: Sized,
     {
-        // // let viewport_area = area;
         let popup_area = self.popup_area(area);
 
         let block = Block::default()
@@ -139,21 +99,8 @@ impl<W: Widget + KnownSize> Widget for Popup<'_, W> {
     }
 }
 
-impl<W: KnownSize> Popup<'_, W> {
+impl<W> Popup<'_, W> {
     fn popup_area(&self, area: Rect) -> Rect {
-        // if let Some(current) = state.area.take() {
-        //     return current.clamp(area);
-        // }
-
-        let (width, height) = if let Some(size) = self.size {
-            (size.width, size.height)
-        } else {
-            (
-                u16::try_from(self.body.width()).unwrap_or(area.width),
-                u16::try_from(self.body.height()).unwrap_or(area.height),
-            )
-        };
-
         let has_top = self.borders.intersects(Borders::TOP);
         let has_bottom = self.borders.intersects(Borders::BOTTOM);
         let has_left = self.borders.intersects(Borders::LEFT);
@@ -162,16 +109,11 @@ impl<W: KnownSize> Popup<'_, W> {
         let border_height = u16::from(has_top) + u16::from(has_bottom);
         let border_width = u16::from(has_left) + u16::from(has_right);
 
-        let width = width.saturating_add(border_width);
-        let height = height.saturating_add(border_height);
+        let width = self.size.width.saturating_add(border_width);
+        let height = self.size.height.saturating_add(border_height);
 
         if let Some(position) = self.position {
-            Rect {
-                x: position.x,
-                y: position.y,
-                width,
-                height,
-            }
+            Rect::from((position, self.size))
         } else {
             area.centered(Constraint::Length(width), Constraint::Length(height))
         }
