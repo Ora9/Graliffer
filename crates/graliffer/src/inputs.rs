@@ -10,9 +10,72 @@ use crate::{
     app::{
         App,
         AppAction::{self, FocusStack},
+        Focusable,
     },
     ui::{ConsoleAction, FocusedPane::Console},
 };
+
+// pub struct KeyContext(Vec<KeyContextEntry>);
+
+// pub struct KeyContextEntry {
+//     key: String,
+//     value: Option<String>,
+// }
+
+// impl KeyContextEntry {
+//     pub fn new_key(key: String) -> Self {
+//         Self { key, value: None }
+//     }
+
+//     pub fn new_key_value(key: String, value: String) -> Self {
+//         Self {
+//             key,
+//             value: Some(value),
+//         }
+//     }
+// }
+
+// // "Grid && mode == insert"
+// // "ProjectPanel && mode == "
+// pub enum ContextPredicate {
+//     Identifier(String),
+//     // Equal(String, String),
+//     // NotEqual(String, String),
+
+//     // Not(Box<ContextPredicate>),
+//     // And(Box<ContextPredicate>, Box<ContextPredicate>),
+//     // Or(Box<ContextPredicate>, Box<ContextPredicate>),
+// }
+
+// pub struct ContextTree {}
+
+#[derive(Debug, Clone, Copy)]
+pub struct KeyContext {
+    pub focus: Focusable,
+    pub input_mode: InputMode,
+}
+
+#[derive(Debug, Default)]
+pub struct KeyContextPredicate {
+    focus: Option<Focusable>,
+    input_mode: Option<InputMode>,
+}
+
+impl KeyContextPredicate {
+    pub fn matches(&self, key_context: KeyContext) -> bool {
+        if let Some(focus) = self.focus
+            && focus != key_context.focus
+        {
+            false
+        } else if let Some(input_mode) = self.input_mode
+            && input_mode != key_context.input_mode
+        {
+            false
+        } else {
+            true
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct Keybind {
@@ -23,8 +86,8 @@ pub struct Keybind {
 impl Keybind {
     pub fn from_key(key: KeyCode) -> Self {
         Self {
-            modifiers: KeyModifiers::NONE,
             key,
+            modifiers: KeyModifiers::NONE,
         }
     }
 
@@ -33,8 +96,29 @@ impl Keybind {
     }
 }
 
+#[derive(Debug)]
+pub struct KeymapEntry {
+    keybind: Keybind,
+    context_predicate: KeyContextPredicate,
+    action: AnyAction,
+}
+
+impl KeymapEntry {
+    pub fn new(
+        keybind: Keybind,
+        context_predicate: KeyContextPredicate,
+        action: AnyAction,
+    ) -> Self {
+        Self {
+            keybind,
+            context_predicate,
+            action,
+        }
+    }
+}
+
 #[derive(Debug, Default)]
-pub struct Keymap(Vec<(Keybind, AnyAction)>);
+pub struct Keymap(Vec<KeymapEntry>);
 
 impl Keymap {
     pub fn new() -> Self {
@@ -46,6 +130,7 @@ impl Keymap {
                 key: KeyCode::Char('c'),
                 modifiers: KeyModifiers::CONTROL,
             },
+            KeyContextPredicate::default(),
             AppAction::Quit,
         );
 
@@ -54,6 +139,7 @@ impl Keymap {
                 key: KeyCode::Char('a'),
                 modifiers: KeyModifiers::CONTROL,
             },
+            KeyContextPredicate::default(),
             AppAction::About,
         );
         map.push(
@@ -61,6 +147,7 @@ impl Keymap {
                 key: KeyCode::Char('c'),
                 modifiers: KeyModifiers::CONTROL | KeyModifiers::SHIFT,
             },
+            KeyContextPredicate::default(),
             ConsoleAction::Clear,
         );
 
@@ -69,21 +156,33 @@ impl Keymap {
                 key: KeyCode::Char('f'),
                 modifiers: KeyModifiers::CONTROL,
             },
+            KeyContextPredicate::default(),
             AppAction::FocusStack,
         );
 
         map
     }
 
-    pub fn push(&mut self, keybind: Keybind, action: impl Action) {
-        self.0.push((keybind, AnyAction::new(action)));
+    pub fn push(
+        &mut self,
+        keybind: Keybind,
+        context_predicate: KeyContextPredicate,
+        action: impl Action,
+    ) {
+        self.0.push(KeymapEntry {
+            keybind,
+            context_predicate,
+            action: AnyAction::new(action),
+        });
     }
 
-    pub fn find(&self, key_event: KeyEvent) -> Option<AnyAction> {
+    pub fn find(&self, key_event: KeyEvent, key_context: KeyContext) -> Option<AnyAction> {
         self.0
             .iter()
-            .find(|item| item.0.matches(key_event))
-            .and_then(|item| Some(item.1.clone()))
+            .find(|item| {
+                item.keybind.matches(key_event) && item.context_predicate.matches(key_context)
+            })
+            .and_then(|item| Some(item.action.clone()))
     }
 }
 
@@ -104,8 +203,8 @@ impl InputMode {
 }
 
 impl App {
-    pub fn handle_key_events(&mut self, key_event: KeyEvent) {
-        if let Some(action) = self.keymap.find(key_event) {
+    pub fn handle_key_events(&mut self, key_event: KeyEvent, key_context: KeyContext) {
+        if let Some(action) = self.keymap.find(key_event, key_context) {
             self.act(&action);
         }
 

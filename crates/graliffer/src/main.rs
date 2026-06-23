@@ -52,7 +52,7 @@ fn main() -> Result<()> {
             Event::Tick => {
                 app.tick();
             }
-            Event::Key(key_event) => app.handle_key_events(key_event),
+            Event::Key(key_event) => app.handle_key_events(key_event, app.key_context()),
             Event::Mouse(mouse_event) => {
                 app.handle_mouse_event(mouse_event);
             }

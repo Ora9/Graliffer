@@ -52,7 +52,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     let grid_pane_title = MenuTitle::NumberPrefix {
         title: "Grid".to_span(),
         prefix: NumberPrefix::Num1,
-        focused: app.focused(Focusable::Grid),
+        focused: app.is_focused(Focusable::Grid),
     };
 
     let file_title = MenuTitle::Inline {
@@ -79,13 +79,13 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         title: "Console".to_span(),
         // highlight: "o".to_string(),
         prefix: NumberPrefix::Num2,
-        focused: app.focused(Focusable::Console),
+        focused: app.is_focused(Focusable::Console),
     });
 
     let stack_menu_bar = MenuLine::from_title(MenuTitle::NumberPrefix {
         title: "Stack".to_span(),
         prefix: NumberPrefix::Num3,
-        focused: app.focused(Focusable::Stack),
+        focused: app.is_focused(Focusable::Stack),
     });
 
     PaneBorder::new()

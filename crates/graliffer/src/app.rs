@@ -13,7 +13,7 @@ use ratatui::layout::Position;
 
 use crate::{
     app,
-    inputs::{InputMode, Keymap},
+    inputs::{InputMode, KeyContext, Keymap},
     ui::{Console, ConsoleAction, ConsoleState, FocusedPane, GridState},
 };
 
@@ -120,8 +120,19 @@ impl App {
         // self.console_state.scroll_offset = self.console_state.scroll_offset.wrapping_add(1);
     }
 
-    pub fn focused(&self, focusable: Focusable) -> bool {
+    pub fn key_context(&self) -> KeyContext {
+        KeyContext {
+            focus: self.focused(),
+            input_mode: self.input_mode,
+        }
+    }
+
+    pub fn is_focused(&self, focusable: Focusable) -> bool {
         *self.focused.borrow() == focusable
+    }
+
+    pub fn focused(&self) -> Focusable {
+        self.focused.borrow().clone()
     }
 
     pub fn set_focus(&mut self, focused: Focusable) {
