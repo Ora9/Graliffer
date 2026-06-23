@@ -1,5 +1,6 @@
 use action::{Action, AnyAction, State};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, ModifierKeyCode, MouseEvent};
+use log::debug;
 use ratatui::{
     layout::Position,
     style::Stylize,
@@ -77,7 +78,7 @@ impl KeyContextPredicate {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Keystroke {
     modifiers: KeyModifiers,
     key: KeyCode,
@@ -90,6 +91,49 @@ impl Keystroke {
             modifiers: KeyModifiers::NONE,
         }
     }
+
+    pub fn from_event(key_event: KeyEvent) -> Self {
+        Self {
+            modifiers: key_event.modifiers,
+            key: key_event.code,
+        }
+    }
+
+    fn to_string(&self) -> String {
+        format!("{} {}", self.modifiers.to_string(), self.key.to_string())
+
+        // if self.modifiers.contains(KeyModifiers::CONTROL)
+    }
+
+    // fn parse(source: String) -> eyre::Result<Self> {
+    //     let mut modifiers = KeyModifiers::NONE;
+    //     let mut key: Option<KeyCode> = None;
+
+    //     let mut parts = source.split('-');
+    //     while let Some(part) = parts.next() {
+    //         if part.eq_ignore_ascii_case("ctrl") {
+    //             modifiers.insert(KeyModifiers::CONTROL);
+    //             continue;
+    //         } else if part.eq_ignore_ascii_case("shift") {
+    //             modifiers.insert(KeyModifiers::SHIFT);
+    //             continue;
+    //         } else if part.eq_ignore_ascii_case("alt") {
+    //             modifiers.insert(KeyModifiers::ALT);
+    //             continue;
+    //         };
+
+    //         if let Some(next) = components.peek() {
+    //             if next.is_empty() && source.ends_with('-') {
+    //                 key = Some(KeyCode::Char('-'));
+    //                 break;
+    //             } else {
+    //                 Err("invalid keystroke representation")
+    //             }
+    //         } else {
+
+    //         }
+    //     // todo!()
+    // }
 
     pub fn matches(&self, key_event: KeyEvent) -> bool {
         self.key == key_event.code && self.modifiers == key_event.modifiers
@@ -199,12 +243,10 @@ impl Keymap {
         });
     }
 
-    pub fn find(&self, key_event: KeyEvent, key_context: KeyContext) -> Option<AnyAction> {
+    pub fn find(&self, keystroke: Keystroke, key_context: KeyContext) -> Option<AnyAction> {
         self.0
             .iter()
-            .find(|item| {
-                item.keystroke.matches(key_event) && item.context_predicate.matches(key_context)
-            })
+            .find(|item| item.keystroke == keystroke && item.context_predicate.matches(key_context))
             .and_then(|item| Some(item.action.clone()))
     }
 }
@@ -227,7 +269,11 @@ impl InputMode {
 
 impl App {
     pub fn handle_key_events(&mut self, key_event: KeyEvent, key_context: KeyContext) {
-        if let Some(action) = self.keymap.find(key_event, key_context) {
+        let keystroke = Keystroke::from_event(key_event);
+
+        debug!("{:?}", keystroke.to_string());
+
+        if let Some(action) = self.keymap.find(keystroke, key_context) {
             self.act(&action);
         }
 
