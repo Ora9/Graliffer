@@ -124,7 +124,30 @@ impl Keymap {
     pub fn new() -> Self {
         let mut map = Self::default();
 
-        map.push(Keybind::from_key(KeyCode::Char('q')), AppAction::Quit);
+        map.push(
+            Keybind::from_key(KeyCode::Char('q')),
+            KeyContextPredicate::default(),
+            AppAction::Quit,
+        );
+
+        map.push(
+            Keybind::from_key(KeyCode::Char('i')),
+            KeyContextPredicate {
+                input_mode: Some(InputMode::Command),
+                ..Default::default()
+            },
+            AppAction::InsertMode,
+        );
+
+        map.push(
+            Keybind::from_key(KeyCode::Esc),
+            KeyContextPredicate {
+                input_mode: Some(InputMode::Insert),
+                ..Default::default()
+            },
+            AppAction::CommandMode,
+        );
+
         map.push(
             Keybind {
                 key: KeyCode::Char('c'),

@@ -195,6 +195,8 @@ pub enum AppAction {
     Quit,
     About,
     FocusStack,
+    InsertMode,
+    CommandMode,
 }
 
 impl Action for AppAction {}
@@ -215,6 +217,14 @@ impl State for App {
                 }
                 FocusStack => {
                     self.set_focus(Focusable::Stack);
+                }
+                InsertMode => {
+                    debug!("insert!");
+                    self.input_mode = InputMode::Insert
+                }
+                CommandMode => {
+                    debug!("command!");
+                    self.input_mode = InputMode::Command
                 }
             };
             Ok(Revert::None)
