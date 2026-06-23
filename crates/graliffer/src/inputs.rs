@@ -13,7 +13,11 @@ use crate::{
         AppAction::{self, FocusStack},
         Focusable,
     },
-    ui::{ConsoleAction, FocusedPane::Console},
+    ui::{
+        ConsoleAction,
+        FocusedPane::{Console, Grid},
+        GridAction,
+    },
 };
 
 // pub struct KeyContext(Vec<KeyContextEntry>);
@@ -167,6 +171,24 @@ pub struct Keymap(Vec<KeymapEntry>);
 impl Keymap {
     pub fn new() -> Self {
         let mut map = Self::default();
+
+        map.push(
+            Keystroke::from_key(KeyCode::Up),
+            KeyContextPredicate {
+                focus: Some(Focusable::Grid),
+                input_mode: Some(InputMode::Command),
+            },
+            GridAction::CursorUp,
+        );
+
+        map.push(
+            Keystroke::from_key(KeyCode::Down),
+            KeyContextPredicate {
+                focus: Some(Focusable::Grid),
+                input_mode: Some(InputMode::Command),
+            },
+            GridAction::CursorDown,
+        );
 
         map.push(
             Keystroke::from_key(KeyCode::Char('q')),

@@ -1,5 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
+use action::{Action, Revert, State};
 use crossterm::event::{KeyCode, KeyEvent, MouseEvent, MouseEventKind};
 use grai::granary::GranaryDigit;
 use log::debug;
@@ -92,23 +93,23 @@ impl GridState {
         }
     }
 
-    pub fn handle_key_event(&mut self, key_event: KeyEvent) {
-        match key_event.code {
-            KeyCode::Right => {
-                self.offset_x = self.offset_x.saturating_add(1);
-            }
-            KeyCode::Left => {
-                self.offset_x = self.offset_x.saturating_sub(1);
-            }
-            KeyCode::Down => {
-                self.offset_y = self.offset_y.saturating_add(1);
-            }
-            KeyCode::Up => {
-                self.offset_y = self.offset_y.saturating_sub(1);
-            }
-            _ => {}
-        }
-    }
+    // pub fn handle_key_event(&mut self, key_event: KeyEvent) {
+    //     match key_event.code {
+    //         KeyCode::Right => {
+    //             self.offset_x = self.offset_x.saturating_add(1);
+    //         }
+    //         KeyCode::Left => {
+    //             self.offset_x = self.offset_x.saturating_sub(1);
+    //         }
+    //         KeyCode::Down => {
+    //             self.offset_y = self.offset_y.saturating_add(1);
+    //         }
+    //         KeyCode::Up => {
+    //             self.offset_y = self.offset_y.saturating_sub(1);
+    //         }
+    //         _ => {}
+    //     }
+    // }
 
     pub fn handle_mouse_event(&mut self, mouse_event: MouseEvent) {
         // debug!("{:?}", mouse_event);
@@ -279,5 +280,63 @@ fn buffer_merge_areas(
                 dest_cell.set_style(from_cell.style());
             }
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum GridAction {
+    CursorUp,
+    CursorDown,
+    CursorRight,
+    CursorLeft,
+    // ,
+    // ScrollTop,
+    // ScrollBottom,
+    // ScrollBy(isize),
+    // Clear,
+}
+
+impl Action for GridAction {}
+
+impl State for GridState {
+    type Action = GridAction;
+    type Error = eyre::Error;
+
+    fn act(&mut self, action: &Self::Action) -> Result<Revert, Self::Error> {
+        use GridAction::*;
+
+        match action {
+            CursorUp => {
+                debug!("curosor up!");
+            }
+            CursorDown => {
+                debug!("curosor down!");
+            }
+            _ => {} // ScrollUp => {
+                    //     self.scroll_up_by(1);
+                    // }
+                    // ScrollDown => {
+                    //     self.scroll_down_by(1);
+                    // }
+                    // ScrollPageUp => {
+                    //     self.scroll_page_up();
+                    // }
+                    // ScrollPageDown => {
+                    //     self.scroll_page_down();
+                    // }
+                    // ScrollTop => {
+                    //     self.scroll_to_top();
+                    // }
+                    // ScrollBottom => {
+                    //     self.stick_to_bottom();
+                    // }
+                    // ScrollBy(isize) => {
+                    //     self.scroll_by(*isize);
+                    // }
+                    // Clear => {
+                    //     self.clear_content();
+                    // }
+        }
+        Ok(Revert::None)
     }
 }
