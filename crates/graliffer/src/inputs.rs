@@ -78,12 +78,12 @@ impl KeyContextPredicate {
 }
 
 #[derive(Debug)]
-pub struct Keybind {
+pub struct Keystroke {
     modifiers: KeyModifiers,
     key: KeyCode,
 }
 
-impl Keybind {
+impl Keystroke {
     pub fn from_key(key: KeyCode) -> Self {
         Self {
             key,
@@ -98,19 +98,19 @@ impl Keybind {
 
 #[derive(Debug)]
 pub struct KeymapEntry {
-    keybind: Keybind,
+    keystroke: Keystroke,
     context_predicate: KeyContextPredicate,
     action: AnyAction,
 }
 
 impl KeymapEntry {
     pub fn new(
-        keybind: Keybind,
+        keystroke: Keystroke,
         context_predicate: KeyContextPredicate,
         action: AnyAction,
     ) -> Self {
         Self {
-            keybind,
+            keystroke,
             context_predicate,
             action,
         }
@@ -125,13 +125,13 @@ impl Keymap {
         let mut map = Self::default();
 
         map.push(
-            Keybind::from_key(KeyCode::Char('q')),
+            Keystroke::from_key(KeyCode::Char('q')),
             KeyContextPredicate::default(),
             AppAction::Quit,
         );
 
         map.push(
-            Keybind::from_key(KeyCode::Char('i')),
+            Keystroke::from_key(KeyCode::Char('i')),
             KeyContextPredicate {
                 input_mode: Some(InputMode::Command),
                 ..Default::default()
@@ -140,7 +140,7 @@ impl Keymap {
         );
 
         map.push(
-            Keybind::from_key(KeyCode::Esc),
+            Keystroke::from_key(KeyCode::Esc),
             KeyContextPredicate {
                 input_mode: Some(InputMode::Insert),
                 ..Default::default()
@@ -149,7 +149,7 @@ impl Keymap {
         );
 
         map.push(
-            Keybind {
+            Keystroke {
                 key: KeyCode::Char('c'),
                 modifiers: KeyModifiers::CONTROL,
             },
@@ -158,7 +158,7 @@ impl Keymap {
         );
 
         map.push(
-            Keybind {
+            Keystroke {
                 key: KeyCode::Char('a'),
                 modifiers: KeyModifiers::CONTROL,
             },
@@ -166,7 +166,7 @@ impl Keymap {
             AppAction::About,
         );
         map.push(
-            Keybind {
+            Keystroke {
                 key: KeyCode::Char('c'),
                 modifiers: KeyModifiers::CONTROL | KeyModifiers::SHIFT,
             },
@@ -175,7 +175,7 @@ impl Keymap {
         );
 
         map.push(
-            Keybind {
+            Keystroke {
                 key: KeyCode::Char('f'),
                 modifiers: KeyModifiers::CONTROL,
             },
@@ -188,12 +188,12 @@ impl Keymap {
 
     pub fn push(
         &mut self,
-        keybind: Keybind,
+        keystroke: Keystroke,
         context_predicate: KeyContextPredicate,
         action: impl Action,
     ) {
         self.0.push(KeymapEntry {
-            keybind,
+            keystroke,
             context_predicate,
             action: AnyAction::new(action),
         });
@@ -203,7 +203,7 @@ impl Keymap {
         self.0
             .iter()
             .find(|item| {
-                item.keybind.matches(key_event) && item.context_predicate.matches(key_context)
+                item.keystroke.matches(key_event) && item.context_predicate.matches(key_context)
             })
             .and_then(|item| Some(item.action.clone()))
     }
