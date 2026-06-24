@@ -14,7 +14,7 @@ use ratatui::{
 };
 use tui_input::Input;
 
-use crate::app::FocusHandle;
+use crate::app::{Context, FocusHandle};
 
 #[derive(Debug, Default)]
 pub struct Cursor(grai::Position);
@@ -60,7 +60,7 @@ impl DragState {
 
 #[derive(Debug)]
 pub struct GridState {
-    focus_handle: FocusHandle,
+    context: Context,
 
     frame: Rc<RefCell<grai::Frame>>,
 
@@ -76,9 +76,9 @@ pub struct GridState {
 }
 
 impl GridState {
-    pub fn new(frame: Rc<RefCell<grai::Frame>>, focus_handle: FocusHandle) -> Self {
+    pub fn new(frame: Rc<RefCell<grai::Frame>>, context: Context) -> Self {
         GridState {
-            focus_handle,
+            context,
             frame,
 
             input: Input::default(),

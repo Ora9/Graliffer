@@ -49,24 +49,3 @@ impl<'a> Widget for PaneBorder<'a> {
         block.render(area, buf);
     }
 }
-
-#[derive(Debug)]
-pub enum FocusedPane {
-    Grid,
-    Console,
-    Stack,
-}
-
-impl FocusedPane {
-    pub fn grid(&self) -> bool {
-        matches!(self, Self::Grid)
-    }
-
-    pub fn console(&self) -> bool {
-        matches!(self, Self::Console)
-    }
-
-    pub fn stack(&self) -> bool {
-        matches!(self, Self::Stack)
-    }
-}

@@ -1,5 +1,6 @@
 use std::{
     cell::{Ref, RefCell},
+    hash::{BuildHasher, Hash, RandomState},
     iter,
     ops::AddAssign,
     rc::Rc,
@@ -14,7 +15,7 @@ use ratatui::layout::Position;
 use crate::{
     app,
     inputs::{InputMode, KeyContext, Keymap},
-    ui::{Console, ConsoleAction, ConsoleState, FocusedPane, GridState},
+    ui::{Console, ConsoleAction, ConsoleState, GridState},
 };
 
 #[derive(Debug)]
@@ -26,10 +27,11 @@ pub struct App {
 
     pub show_about: bool,
 
-    pub input_mode: InputMode,
     pub keymap: Keymap,
 
-    pub focused: RefCell<Focusable>,
+    pub context: Context,
+    // pub input_mode: InputMode,
+    // pub focused: RefCell<Focusable>,
 }
 
 impl App {
@@ -83,23 +85,20 @@ impl App {
             stack: grai::Stack::default(),
         }));
 
-        let app_focus = RefCell::new(Focusable::Grid);
+        let context = Context::new(Focusable::Grid, InputMode::Insert);
 
         let mut app = Self {
+            context: context.clone(),
+
             should_run: true,
 
-            input_mode: InputMode::Command,
+            // input_mode: InputMode::Command,
             keymap: Keymap::new(),
 
-            console_state: ConsoleState::new(
-                1000,
-                FocusHandle::new(Focusable::Console, app_focus.clone()),
-            ),
-            grid_state: GridState::new(frame, FocusHandle::new(Focusable::Grid, app_focus.clone())),
+            console_state: ConsoleState::new(1000, context.clone()),
+            grid_state: GridState::new(frame, context),
 
             show_about: false,
-
-            focused: app_focus,
         };
 
         let mut rng = rand::rng();
@@ -128,20 +127,28 @@ impl App {
     pub fn key_context(&self) -> KeyContext {
         KeyContext {
             focus: self.focused(),
-            input_mode: self.input_mode,
+            input_mode: self.input_mode(),
         }
     }
 
-    pub fn is_focused(&self, focusable: Focusable) -> bool {
-        *self.focused.borrow() == focusable
+    pub fn is_focused(&self, focus_id: impl Into<FocusId>) -> bool {
+        self.focused() == focus_id.into()
     }
 
-    pub fn focused(&self) -> Focusable {
-        self.focused.borrow().clone()
+    pub fn focused(&self) -> FocusId {
+        self.context.focus()
     }
 
-    pub fn set_focus(&mut self, focused: Focusable) {
-        *self.focused.get_mut() = focused
+    pub fn set_focus(&mut self, focus_id: impl Into<FocusId>) {
+        self.context.set_focus(focus_id);
+    }
+
+    pub fn input_mode(&self) -> InputMode {
+        self.context.input_mode()
+    }
+
+    pub fn set_input_mode(&mut self, input_mode: InputMode) {
+        self.context.set_input_mode(input_mode);
     }
 
     // pub fn input_mode(&mut self, input_mode: InputMode) {
@@ -157,29 +164,74 @@ impl App {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct PopupId(usize);
+#[derive(Debug, Clone)]
+pub struct ContextInner {
+    focus: FocusId,
+    input_mode: InputMode,
+}
+
+#[derive(Debug, Clone)]
+pub struct Context(RefCell<ContextInner>);
+
+// impl Clone for Context {
+//     fn clone(&self) -> Self {
+//         Self (self.0.clone())
+//     }
+// }
+
+impl Context {
+    pub fn new(focus: impl Into<FocusId>, input_mode: InputMode) -> Self {
+        Self(RefCell::new(ContextInner {
+            focus: focus.into(),
+            input_mode,
+        }))
+    }
+
+    pub fn input_mode(&self) -> InputMode {
+        self.0.borrow().input_mode
+    }
+
+    pub fn set_input_mode(&mut self, input_mode: InputMode) {
+        self.0.get_mut().input_mode = input_mode
+    }
+
+    pub fn focus(&self) -> FocusId {
+        self.0.borrow().focus
+    }
+
+    pub fn set_focus(&mut self, focus_id: impl Into<FocusId>) {
+        self.0.get_mut().focus = focus_id.into()
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FocusId(u64);
+
+impl FocusId {
+    pub fn new(source: impl Hash) -> Self {
+        Self::from_hash(RandomState::new().hash_one(source))
+    }
+
+    pub fn from_hash(hash: u64) -> Self {
+        Self(hash)
+    }
+
+    pub fn from_focusable(focusable: Focusable) -> Self {
+        Self::new(focusable)
+    }
+}
+
+impl From<Focusable> for FocusId {
+    fn from(value: Focusable) -> Self {
+        Self::from_focusable(value)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Focusable {
     Grid,
     Console,
     Stack,
-    Popup(PopupId),
-}
-
-impl Focusable {
-    pub fn grid(&self) -> bool {
-        matches!(self, Self::Grid)
-    }
-
-    pub fn console(&self) -> bool {
-        matches!(self, Self::Console)
-    }
-
-    pub fn stack(&self) -> bool {
-        matches!(self, Self::Stack)
-    }
 }
 
 #[derive(Debug)]
@@ -222,18 +274,15 @@ impl State for App {
                 }
                 About => {
                     self.show_about = !self.show_about;
-                    // debug!("about!");
                 }
                 FocusStack => {
                     self.set_focus(Focusable::Stack);
                 }
                 InsertMode => {
-                    debug!("insert!");
-                    self.input_mode = InputMode::Insert
+                    self.set_input_mode(InputMode::Insert);
                 }
                 CommandMode => {
-                    debug!("command!");
-                    self.input_mode = InputMode::Command
+                    self.set_input_mode(InputMode::Command);
                 }
             };
             Ok(Revert::None)

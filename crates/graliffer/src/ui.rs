@@ -54,7 +54,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         &mut app.console_state,
     );
 
-    let input_mode = MenuLine::from_title(MenuTitle::Info(app.input_mode.formated()))
+    let input_mode = MenuLine::from_title(MenuTitle::Info(app.input_mode().formated()))
         .bottom()
         .right();
 

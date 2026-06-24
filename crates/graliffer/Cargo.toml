@@ -23,6 +23,7 @@ tui-big-text = "0.8.8"
 
 lipsum = "0.9"
 rand = { version = "0.10.1", features = ["thread_rng"] }
+ahash = "0.8.12"
 
 strum = "0.28"
 strum_macros = "0.28"

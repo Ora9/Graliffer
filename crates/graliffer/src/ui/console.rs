@@ -14,11 +14,11 @@ use tui_scrollbar::{
     ScrollMetrics,
 };
 
-use crate::app::{self, FocusHandle};
+use crate::app::{self, Context, FocusHandle};
 
 #[derive(Debug)]
 pub struct ConsoleState {
-    focus_handle: FocusHandle,
+    context: Context,
 
     layouts: Option<ConsoleLayout>,
 
@@ -33,9 +33,9 @@ pub struct ConsoleState {
 }
 
 impl ConsoleState {
-    pub fn new(line_history: usize, focus_handle: FocusHandle) -> Self {
+    pub fn new(line_history: usize, context: Context) -> Self {
         Self {
-            focus_handle,
+            context,
 
             layouts: None,
 

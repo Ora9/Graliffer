@@ -11,13 +11,9 @@ use crate::{
     app::{
         App,
         AppAction::{self, FocusStack},
-        Focusable,
+        FocusId, Focusable,
     },
-    ui::{
-        ConsoleAction,
-        FocusedPane::{Console, Grid},
-        GridAction,
-    },
+    ui::{ConsoleAction, GridAction},
 };
 
 // pub struct KeyContext(Vec<KeyContextEntry>);
@@ -56,13 +52,13 @@ use crate::{
 
 #[derive(Debug, Clone, Copy)]
 pub struct KeyContext {
-    pub focus: Focusable,
+    pub focus: FocusId,
     pub input_mode: InputMode,
 }
 
 #[derive(Debug, Default)]
 pub struct KeyContextPredicate {
-    focus: Option<Focusable>,
+    focus: Option<FocusId>,
     input_mode: Option<InputMode>,
 }
 
@@ -175,7 +171,7 @@ impl Keymap {
         map.push(
             Keystroke::from_key(KeyCode::Up),
             KeyContextPredicate {
-                focus: Some(Focusable::Grid),
+                focus: Some(Focusable::Grid.into()),
                 input_mode: Some(InputMode::Command),
             },
             GridAction::CursorUp,
@@ -184,7 +180,7 @@ impl Keymap {
         map.push(
             Keystroke::from_key(KeyCode::Down),
             KeyContextPredicate {
-                focus: Some(Focusable::Grid),
+                focus: Some(Focusable::Grid.into()),
                 input_mode: Some(InputMode::Command),
             },
             GridAction::CursorDown,

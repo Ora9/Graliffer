@@ -1922,6 +1922,7 @@ name = "graliffer"
 version = "0.1.0"
 dependencies = [
  "action",
+ "ahash",
  "color-eyre",
  "crossterm",
  "eyre",
