@@ -8,7 +8,6 @@ use ratatui::{
     text::{Line, Span, Text, ToLine, ToSpan},
     widgets::Widget,
 };
-use tui_big_text::{BigText, PixelSize};
 
 pub struct About;
 
@@ -39,18 +38,6 @@ impl Widget for About {
         let repo = env!("CARGO_PKG_REPOSITORY");
         let license = env!("CARGO_PKG_LICENSE");
 
-        // let title = BigText::builder()
-        //     .pixel_size(PixelSize::Quadrant)
-        //     .lines(vec![Line::from("Graliffer ΐ ಠ_ಠ ")])
-        //     .centered()
-        //     // .style(Style::new().white())
-        //     // .lines(vecV![
-        //     //     "Hello".red().into(),
-        //     //     "World".white().into(),
-        //     //     "~~~~~".into(),
-        //     // ])
-        //     .build();
-
         let [_, title_area, _, desc_area, misc_area] = area.layout(&Layout::vertical(vec![
             Constraint::Length(2),
             Constraint::Length(6),
@@ -72,6 +59,5 @@ impl Widget for About {
         ])
         .centered()
         .render(misc_area, buf);
-        // .render_widget(big_text, frame.size());
     }
 }
