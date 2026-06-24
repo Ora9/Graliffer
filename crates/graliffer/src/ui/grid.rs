@@ -171,7 +171,6 @@ impl StatefulWidget for GridWidget {
     type State = GridState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        // let pane_viewport = area.inner(Margin::from(1));
         state.layout = Some(area);
 
         let cell_height = 1;
@@ -289,11 +288,6 @@ pub enum GridAction {
     CursorDown,
     CursorRight,
     CursorLeft,
-    // ,
-    // ScrollTop,
-    // ScrollBottom,
-    // ScrollBy(isize),
-    // Clear,
 }
 
 impl Action for GridAction {}
@@ -312,30 +306,7 @@ impl State for GridState {
             CursorDown => {
                 debug!("curosor down!");
             }
-            _ => {} // ScrollUp => {
-                    //     self.scroll_up_by(1);
-                    // }
-                    // ScrollDown => {
-                    //     self.scroll_down_by(1);
-                    // }
-                    // ScrollPageUp => {
-                    //     self.scroll_page_up();
-                    // }
-                    // ScrollPageDown => {
-                    //     self.scroll_page_down();
-                    // }
-                    // ScrollTop => {
-                    //     self.scroll_to_top();
-                    // }
-                    // ScrollBottom => {
-                    //     self.stick_to_bottom();
-                    // }
-                    // ScrollBy(isize) => {
-                    //     self.scroll_by(*isize);
-                    // }
-                    // Clear => {
-                    //     self.clear_content();
-                    // }
+            _ => {}
         }
         Ok(Revert::None)
     }

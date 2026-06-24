@@ -85,7 +85,6 @@ impl StatefulWidget for App {
 
         let console_menu_bar = MenuLine::from_title(MenuTitle::NumberPrefix {
             title: "Console".to_span(),
-            // highlight: "o".to_string(),
             prefix: NumberPrefix::Num2,
             focused: state.is_focused(Focusable::Console),
         });
@@ -111,12 +110,8 @@ impl StatefulWidget for App {
 
         if state.show_about {
             Popup::new(About, Size::new(About::WIDTH, About::HEIGHT))
-                // .position(Position::new(8, 1))
-                // .size(Size::new(30, 10))
                 .title(MenuTitle::Info(Span::raw("About")).as_border())
                 .render(area, buf);
         }
-
-        // Popup::new(Text::from("patate")).render(frame.area(), frame.buffer_mut());
     }
 }

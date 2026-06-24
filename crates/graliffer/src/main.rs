@@ -21,9 +21,6 @@ use inputs::*;
 use crate::app::AppState;
 
 fn main() -> Result<()> {
-    // let app = App::new();
-    let mut app_state = AppState::new();
-
     color_eyre::install()?;
 
     tui_logger::init_logger(log::LevelFilter::Trace)?;
@@ -47,6 +44,8 @@ fn main() -> Result<()> {
 
     let mut tui = Tui::new(terminal, events);
     tui.enter()?;
+
+    let mut app_state = AppState::new();
 
     while app_state.should_run {
         tui.draw(App::new(), &mut app_state)?;

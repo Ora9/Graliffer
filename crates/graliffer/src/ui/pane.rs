@@ -13,15 +13,12 @@ use crate::ui::{MenuLine, MenuLineAlignement, MenuLinePosition, MenuTitle};
 #[derive(Debug)]
 pub struct PaneBorder<'a> {
     menu_lines: Vec<MenuLine<'a>>,
-    // bottom_menu_bar: Option<MenuLine<'a>>,
-    // pub menu_title: MenuTitle,
 }
 
 impl<'a> PaneBorder<'a> {
     pub fn new() -> Self {
         PaneBorder {
             menu_lines: Vec::default(),
-            // bottom_menu_bar: None,
         }
     }
 

@@ -294,15 +294,10 @@ impl AppState {
         if let Some(action) = self.keymap.find(keystroke, key_context) {
             self.act(&action);
         }
-
-        // self.grid_state.handle_key_event(key_event);
     }
 
     pub fn handle_mouse_event(&mut self, mouse_event: MouseEvent) {
-        // TODO: this is a temporary solution to filter event targets based on position
         if let Some(console_layouts) = self.console_state.layouts() {
-            // if mouse_event console_layouts.viewport_area()
-
             let contained = console_layouts
                 .viewport_area()
                 .union(console_layouts.vertical_scrollbar_area())

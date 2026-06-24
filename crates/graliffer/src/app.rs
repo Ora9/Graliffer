@@ -161,13 +161,6 @@ impl AppState {
         self.context.set_input_mode(input_mode);
     }
 
-    // pub fn input_mode(&mut self, input_mode: InputMode) {
-    //     self.input_mode = input_mode;
-    //     if input_mode == InputMode::Insert {
-    //         self.focused_pane = FocusedPane::Grid
-    //     }
-    // }
-
     /// Set should_quit to true to quit the application.
     pub fn quit(&mut self) {
         self.should_run = false;
@@ -182,12 +175,6 @@ pub struct ContextInner {
 
 #[derive(Debug, Clone)]
 pub struct Context(RefCell<ContextInner>);
-
-// impl Clone for Context {
-//     fn clone(&self) -> Self {
-//         Self (self.0.clone())
-//     }
-// }
 
 impl Context {
     pub fn new(focus: impl Into<FocusId>, input_mode: InputMode) -> Self {
