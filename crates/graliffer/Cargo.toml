@@ -27,17 +27,5 @@ ahash = "0.8.12"
 strum = "0.28"
 strum_macros = "0.28"
 
-strum = "0.28"
-strum_macros = "0.28"
-
-strum = "0.28"
-strum_macros = "0.28"
-
-strum = "0.28"
-strum_macros = "0.28"
-
-strum = "0.28"
-strum_macros = "0.28"
-
 [lints]
 workspace = true

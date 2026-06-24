@@ -198,48 +198,38 @@ impl<'a> MenuTitle<'a> {
     }
 }
 
-#[derive(Debug, Clone, strum_macros::EnumString)]
+#[derive(Debug, Clone)]
 pub enum NumberPrefix {
-    #[strum(to_string = "0")]
     Num0,
-    #[strum(to_string = "1")]
     Num1,
-    #[strum(to_string = "2")]
     Num2,
-    #[strum(to_string = "3")]
     Num3,
-    #[strum(to_string = "4")]
     Num4,
-    #[strum(to_string = "5")]
     Num5,
-    #[strum(to_string = "6")]
     Num6,
-    #[strum(to_string = "7")]
     Num7,
-    #[strum(to_string = "8")]
     Num8,
-    #[strum(to_string = "9")]
     Num9,
 }
 
 impl NumberPrefix {
-    // pub fn from(number: u32) -> Option<Self> {
-    //     use NumberPrefix::*;
+    pub fn from(number: u32) -> Option<Self> {
+        use NumberPrefix::*;
 
-    //     match number {
-    //         0 => Some(Num0),
-    //         1 => Some(Num1),
-    //         2 => Some(Num2),
-    //         3 => Some(Num3),
-    //         4 => Some(Num4),
-    //         5 => Some(Num5),
-    //         6 => Some(Num6),
-    //         7 => Some(Num7),
-    //         8 => Some(Num8),
-    //         9 => Some(Num9),
-    //         _ => None,
-    //     }
-    // }
+        match number {
+            0 => Some(Num0),
+            1 => Some(Num1),
+            2 => Some(Num2),
+            3 => Some(Num3),
+            4 => Some(Num4),
+            5 => Some(Num5),
+            6 => Some(Num6),
+            7 => Some(Num7),
+            8 => Some(Num8),
+            9 => Some(Num9),
+            _ => None,
+        }
+    }
 
     pub fn superscript(&self) -> String {
         use NumberPrefix::*;
