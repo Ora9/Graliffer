@@ -11,7 +11,7 @@ use crate::{
     app::{
         App,
         AppAction::{self, FocusStack},
-        FocusId, Focusable,
+        AppState, FocusId, Focusable,
     },
     ui::{ConsoleAction, GridAction},
 };
@@ -285,7 +285,7 @@ impl InputMode {
     }
 }
 
-impl App {
+impl AppState {
     pub fn handle_key_events(&mut self, key_event: KeyEvent, key_context: KeyContext) {
         let keystroke = Keystroke::from_event(key_event);
 

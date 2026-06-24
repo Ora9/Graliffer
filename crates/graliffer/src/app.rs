@@ -10,7 +10,10 @@ use action::{Action, AnyAction, Revert, State};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent};
 use log::debug;
 use rand::seq::SliceRandom;
-use ratatui::layout::Position;
+use ratatui::{
+    layout::Position,
+    widgets::{StatefulWidget, Widget},
+};
 
 use crate::{
     app,
@@ -19,7 +22,7 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct App {
+pub struct AppState {
     pub should_run: bool,
 
     pub console_state: ConsoleState,
@@ -30,11 +33,18 @@ pub struct App {
     pub keymap: Keymap,
 
     pub context: Context,
-    // pub input_mode: InputMode,
-    // pub focused: RefCell<Focusable>,
 }
 
+#[derive(Debug)]
+pub struct App;
+
 impl App {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl AppState {
     pub fn new() -> Self {
         let mut grid = grai::Grid::new();
 
@@ -261,7 +271,7 @@ pub enum AppAction {
 
 impl Action for AppAction {}
 
-impl State for App {
+impl State for AppState {
     type Action = AnyAction;
     type Error = eyre::Error;
 

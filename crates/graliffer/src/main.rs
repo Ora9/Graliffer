@@ -18,8 +18,11 @@ use tui::Tui;
 pub mod inputs;
 use inputs::*;
 
+use crate::app::AppState;
+
 fn main() -> Result<()> {
-    let mut app = App::new();
+    // let app = App::new();
+    let mut app_state = AppState::new();
 
     color_eyre::install()?;
 
@@ -40,21 +43,23 @@ fn main() -> Result<()> {
 
     let backend = CrosstermBackend::new(std::io::stderr());
     let terminal = Terminal::new(backend)?;
-    let events = EventHandler::new(2000);
+    let events = EventHandler::new(200);
 
     let mut tui = Tui::new(terminal, events);
     tui.enter()?;
 
-    while app.should_run {
-        tui.draw(&mut app)?;
+    while app_state.should_run {
+        tui.draw(App::new(), &mut app_state)?;
 
         match tui.events.next()? {
             Event::Tick => {
-                app.tick();
+                app_state.tick();
             }
-            Event::Key(key_event) => app.handle_key_events(key_event, app.key_context()),
+            Event::Key(key_event) => {
+                app_state.handle_key_events(key_event, app_state.key_context())
+            }
             Event::Mouse(mouse_event) => {
-                app.handle_mouse_event(mouse_event);
+                app_state.handle_mouse_event(mouse_event);
             }
             Event::Resize(_, _) => {}
         };
