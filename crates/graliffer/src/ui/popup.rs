@@ -149,8 +149,6 @@ impl<W: Widget> Widget for Popup<'_, W> {
 
         let inner_area = block.inner(popup_area);
 
-        debug!("{inner_area}, {popup_area}");
-
         Clear.render(popup_area, buf);
         block.render(popup_area, buf);
         self.body.render(inner_area, buf)
@@ -230,8 +228,8 @@ impl<W> Popup<'_, W> {
                 area = side_positioned(area, Direction::Vertical, side.x, margin.vertical, height);
             }
             At { position, anchor } => {
-                area = at_anchored(area, Direction::Horizontal, anchor.x, position.x, width);
-                area = at_anchored(area, Direction::Vertical, anchor.y, position.y, height);
+                area = at_anchored(area, Direction::Horizontal, anchor.y, position.x, width);
+                area = at_anchored(area, Direction::Vertical, anchor.x, position.y, height);
             }
         };
 
