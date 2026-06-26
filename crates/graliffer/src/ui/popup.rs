@@ -60,9 +60,8 @@ pub enum PopupPosition {
     At { position: Position, anchor: Align2 },
 }
 
-pub struct Popup<'content, W> {
-    pub body: W,
-
+pub struct Popup<'content> {
+    // pub body: Option<W>,
     pub size: Size,
     pub position: PopupPosition,
 
@@ -74,17 +73,17 @@ pub struct Popup<'content, W> {
     pub border_style: Style,
 }
 
-impl<'content, W> Popup<'content, W> {
-    pub fn new(body: W, size: Size) -> Self {
-        Self {
-            body,
+impl<'content> Popup<'content> {
+    // pub fn sized(size: Size) -> Self {}
 
+    pub fn new(size: Size) -> Self {
+        Self {
             size,
             position: PopupPosition::Edge {
                 side: Align2::TOP_CENTER,
                 margin: Margin {
                     horizontal: 5,
-                    vertical: 5,
+                    vertical: 3,
                 },
             },
 
@@ -155,12 +154,8 @@ impl<W: Widget> Widget for Popup<'_, W> {
     }
 }
 
-impl<W> Popup<'_, W> {
-    fn popup_area(&self, mut area: Rect) -> Rect {
-        let has_top = self.borders.intersects(Borders::TOP);
-        let has_bottom = self.borders.intersects(Borders::BOTTOM);
-        let has_left = self.borders.intersects(Borders::LEFT);
-        let has_right = self.borders.intersects(Borders::RIGHT);
+    pub fn inner(&self, area: Rect) -> Rect {
+        let mut inner = self.area(area);
 
         let border_height = u16::from(has_top) + u16::from(has_bottom);
         let border_width = u16::from(has_left) + u16::from(has_right);
@@ -170,7 +165,7 @@ impl<W> Popup<'_, W> {
 
         use PopupPosition::*;
 
-        pub fn side_positioned(
+        pub fn side_aligned(
             area: Rect,
             direction: Direction,
             align: Align,
@@ -218,14 +213,14 @@ impl<W> Popup<'_, W> {
 
         match self.position {
             Edge { side, margin } => {
-                area = side_positioned(
+                area = side_aligned(
                     area,
                     Direction::Horizontal,
                     side.y,
                     margin.horizontal,
                     width,
                 );
-                area = side_positioned(area, Direction::Vertical, side.x, margin.vertical, height);
+                area = side_aligned(area, Direction::Vertical, side.x, margin.vertical, height);
             }
             At { position, anchor } => {
                 area = at_anchored(area, Direction::Horizontal, anchor.y, position.x, width);
@@ -234,5 +229,27 @@ impl<W> Popup<'_, W> {
         };
 
         area
+    }
+}
+
+impl Widget for Popup<'_> {
+    fn render(self, area: Rect, buf: &mut Buffer)
+    where
+        Self: Sized,
+    {
+        let popup_inner = self.inner(area);
+
+        Clear.render(popup_inner, buf);
+        if self.borders != Borders::NONE {
+            let block = Block::default()
+                .borders(self.borders)
+                .border_set(self.border_set)
+                .border_style(self.border_style)
+                .title(self.title)
+                .style(self.style);
+
+            let inner_area = block.inner(popup_inner);
+            block.render(popup_inner, buf);
+        };
     }
 }
