@@ -31,6 +31,9 @@ pub use popup::*;
 mod about;
 pub use about::*;
 
+mod picker;
+pub use picker::*;
+
 impl StatefulWidget for App {
     type State = AppState;
 
@@ -112,6 +115,10 @@ impl StatefulWidget for App {
             Popup::new(About, Size::new(About::WIDTH, About::HEIGHT))
                 .title(MenuTitle::Info(Span::raw("About")).as_border())
                 .render(area, buf);
+        }
+
+        if state.show_command_picker {
+            Picker.render(area, buf, &mut state.command_picker_state);
         }
     }
 }

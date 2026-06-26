@@ -18,7 +18,7 @@ use ratatui::{
 use crate::{
     app,
     inputs::{InputMode, KeyContext, Keymap},
-    ui::{Console, ConsoleAction, ConsoleState, GridState},
+    ui::{Console, ConsoleAction, ConsoleState, GridState, PickerState},
 };
 
 #[derive(Debug)]
@@ -27,8 +27,10 @@ pub struct AppState {
 
     pub console_state: ConsoleState,
     pub grid_state: GridState,
+    pub command_picker_state: PickerState,
 
     pub show_about: bool,
+    pub show_command_picker: bool,
 
     pub keymap: Keymap,
 
@@ -102,13 +104,14 @@ impl AppState {
 
             should_run: true,
 
-            // input_mode: InputMode::Command,
             keymap: Keymap::new(),
 
             console_state: ConsoleState::new(1000, context.clone()),
             grid_state: GridState::new(frame, context),
+            command_picker_state: PickerState::new(),
 
             show_about: false,
+            show_command_picker: true,
         };
 
         let mut rng = rand::rng();

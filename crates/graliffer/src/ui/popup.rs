@@ -1,18 +1,70 @@
 use log::debug;
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Position, Rect, Size},
+    layout::{
+        Constraint, Direction,
+        Flex::{self, SpaceAround},
+        Layout, Margin, Offset, Position, Rect, Size,
+    },
+    macros::horizontal,
     style::Style,
     symbols::border::{self, Set},
     text::{Line, Text},
     widgets::{Block, Borders, Clear, GraphType::Area, StatefulWidget, Widget},
 };
 
+use crate::ui::Align::Center;
+
+#[derive(Debug, Clone, Copy)]
+pub enum Align {
+    Start,
+    Center,
+    End,
+}
+
+impl Align {
+    pub const TOP: Self = Self::Start;
+    pub const BOTTOM: Self = Self::End;
+    pub const CENTER: Self = Self::Center;
+    pub const LEFT: Self = Self::Start;
+    pub const RIGHT: Self = Self::End;
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Align2 {
+    x: Align,
+    y: Align,
+}
+
+impl Align2 {
+    pub const TOP_LEFT: Self = Self::new(Align::Start, Align::Start);
+    pub const TOP_CENTER: Self = Self::new(Align::Start, Align::Center);
+    pub const TOP_RIGHT: Self = Self::new(Align::Start, Align::End);
+
+    pub const CENTER_LEFT: Self = Self::new(Align::Center, Align::Start);
+    pub const CENTER_CENTER: Self = Self::new(Align::Center, Align::Center);
+    pub const CENTER_RIGHT: Self = Self::new(Align::Center, Align::End);
+
+    pub const BOTTOM_LEFT: Self = Self::new(Align::End, Align::Start);
+    pub const BOTTOM_CENTER: Self = Self::new(Align::End, Align::Center);
+    pub const BOTTOM_RIGHT: Self = Self::new(Align::End, Align::End);
+
+    pub const fn new(x: Align, y: Align) -> Self {
+        Self { x, y }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum PopupPosition {
+    Edge { side: Align2, margin: Margin },
+    At { position: Position, anchor: Align2 },
+}
+
 pub struct Popup<'content, W> {
     pub body: W,
 
     pub size: Size,
-    pub position: Option<Position>,
+    pub position: PopupPosition,
 
     pub title: Line<'content>,
     pub style: Style,
@@ -28,7 +80,13 @@ impl<'content, W> Popup<'content, W> {
             body,
 
             size,
-            position: None,
+            position: PopupPosition::Edge {
+                side: Align2::TOP_CENTER,
+                margin: Margin {
+                    horizontal: 5,
+                    vertical: 5,
+                },
+            },
 
             title: Line::default(),
             style: Style::default(),
@@ -44,8 +102,8 @@ impl<'content, W> Popup<'content, W> {
         self
     }
 
-    pub fn position(mut self, position: Position) -> Self {
-        self.position = Some(position);
+    pub fn position(mut self, position: PopupPosition) -> Self {
+        self.position = position;
         self
     }
 
@@ -100,7 +158,7 @@ impl<W: Widget> Widget for Popup<'_, W> {
 }
 
 impl<W> Popup<'_, W> {
-    fn popup_area(&self, area: Rect) -> Rect {
+    fn popup_area(&self, mut area: Rect) -> Rect {
         let has_top = self.borders.intersects(Borders::TOP);
         let has_bottom = self.borders.intersects(Borders::BOTTOM);
         let has_left = self.borders.intersects(Borders::LEFT);
@@ -112,10 +170,71 @@ impl<W> Popup<'_, W> {
         let width = self.size.width.saturating_add(border_width);
         let height = self.size.height.saturating_add(border_height);
 
-        if let Some(position) = self.position {
-            Rect::from((position, self.size))
-        } else {
-            area.centered(Constraint::Length(width), Constraint::Length(height))
+        use PopupPosition::*;
+
+        pub fn side_positioned(
+            area: Rect,
+            direction: Direction,
+            align: Align,
+            margin: u16,
+            size: u16,
+        ) -> Rect {
+            let (constraints, flex, index) = match align {
+                Align::Start => (
+                    vec![Constraint::Length(margin), Constraint::Length(size)],
+                    Flex::Start,
+                    1,
+                ),
+                Align::Center => (vec![Constraint::Length(size)], Flex::Center, 0),
+                Align::End => (
+                    vec![Constraint::Length(size), Constraint::Length(margin)],
+                    Flex::End,
+                    0,
+                ),
+            };
+
+            area.layout_vec(&Layout::new(direction, constraints).flex(flex))[index]
         }
+
+        pub fn at_anchored(
+            area: Rect,
+            direction: Direction,
+            anchor_align: Align,
+            position: u16,
+            size: u16,
+        ) -> Rect {
+            let constraints = match anchor_align {
+                Align::Start => vec![Constraint::Length(position), Constraint::Length(size)],
+                Align::Center => vec![
+                    Constraint::Length(position.saturating_sub(size / 2)),
+                    Constraint::Length(size),
+                ],
+                Align::End => vec![
+                    Constraint::Length(position.saturating_sub(size)),
+                    Constraint::Length(size),
+                ],
+            };
+
+            area.layout_vec(&Layout::new(direction, constraints))[1]
+        }
+
+        match self.position {
+            Edge { side, margin } => {
+                area = side_positioned(
+                    area,
+                    Direction::Horizontal,
+                    side.y,
+                    margin.horizontal,
+                    width,
+                );
+                area = side_positioned(area, Direction::Vertical, side.x, margin.vertical, height);
+            }
+            At { position, anchor } => {
+                area = at_anchored(area, Direction::Horizontal, anchor.x, position.x, width);
+                area = at_anchored(area, Direction::Vertical, anchor.y, position.y, height);
+            }
+        };
+
+        area
     }
 }
