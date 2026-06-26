@@ -1,5 +1,8 @@
+use std::{error, fmt::Display, result};
+
 use action::{Action, AnyAction, State};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, ModifierKeyCode, MouseEvent};
+use eyre::Ok;
 use log::debug;
 use ratatui::{
     layout::Position,
@@ -99,12 +102,6 @@ impl Keystroke {
         }
     }
 
-    fn to_string(&self) -> String {
-        format!("{} {}", self.modifiers.to_string(), self.key.to_string())
-
-        // if self.modifiers.contains(KeyModifiers::CONTROL)
-    }
-
     // fn parse(source: String) -> eyre::Result<Self> {
     //     let mut modifiers = KeyModifiers::NONE;
     //     let mut key: Option<KeyCode> = None;
@@ -137,6 +134,31 @@ impl Keystroke {
 
     pub fn matches(&self, key_event: KeyEvent) -> bool {
         self.key == key_event.code && self.modifiers == key_event.modifiers
+    }
+}
+
+impl Display for Keystroke {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut string = String::new();
+
+        string.push_str(
+            &self
+                .modifiers
+                .to_string()
+                .replace("+", "-")
+                .replace("Control", "ctrl")
+                .to_ascii_lowercase(),
+        );
+
+        if !string.is_empty() {
+            string.push('-');
+        }
+
+        string.push_str(&self.key.to_string().to_ascii_lowercase());
+
+        f.write_str(&string);
+
+        std::fmt::Result::Ok(())
     }
 }
 
