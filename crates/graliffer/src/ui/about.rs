@@ -3,26 +3,26 @@ use std::{env, vec};
 use log::debug;
 use ratatui::{
     buffer::Buffer,
-    layout::{self, Constraint, Layout, Rect},
+    layout::{self, Constraint, Layout, Rect, Size},
     style::{Color, Style, Stylize},
     text::{Line, Span, Text, ToLine, ToSpan},
     widgets::Widget,
 };
 
+use crate::ui::Popup;
+
 pub struct About;
 
-impl About {
-    pub const WIDTH: u16 = 90;
-    pub const HEIGHT: u16 = 16;
-}
+// impl About {
+//     pub const WIDTH: u16 = 90;
+//     pub const HEIGHT: u16 = 16;
+// }
 
 impl Widget for About {
     fn render(self, area: Rect, buf: &mut Buffer)
     where
         Self: Sized,
     {
-        // let graliffer = Line::from("Graliffer");
-
         let title = vec![
             r#"  ________             .__  .__  _____  _____                  _____)        _____)"#.to_line(),
             r#" /  _____/___________  |  | |__|/ ____\/ ____\___________     /_____/       /_____/"#.to_line(),
@@ -38,7 +38,13 @@ impl Widget for About {
         let repo = env!("CARGO_PKG_REPOSITORY");
         let license = env!("CARGO_PKG_LICENSE");
 
-        let [_, title_area, _, desc_area, misc_area] = area.layout(&Layout::vertical(vec![
+        let width = 90;
+        let height = 16;
+
+        let popup = Popup::new(Size::new(width, height));
+        let popup_inner = popup.inner(area);
+
+        let [_, title_area, _, desc_area, misc_area] = popup_inner.layout(&Layout::vertical(vec![
             Constraint::Length(2),
             Constraint::Length(6),
             Constraint::Length(1),
@@ -51,6 +57,7 @@ impl Widget for About {
             .map(|line| line.bold().fg(Color::LightMagenta))
             .collect::<Vec<Line>>();
 
+        popup.render(area, buf);
         Text::from(title).centered().render(title_area, buf);
         Text::raw(desc).centered().render(desc_area, buf);
         Text::from(vec![

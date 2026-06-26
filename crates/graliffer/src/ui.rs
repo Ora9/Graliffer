@@ -112,9 +112,7 @@ impl StatefulWidget for App {
             .render(stack_area, buf);
 
         if state.show_about {
-            Popup::new(About, Size::new(About::WIDTH, About::HEIGHT))
-                .title(MenuTitle::Info(Span::raw("About")).as_border())
-                .render(area, buf);
+            About.render(area, buf);
         }
 
         if state.show_command_picker {

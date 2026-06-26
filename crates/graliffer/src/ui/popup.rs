@@ -130,35 +130,37 @@ impl<'content> Popup<'content> {
         self.border_style = border_style;
         self
     }
-}
 
-impl<W: Widget> Widget for Popup<'_, W> {
-    fn render(self, area: Rect, buf: &mut Buffer)
-    where
-        Self: Sized,
-    {
-        let popup_area = self.popup_area(area);
-
-        let block = Block::default()
-            .borders(self.borders)
-            .border_set(self.border_set)
-            .border_style(self.border_style)
-            .title(self.title)
-            .style(self.style);
-
-        let inner_area = block.inner(popup_area);
-
-        Clear.render(popup_area, buf);
-        block.render(popup_area, buf);
-        self.body.render(inner_area, buf)
+    pub fn has_border(&self, borders: Borders) -> bool {
+        self.borders.intersects(borders)
     }
-}
 
     pub fn inner(&self, area: Rect) -> Rect {
         let mut inner = self.area(area);
 
-        let border_height = u16::from(has_top) + u16::from(has_bottom);
-        let border_width = u16::from(has_left) + u16::from(has_right);
+        if self.has_border(Borders::LEFT) {
+            inner.x = inner.x.saturating_add(1).min(inner.right());
+            inner.width = inner.width.saturating_sub(1);
+        }
+        if self.has_border(Borders::TOP) {
+            inner.y = inner.y.saturating_add(1).min(inner.bottom());
+            inner.height = inner.height.saturating_sub(1);
+        }
+        if self.has_border(Borders::RIGHT) {
+            inner.width = inner.width.saturating_sub(1);
+        }
+        if self.has_border(Borders::BOTTOM) {
+            inner.height = inner.height.saturating_sub(1);
+        }
+
+        inner
+    }
+
+    pub fn area(&self, mut area: Rect) -> Rect {
+        let border_height =
+            u16::from(self.has_border(Borders::TOP)) + u16::from(self.has_border(Borders::BOTTOM));
+        let border_width =
+            u16::from(self.has_border(Borders::LEFT)) + u16::from(self.has_border(Borders::RIGHT));
 
         let width = self.size.width.saturating_add(border_width);
         let height = self.size.height.saturating_add(border_height);
