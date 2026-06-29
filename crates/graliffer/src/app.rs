@@ -8,6 +8,7 @@ use std::{
 
 use action::{Action, AnyAction, Revert, State};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent};
+use eyre::{Ok, eyre};
 use log::debug;
 use rand::seq::SliceRandom;
 use ratatui::{
@@ -18,7 +19,7 @@ use ratatui::{
 use crate::{
     app,
     input::{InputMode, KeyContext, Keymap},
-    ui::{Console, ConsoleAction, ConsoleState, GridState, PickerState},
+    ui::{Console, ConsoleAction, ConsoleState, GridAction, GridState, PickerState},
 };
 
 #[derive(Debug)]
@@ -252,6 +253,11 @@ impl FocusHandle {
 
 #[derive(Debug, Clone)]
 pub enum AppAction {
+    ConsoleAction(ConsoleAction),
+    GridAction(GridAction),
+
+    Any(AnyAction),
+
     Quit,
     About,
     FocusStack,
@@ -259,40 +265,54 @@ pub enum AppAction {
     CommandMode,
 }
 
+impl From<AnyAction> for AppAction {
+    fn from(action: AnyAction) -> Self {
+        if let Some(app_action) = action.downcast_ref::<AppAction>() {
+            app_action.clone()
+        } else if let Some(console_action) = action.downcast_ref::<ConsoleAction>() {
+            Self::ConsoleAction(console_action.clone())
+        } else if let Some(grid_action) = action.downcast_ref::<GridAction>() {
+            Self::GridAction(grid_action.clone())
+        } else {
+            Self::Any(action)
+        }
+    }
+}
+
 impl Action for AppAction {}
 
 impl State for AppState {
-    type Action = AnyAction;
+    type Action = AppAction;
     type Error = eyre::Error;
 
     fn act(&mut self, action: &Self::Action) -> Result<Revert, Self::Error> {
-        if let Some(app_action) = action.downcast_ref::<AppAction>() {
-            use AppAction::*;
-            match app_action {
-                Quit => {
-                    self.quit();
-                }
-                About => {
-                    self.show_about = !self.show_about;
-                }
-                FocusStack => {
-                    self.set_focus(Focusable::Stack);
-                }
-                InsertMode => {
-                    self.set_input_mode(InputMode::Insert);
-                }
-                CommandMode => {
-                    self.set_input_mode(InputMode::Command);
-                }
-            };
-            Ok(Revert::None)
-
-            // debug!("app action");
-            // unimplemented!()
-        } else if let Some(console_action) = action.downcast_ref::<ConsoleAction>() {
-            self.console_state.act(console_action)
-        } else {
-            Err(eyre::anyhow!("unknown action"))
-        }
+        use AppAction::*;
+        match action {
+            ConsoleAction(console_action) => {
+                self.console_state.act(console_action);
+            }
+            GridAction(grid_action) => {
+                self.grid_state.act(grid_action);
+            }
+            Any(any_action) => {
+                return Err(eyre!("unknow action"));
+            }
+            Quit => {
+                self.quit();
+            }
+            About => {
+                self.show_about = !self.show_about;
+            }
+            FocusStack => {
+                self.set_focus(Focusable::Stack);
+            }
+            InsertMode => {
+                self.set_input_mode(InputMode::Insert);
+            }
+            CommandMode => {
+                self.set_input_mode(InputMode::Command);
+            }
+        };
+        Ok(Revert::None)
     }
 }
