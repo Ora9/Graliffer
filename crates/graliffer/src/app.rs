@@ -17,7 +17,7 @@ use ratatui::{
 
 use crate::{
     app,
-    inputs::{InputMode, KeyContext, Keymap},
+    input::{InputMode, KeyContext, Keymap},
     ui::{Console, ConsoleAction, ConsoleState, GridState, PickerState},
 };
 

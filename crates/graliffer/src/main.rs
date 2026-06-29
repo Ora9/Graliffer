@@ -15,8 +15,8 @@ pub mod ui;
 pub mod tui;
 use tui::Tui;
 
-pub mod inputs;
-use inputs::*;
+pub mod input;
+use input::*;
 
 use crate::app::AppState;
 
