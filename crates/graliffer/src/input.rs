@@ -1,13 +1,5 @@
-use std::{
-    error,
-    fmt::{Display, Write},
-    result,
-};
-
 use action::{Action, AnyAction, State};
 use crossterm::event::{KeyEvent, MouseEvent};
-// use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, ModifierKeyCode, MouseEvent};
-use eyre::Ok;
 use log::debug;
 use ratatui::{
     layout::Position,
@@ -17,9 +9,8 @@ use ratatui::{
 
 use crate::{
     app::{
-        App,
         AppAction::{self, FocusStack},
-        AppState, FocusId, Focusable,
+        AppState, Focusable,
     },
     ui::{ConsoleAction, GridAction},
 };
@@ -59,7 +50,7 @@ impl Keymap {
         let mut map = Self::default();
 
         map.push(
-            Keystroke::from_key(Key::Up),
+            Keystroke::try_from("up").unwrap(),
             KeyContextPredicate {
                 focus: Some(Focusable::Grid.into()),
                 input_mode: Some(InputMode::Command),
@@ -68,7 +59,7 @@ impl Keymap {
         );
 
         map.push(
-            Keystroke::from_key(Key::Down),
+            Keystroke::try_from("down").unwrap(),
             KeyContextPredicate {
                 focus: Some(Focusable::Grid.into()),
                 input_mode: Some(InputMode::Command),
@@ -77,13 +68,13 @@ impl Keymap {
         );
 
         map.push(
-            Keystroke::from_key(Key::Char('q')),
+            Keystroke::try_from("q").unwrap(),
             KeyContextPredicate::default(),
             AppAction::Quit,
         );
 
         map.push(
-            Keystroke::from_key(Key::Char('i')),
+            Keystroke::try_from("i").unwrap(),
             KeyContextPredicate {
                 input_mode: Some(InputMode::Command),
                 ..Default::default()
@@ -92,7 +83,7 @@ impl Keymap {
         );
 
         map.push(
-            Keystroke::from_key(Key::Esc),
+            Keystroke::try_from("escape").unwrap(),
             KeyContextPredicate {
                 input_mode: Some(InputMode::Insert),
                 ..Default::default()
@@ -101,40 +92,24 @@ impl Keymap {
         );
 
         map.push(
-            Keystroke {
-                key: Key::Char('c'),
-                modifiers: Modifiers::CONTROL,
-            },
+            Keystroke::try_from("ctrl-c").unwrap(),
             KeyContextPredicate::default(),
             AppAction::Quit,
         );
 
         map.push(
-            Keystroke {
-                key: Key::Char('a'),
-                modifiers: Modifiers::CONTROL,
-            },
+            Keystroke::try_from("ctrl-a").unwrap(),
             KeyContextPredicate::default(),
             AppAction::About,
         );
         map.push(
-            Keystroke {
-                key: Key::Char('c'),
-                modifiers: Modifiers {
-                    control: true,
-                    shift: true,
-                    alt: false,
-                },
-            },
+            Keystroke::try_from("ctrl-shift-c").unwrap(),
             KeyContextPredicate::default(),
             ConsoleAction::Clear,
         );
 
         map.push(
-            Keystroke {
-                key: Key::Char('f'),
-                modifiers: Modifiers::CONTROL,
-            },
+            Keystroke::try_from("ctrl-f").unwrap(),
             KeyContextPredicate::default(),
             AppAction::FocusStack,
         );
@@ -181,6 +156,8 @@ impl InputMode {
 
 impl AppState {
     pub fn handle_key_events(&mut self, key_event: KeyEvent, key_context: KeyContext) {
+        debug!("{:?}", key_event);
+
         if let Result::Ok(keystroke) = Keystroke::try_from(key_event) {
             debug!("{:?}", keystroke.to_string());
             if let Some(action) = self.keymap.find(keystroke, key_context) {

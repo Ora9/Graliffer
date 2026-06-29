@@ -1,6 +1,5 @@
-use std::fmt::{Display, Formatter, Write};
-
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use std::fmt::{Display, Formatter, Write};
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Modifiers {
@@ -247,8 +246,12 @@ impl Keystroke {
             modifiers: Modifiers::NONE,
         }
     }
+}
 
-    fn parse(source: String) -> eyre::Result<Self> {
+impl TryFrom<&str> for Keystroke {
+    type Error = eyre::Error;
+
+    fn try_from(source: &str) -> Result<Self, Self::Error> {
         if let Some((source_modifiers, source_key)) = source.rsplit_once("-") {
             Ok(Self {
                 modifiers: source_modifiers.try_into()?,
@@ -257,7 +260,7 @@ impl Keystroke {
         } else {
             Ok(Self {
                 modifiers: Modifiers::NONE,
-                key: source.as_str().into(),
+                key: source.into(),
             })
         }
     }
