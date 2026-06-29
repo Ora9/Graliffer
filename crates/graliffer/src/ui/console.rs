@@ -331,7 +331,7 @@ impl StatefulWidget for Console {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, strum::EnumString)]
 pub enum ConsoleAction {
     ScrollUp,
     ScrollDown,

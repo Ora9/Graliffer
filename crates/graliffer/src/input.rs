@@ -161,7 +161,7 @@ impl AppState {
         if let Result::Ok(keystroke) = Keystroke::try_from(key_event) {
             debug!("{:?}", keystroke.to_string());
             if let Some(action) = self.keymap.find(keystroke, key_context) {
-                self.act(&action.into());
+                self.act(&action.try_into().unwrap());
             }
         }
     }

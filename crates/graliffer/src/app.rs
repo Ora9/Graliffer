@@ -4,11 +4,12 @@ use std::{
     iter,
     ops::AddAssign,
     rc::Rc,
+    str::FromStr,
 };
 
 use action::{Action, AnyAction, Revert, State};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent};
-use eyre::{Ok, eyre};
+use eyre::eyre;
 use log::debug;
 use rand::seq::SliceRandom;
 use ratatui::{
@@ -251,13 +252,8 @@ impl FocusHandle {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, strum::EnumString)]
 pub enum AppAction {
-    ConsoleAction(ConsoleAction),
-    GridAction(GridAction),
-
-    Any(AnyAction),
-
     Quit,
     About,
     FocusStack,
@@ -265,53 +261,80 @@ pub enum AppAction {
     CommandMode,
 }
 
-impl From<AnyAction> for AppAction {
-    fn from(action: AnyAction) -> Self {
+impl Action for AppAction {}
+
+#[derive(Debug, Clone)]
+pub enum ConcreteAnyAction {
+    AppAction(AppAction),
+    ConsoleAction(ConsoleAction),
+    GridAction(GridAction),
+}
+
+impl TryFrom<AnyAction> for ConcreteAnyAction {
+    type Error = eyre::Error;
+
+    fn try_from(action: AnyAction) -> Result<Self, Self::Error> {
         if let Some(app_action) = action.downcast_ref::<AppAction>() {
-            app_action.clone()
+            Ok(Self::AppAction(app_action.clone()))
         } else if let Some(console_action) = action.downcast_ref::<ConsoleAction>() {
-            Self::ConsoleAction(console_action.clone())
+            Ok(Self::ConsoleAction(console_action.clone()))
         } else if let Some(grid_action) = action.downcast_ref::<GridAction>() {
-            Self::GridAction(grid_action.clone())
+            Ok(Self::GridAction(grid_action.clone()))
         } else {
-            Self::Any(action)
+            Err(eyre!("unknown action"))
         }
     }
 }
 
-impl Action for AppAction {}
+impl TryFrom<&str> for ConcreteAnyAction {
+    type Error = eyre::Error;
+
+    fn try_from(action: &str) -> Result<Self, Self::Error> {
+        if let Some((namespace, action)) = action.rsplit_once("::") {
+            match namespace.to_ascii_lowercase().as_str() {
+                "console" => Ok(Self::ConsoleAction(ConsoleAction::from_str(action)?)),
+                "grid" => Ok(Self::GridAction(GridAction::from_str(action)?)),
+                _ => Err(eyre!("unknown action namespace")),
+            }
+        } else {
+            Ok(Self::AppAction(AppAction::from_str(action)?))
+        }
+    }
+}
+
+impl Action for ConcreteAnyAction {}
 
 impl State for AppState {
-    type Action = AppAction;
+    type Action = ConcreteAnyAction;
     type Error = eyre::Error;
 
     fn act(&mut self, action: &Self::Action) -> Result<Revert, Self::Error> {
         use AppAction::*;
+
         match action {
-            ConsoleAction(console_action) => {
+            ConcreteAnyAction::ConsoleAction(console_action) => {
                 self.console_state.act(console_action);
             }
-            GridAction(grid_action) => {
+            ConcreteAnyAction::GridAction(grid_action) => {
                 self.grid_state.act(grid_action);
             }
-            Any(any_action) => {
-                return Err(eyre!("unknow action"));
-            }
-            Quit => {
-                self.quit();
-            }
-            About => {
-                self.show_about = !self.show_about;
-            }
-            FocusStack => {
-                self.set_focus(Focusable::Stack);
-            }
-            InsertMode => {
-                self.set_input_mode(InputMode::Insert);
-            }
-            CommandMode => {
-                self.set_input_mode(InputMode::Command);
-            }
+            ConcreteAnyAction::AppAction(app_action) => match app_action {
+                Quit => {
+                    self.quit();
+                }
+                About => {
+                    self.show_about = !self.show_about;
+                }
+                FocusStack => {
+                    self.set_focus(Focusable::Stack);
+                }
+                InsertMode => {
+                    self.set_input_mode(InputMode::Insert);
+                }
+                CommandMode => {
+                    self.set_input_mode(InputMode::Command);
+                }
+            },
         };
         Ok(Revert::None)
     }

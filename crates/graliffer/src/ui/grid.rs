@@ -282,7 +282,7 @@ fn buffer_merge_areas(
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, strum::EnumString)]
 pub enum GridAction {
     CursorUp,
     CursorDown,
