@@ -1,26 +1,18 @@
 use std::{
-    cell::{Ref, RefCell},
+    cell::RefCell,
     hash::{BuildHasher, Hash, RandomState},
-    iter,
-    ops::AddAssign,
     rc::Rc,
     str::FromStr,
 };
 
 use action::{Action, AnyAction, Revert, State};
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent};
 use eyre::eyre;
-use log::debug;
 use rand::seq::SliceRandom;
-use ratatui::{
-    layout::Position,
-    widgets::{StatefulWidget, Widget},
-};
 
 use crate::{
-    app,
+    ConsoleAction, ConsoleState, GridAction, GridState,
     input::{InputMode, KeyContext, Keymap},
-    ui::{Console, ConsoleAction, ConsoleState, GridAction, GridState, PickerState},
+    ui::PickerState,
 };
 
 #[derive(Debug)]

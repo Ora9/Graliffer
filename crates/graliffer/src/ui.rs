@@ -1,29 +1,15 @@
 use ratatui::{
-    Frame,
     buffer::Buffer,
-    layout::{Alignment, Constraint, Direction, Layout, Margin, Position, Rect, Size, Spacing},
-    style::{Color, Style, Stylize},
-    symbols::{
-        border::{self, Set},
-        merge::MergeStrategy,
-    },
-    text::{Line, Span, Text, ToSpan},
-    widgets::{Block, BorderType, Borders, Paragraph, StatefulWidget, Widget},
+    layout::{Constraint, Layout, Margin, Rect, Spacing},
+    text::ToSpan,
+    widgets::{StatefulWidget, Widget},
 };
-
-use crate::app::{App, AppState, FocusHandle, Focusable};
 
 mod menu;
 pub use menu::*;
 
 mod pane;
 pub use pane::*;
-
-mod console;
-pub use console::*;
-
-mod grid;
-pub use grid::*;
 
 mod popup;
 pub use popup::*;
@@ -33,6 +19,8 @@ pub use about::*;
 
 mod picker;
 pub use picker::*;
+
+use crate::{App, AppState, Console, Focusable, GridWidget};
 
 impl StatefulWidget for App {
     type State = AppState;

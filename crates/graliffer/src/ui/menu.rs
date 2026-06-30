@@ -1,9 +1,7 @@
-use log::debug;
 use ratatui::{
-    layout::Alignment,
-    style::{Style, Stylize},
+    style::Stylize,
     symbols,
-    text::{Line, Span, ToLine, ToSpan},
+    text::{Line, Span},
 };
 
 #[derive(Debug, Clone, Default)]

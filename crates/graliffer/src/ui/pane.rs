@@ -1,10 +1,7 @@
-use log::debug;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::Stylize,
     symbols::merge::MergeStrategy,
-    text::Line,
     widgets::{Block, BorderType, Widget},
 };
 

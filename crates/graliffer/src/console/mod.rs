@@ -2,11 +2,10 @@ use action::{Action, Revert, State};
 use crossterm::event::MouseEvent;
 use ratatui::{
     buffer::Buffer,
-    layout::{Alignment, Constraint, Layout, Margin, Rect},
-    style::{Color, Style, Stylize},
-    symbols::merge::MergeStrategy,
-    text::{Line, Text},
-    widgets::{Block, BorderType, Paragraph, StatefulWidget, Widget},
+    layout::{Constraint, Layout, Rect},
+    style::{Color, Style},
+    text::Text,
+    widgets::{Paragraph, StatefulWidget, Widget},
 };
 
 use tui_scrollbar::{
@@ -14,7 +13,7 @@ use tui_scrollbar::{
     ScrollMetrics,
 };
 
-use crate::app::{self, Context, FocusHandle};
+use crate::app::Context;
 
 #[derive(Debug)]
 pub struct ConsoleState {

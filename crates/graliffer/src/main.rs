@@ -1,24 +1,29 @@
 use std::env;
 
 use color_eyre::Result;
-use event::{Event, EventHandler};
 use log::debug;
 use ratatui::{Terminal, backend::CrosstermBackend};
 
-pub mod app;
-use app::App;
+mod app;
+pub use app::*;
 
-pub mod event;
+mod event;
+pub use event::*;
 
-pub mod ui;
+mod ui;
+pub use ui::*;
 
-pub mod tui;
-use tui::Tui;
+mod tui;
+pub use tui::*;
 
-pub mod input;
-use input::*;
+mod input;
+pub use input::*;
 
-use crate::app::AppState;
+mod grid;
+pub use grid::*;
+
+mod console;
+pub use console::*;
 
 fn main() -> Result<()> {
     color_eyre::install()?;

@@ -1,11 +1,10 @@
 use std::{env, vec};
 
-use log::debug;
 use ratatui::{
     buffer::Buffer,
-    layout::{self, Constraint, Layout, Rect, Size},
-    style::{Color, Style, Stylize},
-    text::{Line, Span, Text, ToLine, ToSpan},
+    layout::{Constraint, Layout, Rect, Size},
+    style::{Color, Stylize},
+    text::{Line, Text, ToLine},
     widgets::Widget,
 };
 

@@ -1,16 +1,14 @@
-use log::debug;
 use ratatui::{
     buffer::Buffer,
     layout::{
         Constraint, Direction,
-        Flex::{self, SpaceAround},
-        Layout, Margin, Offset, Position, Rect, Size,
+        Flex::{self},
+        Layout, Margin, Position, Rect, Size,
     },
-    macros::horizontal,
     style::Style,
     symbols::border::{self, Set},
-    text::{Line, Text},
-    widgets::{Block, Borders, Clear, GraphType::Area, StatefulWidget, Widget},
+    text::Line,
+    widgets::{Block, Borders, Clear, Widget},
 };
 
 use crate::ui::Align::Center;

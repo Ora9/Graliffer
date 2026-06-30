@@ -1,12 +1,12 @@
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Layout, Margin, Offset, Position, Rect, Size, Spacing},
+    layout::{Constraint, Layout, Rect, Size, Spacing},
     style::{
         Color::{Black, White},
         Style,
     },
     symbols::{border, merge::MergeStrategy},
-    text::{Line, Text, ToLine},
+    text::{Line, Text},
     widgets::{Block, Borders, StatefulWidget, Widget},
 };
 

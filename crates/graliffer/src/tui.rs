@@ -1,5 +1,3 @@
-use std::{io, panic};
-
 use color_eyre::Result;
 use ratatui::{
     crossterm::{
@@ -9,14 +7,11 @@ use ratatui::{
     },
     widgets::StatefulWidget,
 };
+use std::{io, panic};
+
+use crate::{App, AppState, EventHandler};
 
 pub type CrosstermTerminal = ratatui::Terminal<ratatui::backend::CrosstermBackend<std::io::Stderr>>;
-
-use crate::{
-    app::{App, AppState},
-    event::EventHandler,
-    ui,
-};
 
 /// Representation of a terminal user interface.
 ///

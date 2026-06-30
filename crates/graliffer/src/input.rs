@@ -8,11 +8,11 @@ use ratatui::{
 };
 
 use crate::{
+    ConsoleAction, GridAction,
     app::{
         AppAction::{self, FocusStack},
         AppState, Focusable,
     },
-    ui::{ConsoleAction, GridAction},
 };
 
 mod context;

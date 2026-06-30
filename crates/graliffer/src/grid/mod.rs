@@ -1,20 +1,19 @@
 use std::{cell::RefCell, rc::Rc};
 
 use action::{Action, Revert, State};
-use crossterm::event::{KeyCode, KeyEvent, MouseEvent, MouseEventKind};
+use crossterm::event::{MouseEvent, MouseEventKind};
 use grai::granary::GranaryDigit;
 use log::debug;
 use ratatui::{
     buffer::Buffer,
-    layout::{Alignment, Margin, Offset, Position, Rect},
+    layout::{Margin, Offset, Position, Rect},
     style::{Color, Stylize},
     symbols::merge::MergeStrategy,
-    text::Line,
-    widgets::{Block, BorderType, Paragraph, StatefulWidget, Widget},
+    widgets::{Block, Paragraph, StatefulWidget, Widget},
 };
 use tui_input::Input;
 
-use crate::app::{Context, FocusHandle};
+use crate::app::Context;
 
 #[derive(Debug, Default)]
 pub struct Cursor(grai::Position);
