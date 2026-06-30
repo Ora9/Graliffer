@@ -1,5 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
+    hash::Hash,
     ops::{Deref, DerefMut},
 };
 
@@ -219,10 +220,7 @@ impl InputMode {
 
 impl AppState {
     pub fn handle_key_events(&mut self, key_event: KeyEvent, context: Context) {
-        // debug!("{:?}", key_event);
-
         if let Result::Ok(keystroke) = Keystroke::try_from(key_event) {
-            debug!("{:?}", keystroke);
             if let Some(action) = self.keymap.find(context, keystroke) {
                 debug!("{:?}", action);
                 self.act(&action.try_into().unwrap());

@@ -11,6 +11,7 @@ grai.workspace = true
 action.workspace = true
 
 eyre = "0.6.5"
+thiserror = "2.0.18"
 color-eyre = "0.6.5"
 crossterm = "0.29.0"
 
