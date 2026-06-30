@@ -1,3 +1,4 @@
+use log::debug;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Margin, Rect, Spacing},
@@ -20,7 +21,7 @@ pub use about::*;
 mod picker;
 pub use picker::*;
 
-use crate::{App, AppState, Console, Focusable, GridWidget};
+use crate::{App, AppState, Console, FocusId, GridWidget, PaneId, PopupId};
 
 impl StatefulWidget for App {
     type State = AppState;
@@ -51,7 +52,7 @@ impl StatefulWidget for App {
         let grid_pane_title = MenuTitle::NumberPrefix {
             title: "Grid".to_span(),
             prefix: NumberPrefix::Num1,
-            focused: state.is_focused(Focusable::Grid),
+            focused: state.is_focused(PaneId::Grid),
         };
 
         let file_title = MenuTitle::Inline {
@@ -77,13 +78,13 @@ impl StatefulWidget for App {
         let console_menu_bar = MenuLine::from_title(MenuTitle::NumberPrefix {
             title: "Console".to_span(),
             prefix: NumberPrefix::Num2,
-            focused: state.is_focused(Focusable::Console),
+            focused: state.is_focused(PaneId::Console),
         });
 
         let stack_menu_bar = MenuLine::from_title(MenuTitle::NumberPrefix {
             title: "Stack".to_span(),
             prefix: NumberPrefix::Num3,
-            focused: state.is_focused(Focusable::Stack),
+            focused: state.is_focused(PaneId::Stack),
         });
 
         PaneBorder::new()
@@ -99,11 +100,11 @@ impl StatefulWidget for App {
             .add_menu_line(stack_menu_bar)
             .render(stack_area, buf);
 
-        if state.show_about {
+        if state.is_focused(PopupId::About) {
             About.render(area, buf);
         }
 
-        if state.show_command_picker {
+        if state.is_focused(PopupId::CommandPicker) {
             Picker.render(area, buf, &mut state.command_picker_state);
         }
     }

@@ -7,6 +7,7 @@ use std::{
 
 use action::{Action, AnyAction, Revert, State};
 use eyre::eyre;
+use log::debug;
 use rand::seq::SliceRandom;
 
 use crate::{
@@ -23,11 +24,9 @@ pub struct AppState {
     pub grid_state: GridState,
     pub command_picker_state: PickerState,
 
-    pub show_about: bool,
-    pub show_command_picker: bool,
-
     pub keymap: Keymap,
 
+    pub last_focused_pane: Option<PaneId>,
     pub context: Context,
 }
 
@@ -91,7 +90,7 @@ impl AppState {
             stack: grai::Stack::default(),
         }));
 
-        let context = Context::new(Focusable::Grid, InputMode::Insert);
+        let context = Context::new(PaneId::Grid, InputMode::Insert);
 
         let mut app = Self {
             context: context.clone(),
@@ -104,8 +103,7 @@ impl AppState {
             grid_state: GridState::new(frame, context),
             command_picker_state: PickerState::new(),
 
-            show_about: false,
-            show_command_picker: true,
+            last_focused_pane: None,
         };
 
         let mut rng = rand::rng();
@@ -143,15 +141,36 @@ impl AppState {
     }
 
     pub fn focused(&self) -> FocusId {
-        self.context.focus()
+        self.context.get_focus()
     }
 
     pub fn set_focus(&mut self, focus_id: impl Into<FocusId>) {
         self.context.set_focus(focus_id);
     }
 
+    pub fn popup_opened(&self) -> bool {
+        matches!(self.focused(), FocusId::Popup(_))
+    }
+
+    pub fn close_popup(&mut self) {
+        if let Some(last_focus) = self.last_focused_pane {
+            self.set_focus(last_focus);
+        }
+    }
+
+    pub fn toggle_popup(&mut self, focus_id: PopupId) {
+        if self.is_focused(focus_id) {
+            self.close_popup();
+        } else {
+            if let FocusId::Pane(pane) = self.focused() {
+                self.last_focused_pane = Some(pane);
+            }
+            self.set_focus(focus_id);
+        }
+    }
+
     pub fn input_mode(&self) -> InputMode {
-        self.context.input_mode()
+        self.context.get_input_mode()
     }
 
     pub fn set_input_mode(&mut self, input_mode: InputMode) {
@@ -181,7 +200,7 @@ impl Context {
         }))
     }
 
-    pub fn input_mode(&self) -> InputMode {
+    pub fn get_input_mode(&self) -> InputMode {
         self.0.borrow().input_mode
     }
 
@@ -189,7 +208,7 @@ impl Context {
         self.0.get_mut().input_mode = input_mode
     }
 
-    pub fn focus(&self) -> FocusId {
+    pub fn get_focus(&self) -> FocusId {
         self.0.borrow().focus
     }
 
@@ -199,56 +218,53 @@ impl Context {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct FocusId(u64);
-
-impl FocusId {
-    pub fn new(source: impl Hash) -> Self {
-        Self::from_hash(RandomState::new().hash_one(source))
-    }
-
-    pub fn from_hash(hash: u64) -> Self {
-        Self(hash)
-    }
-
-    pub fn from_focusable(focusable: Focusable) -> Self {
-        Self::new(focusable)
-    }
+pub enum PopupId {
+    About,
+    CommandPicker,
 }
 
-impl From<Focusable> for FocusId {
-    fn from(value: Focusable) -> Self {
-        Self::from_focusable(value)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Focusable {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PaneId {
     Grid,
     Console,
     Stack,
 }
 
-#[derive(Debug)]
-pub struct FocusHandle {
-    current: Focusable,
-    app_focus: RefCell<Focusable>,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FocusId {
+    Pane(PaneId),
+    Popup(PopupId),
 }
 
-impl FocusHandle {
-    pub fn new(current: Focusable, app_focus: RefCell<Focusable>) -> Self {
-        Self { current, app_focus }
+impl FocusId {
+    pub fn is_pane(&self) -> bool {
+        matches!(self, FocusId::Pane(_))
     }
 
-    pub fn focused(&self) -> bool {
-        self.current == *self.app_focus.borrow()
+    pub fn is_popup(&self) -> bool {
+        matches!(self, FocusId::Popup(_))
+    }
+}
+
+impl From<PaneId> for FocusId {
+    fn from(value: PaneId) -> Self {
+        Self::Pane(value)
+    }
+}
+
+impl From<PopupId> for FocusId {
+    fn from(value: PopupId) -> Self {
+        Self::Popup(value)
     }
 }
 
 #[derive(Debug, Clone, strum::EnumString)]
 pub enum AppAction {
     Quit,
-    About,
+    ClosePopup,
     FocusStack,
+    ToggleCommandPicker,
+    ToggleAbout,
     InsertMode,
     CommandMode,
 }
@@ -314,11 +330,17 @@ impl State for AppState {
                 Quit => {
                     self.quit();
                 }
-                About => {
-                    self.show_about = !self.show_about;
+                ToggleAbout => {
+                    self.toggle_popup(PopupId::About);
+                }
+                ToggleCommandPicker => {
+                    self.toggle_popup(PopupId::CommandPicker);
+                }
+                ClosePopup => {
+                    self.close_popup();
                 }
                 FocusStack => {
-                    self.set_focus(Focusable::Stack);
+                    self.set_focus(PaneId::Stack);
                 }
                 InsertMode => {
                     self.set_input_mode(InputMode::Insert);

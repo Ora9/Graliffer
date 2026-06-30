@@ -32,7 +32,7 @@
 
 // pub struct ContextTree {}
 
-use crate::{app::FocusId, input::InputMode};
+use crate::{FocusId, input::InputMode};
 
 #[derive(Debug, Clone, Copy)]
 pub struct KeyContext {

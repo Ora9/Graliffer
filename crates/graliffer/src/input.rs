@@ -8,10 +8,10 @@ use ratatui::{
 };
 
 use crate::{
-    ConsoleAction, GridAction,
+    ConsoleAction, GridAction, PaneId,
     app::{
         AppAction::{self, FocusStack},
-        AppState, Focusable,
+        AppState, FocusId,
     },
 };
 
@@ -52,7 +52,7 @@ impl Keymap {
         map.push(
             Keystroke::try_from("up").unwrap(),
             KeyContextPredicate {
-                focus: Some(Focusable::Grid.into()),
+                focus: Some(PaneId::Grid.into()),
                 input_mode: Some(InputMode::Command),
             },
             GridAction::CursorUp,
@@ -61,7 +61,7 @@ impl Keymap {
         map.push(
             Keystroke::try_from("down").unwrap(),
             KeyContextPredicate {
-                focus: Some(Focusable::Grid.into()),
+                focus: Some(PaneId::Grid.into()),
                 input_mode: Some(InputMode::Command),
             },
             GridAction::CursorDown,
@@ -100,10 +100,17 @@ impl Keymap {
         map.push(
             Keystroke::try_from("ctrl-a").unwrap(),
             KeyContextPredicate::default(),
-            AppAction::About,
+            AppAction::ToggleAbout,
         );
+
         map.push(
-            Keystroke::try_from("ctrl-shift-c").unwrap(),
+            Keystroke::try_from("ctrl-p").unwrap(),
+            KeyContextPredicate::default(),
+            AppAction::ToggleCommandPicker,
+        );
+
+        map.push(
+            Keystroke::try_from("shift-c").unwrap(),
             KeyContextPredicate::default(),
             ConsoleAction::Clear,
         );
@@ -156,11 +163,12 @@ impl InputMode {
 
 impl AppState {
     pub fn handle_key_events(&mut self, key_event: KeyEvent, key_context: KeyContext) {
-        debug!("{:?}", key_event);
+        // debug!("{:?}", key_event);
 
         if let Result::Ok(keystroke) = Keystroke::try_from(key_event) {
-            debug!("{:?}", keystroke.to_string());
+            debug!("{:?}", keystroke);
             if let Some(action) = self.keymap.find(keystroke, key_context) {
+                debug!("{:?}", action);
                 self.act(&action.try_into().unwrap());
             }
         }

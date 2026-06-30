@@ -160,7 +160,7 @@ impl TryFrom<KeyCode> for Key {
 
     fn try_from(value: KeyCode) -> Result<Key, Self::Error> {
         match value {
-            KeyCode::Char(char) => Ok(Key::Char(char)),
+            KeyCode::Char(char) => Ok(Key::Char(char.to_ascii_lowercase())),
             KeyCode::Backspace => Ok(Key::Backspace),
             KeyCode::Enter => Ok(Key::Enter),
             KeyCode::Left => Ok(Key::Left),
@@ -228,7 +228,7 @@ impl From<&str> for Key {
             "f10" => Key::F10,
             "f11" => Key::F11,
             "f12" => Key::F12,
-            _ => Key::Char(value.chars().next().unwrap_or(' ')),
+            _ => Key::Char(value.chars().next().unwrap_or(' ').to_ascii_lowercase()),
         }
     }
 }
