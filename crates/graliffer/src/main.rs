@@ -60,7 +60,7 @@ fn main() -> Result<()> {
                 app_state.tick();
             }
             Event::Key(key_event) => {
-                app_state.handle_key_events(key_event, app_state.key_context())
+                app_state.handle_key_events(key_event, app_state.context.clone())
             }
             Event::Mouse(mouse_event) => {
                 app_state.handle_mouse_event(mouse_event);

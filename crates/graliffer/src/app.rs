@@ -11,7 +11,7 @@ use log::debug;
 use rand::seq::SliceRandom;
 
 use crate::{
-    ConsoleAction, ConsoleState, GridAction, GridState,
+    ConsoleAction, ConsoleState, GridAction, GridState, KeyContextFlag,
     input::{InputMode, KeyContext, Keymap},
     ui::PickerState,
 };
@@ -129,13 +129,6 @@ impl AppState {
         // self.console_state.scroll_offset = self.console_state.scroll_offset.wrapping_add(1);
     }
 
-    pub fn key_context(&self) -> KeyContext {
-        KeyContext {
-            focus: self.focused(),
-            input_mode: self.input_mode(),
-        }
-    }
-
     pub fn is_focused(&self, focus_id: impl Into<FocusId>) -> bool {
         self.focused() == focus_id.into()
     }
@@ -187,6 +180,8 @@ impl AppState {
 pub struct ContextInner {
     focus: FocusId,
     input_mode: InputMode,
+
+    key_context: KeyContext,
 }
 
 #[derive(Debug, Clone)]
@@ -197,6 +192,8 @@ impl Context {
         Self(RefCell::new(ContextInner {
             focus: focus.into(),
             input_mode,
+
+            key_context: KeyContext::default(),
         }))
     }
 
@@ -214,6 +211,30 @@ impl Context {
 
     pub fn set_focus(&mut self, focus_id: impl Into<FocusId>) {
         self.0.get_mut().focus = focus_id.into()
+    }
+
+    pub fn insert_flag(&mut self, flag: KeyContextFlag) {
+        self.0.get_mut().key_context.insert(flag);
+    }
+
+    pub fn remove_flag(&mut self, flag: &KeyContextFlag) {
+        self.0.get_mut().key_context.remove(flag);
+    }
+
+    pub fn has_flag(&self, flag: &KeyContextFlag) -> bool {
+        self.0.borrow().key_context.has(flag)
+    }
+
+    pub fn matches_key_context(&self, key_context: &KeyContext) -> bool {
+        for flag in key_context.iter() {
+            if self.has_flag(flag) {
+                continue;
+            } else {
+                return false;
+            }
+        }
+
+        true
     }
 }
 

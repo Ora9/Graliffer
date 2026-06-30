@@ -1,3 +1,8 @@
+use std::{
+    collections::{HashMap, HashSet},
+    ops::{Deref, DerefMut},
+};
+
 use action::{Action, AnyAction, State};
 use crossterm::event::{KeyEvent, MouseEvent};
 use log::debug;
@@ -8,7 +13,7 @@ use ratatui::{
 };
 
 use crate::{
-    ConsoleAction, GridAction, PaneId,
+    ConsoleAction, Context, GridAction, PaneId,
     app::{
         AppAction::{self, FocusStack},
         AppState, FocusId,
@@ -24,124 +29,175 @@ pub use keystroke::*;
 #[derive(Debug)]
 pub struct KeymapEntry {
     keystroke: Keystroke,
-    context_predicate: KeyContextPredicate,
+    // context_predicate: KeyContextPredicate,
     action: AnyAction,
 }
 
 impl KeymapEntry {
     pub fn new(
         keystroke: Keystroke,
-        context_predicate: KeyContextPredicate,
-        action: AnyAction,
+        // context_predicate: KeyContextPredicate,
+        action: impl Action,
     ) -> Self {
         Self {
             keystroke,
-            context_predicate,
-            action,
+            // context_predicate,
+            action: AnyAction::new(action),
         }
     }
 }
 
 #[derive(Debug, Default)]
-pub struct Keymap(Vec<KeymapEntry>);
+struct KeymapEntries(Vec<KeymapEntry>);
+
+impl KeymapEntries {
+    fn find_keystroke(&self, keystroke: Keystroke) -> Option<AnyAction> {
+        self.iter()
+            .find(|entry| entry.keystroke == keystroke)
+            .and_then(|entry| Some(entry.action.clone()))
+    }
+}
+
+impl From<Vec<KeymapEntry>> for KeymapEntries {
+    fn from(value: Vec<KeymapEntry>) -> Self {
+        Self(value)
+    }
+}
+
+impl Deref for KeymapEntries {
+    type Target = Vec<KeymapEntry>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for KeymapEntries {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct Keymap(HashMap<KeyContext, KeymapEntries>);
 
 impl Keymap {
     pub fn new() -> Self {
         let mut map = Self::default();
 
-        map.push(
-            Keystroke::try_from("up").unwrap(),
-            KeyContextPredicate {
-                focus: Some(PaneId::Grid.into()),
-                input_mode: Some(InputMode::Command),
-            },
-            GridAction::CursorUp,
+        let mut grid_insert = KeyContext::from(vec!["Grid", "insert"]);
+        let mut grid_command = KeyContext::from(vec!["Grid", "command"]);
+
+        map.insert(
+            &grid_insert,
+            KeymapEntry::new(Keystroke::try_from("up").unwrap(), GridAction::CursorUp),
         );
 
-        map.push(
-            Keystroke::try_from("down").unwrap(),
-            KeyContextPredicate {
-                focus: Some(PaneId::Grid.into()),
-                input_mode: Some(InputMode::Command),
-            },
-            GridAction::CursorDown,
+        map.insert(
+            &grid_insert,
+            KeymapEntry::new(Keystroke::try_from("down").unwrap(), GridAction::CursorDown),
         );
 
-        map.push(
-            Keystroke::try_from("q").unwrap(),
-            KeyContextPredicate::default(),
-            AppAction::Quit,
+        map.insert(
+            &KeyContext::empty(),
+            KeymapEntry::new(Keystroke::try_from("q").unwrap(), AppAction::Quit),
         );
 
-        map.push(
-            Keystroke::try_from("i").unwrap(),
-            KeyContextPredicate {
-                input_mode: Some(InputMode::Command),
-                ..Default::default()
-            },
-            AppAction::InsertMode,
+        map.insert(
+            &grid_insert,
+            KeymapEntry::new(
+                Keystroke::try_from("escape").unwrap(),
+                AppAction::CommandMode,
+            ),
         );
 
-        map.push(
-            Keystroke::try_from("escape").unwrap(),
-            KeyContextPredicate {
-                input_mode: Some(InputMode::Insert),
-                ..Default::default()
-            },
-            AppAction::CommandMode,
+        map.insert(
+            &grid_command,
+            KeymapEntry::new(Keystroke::try_from("i").unwrap(), AppAction::InsertMode),
         );
+        // map.push(
+        //     Keystroke::try_from("i").unwrap(),
+        //     KeyContextPredicate {
+        //         input_mode: Some(InputMode::Command),
+        //         ..Default::default()
+        //     },
+        //     AppAction::InsertMode,
+        // );
 
-        map.push(
-            Keystroke::try_from("ctrl-c").unwrap(),
-            KeyContextPredicate::default(),
-            AppAction::Quit,
-        );
+        // map.push(
+        //     Keystroke::try_from("escape").unwrap(),
+        //     KeyContextPredicate {
+        //         input_mode: Some(InputMode::Insert),
+        //         ..Default::default()
+        //     },
+        //     AppAction::CommandMode,
+        // );
 
-        map.push(
-            Keystroke::try_from("ctrl-a").unwrap(),
-            KeyContextPredicate::default(),
-            AppAction::ToggleAbout,
-        );
+        // map.push(
+        //     Keystroke::try_from("ctrl-c").unwrap(),
+        //     KeyContextPredicate::default(),
+        //     AppAction::Quit,
+        // );
 
-        map.push(
-            Keystroke::try_from("ctrl-p").unwrap(),
-            KeyContextPredicate::default(),
-            AppAction::ToggleCommandPicker,
-        );
+        // map.push(
+        //     Keystroke::try_from("ctrl-a").unwrap(),
+        //     KeyContextPredicate::default(),
+        //     AppAction::ToggleAbout,
+        // );
 
-        map.push(
-            Keystroke::try_from("shift-c").unwrap(),
-            KeyContextPredicate::default(),
-            ConsoleAction::Clear,
-        );
+        // map.push(
+        //     Keystroke::try_from("ctrl-p").unwrap(),
+        //     KeyContextPredicate::default(),
+        //     AppAction::ToggleCommandPicker,
+        // );
 
-        map.push(
-            Keystroke::try_from("ctrl-f").unwrap(),
-            KeyContextPredicate::default(),
-            AppAction::FocusStack,
-        );
+        // map.push(
+        //     Keystroke::try_from("shift-c").unwrap(),
+        //     KeyContextPredicate::default(),
+        //     ConsoleAction::Clear,
+        // );
+
+        // map.push(
+        //     Keystroke::try_from("ctrl-f").unwrap(),
+        //     KeyContextPredicate::default(),
+        //     AppAction::FocusStack,
+        // );
 
         map
     }
 
-    pub fn push(
-        &mut self,
-        keystroke: Keystroke,
-        context_predicate: KeyContextPredicate,
-        action: impl Action,
-    ) {
-        self.0.push(KeymapEntry {
-            keystroke,
-            context_predicate,
-            action: AnyAction::new(action),
-        });
+    pub fn insert(&mut self, context: &KeyContext, keymap_entry: KeymapEntry) {
+        if let Some(for_context) = self.0.get_mut(context) {
+            for_context.push(keymap_entry);
+        } else {
+            self.0.insert(context.clone(), vec![keymap_entry].into());
+        }
     }
 
-    pub fn find(&self, keystroke: Keystroke, key_context: KeyContext) -> Option<AnyAction> {
-        self.0
+    // pub fn push(
+    //     &mut self,
+    //     keystroke: Keystroke,
+    //     context_predicate: KeyContextPredicate,
+    //     action: impl Action,
+    // ) {
+    //     self.0.push(KeymapEntry {
+    //         keystroke,
+    //         context_predicate,
+    //         action: AnyAction::new(action),
+    //     });
+    // }
+
+    pub fn find(&self, app_context: Context, keystroke: Keystroke) -> Option<AnyAction> {
+        // todo: make specific context predicate have a higher priorities
+        for (_, entries) in self
+            .0
             .iter()
-            .find(|item| item.keystroke == keystroke && item.context_predicate.matches(key_context))
-            .and_then(|item| Some(item.action.clone()))
+            .filter(|(key_context, _)| app_context.matches_key_context(*key_context))
+        {
+            return entries.find_keystroke(keystroke);
+        }
+
+        None
     }
 }
 
@@ -162,12 +218,12 @@ impl InputMode {
 }
 
 impl AppState {
-    pub fn handle_key_events(&mut self, key_event: KeyEvent, key_context: KeyContext) {
+    pub fn handle_key_events(&mut self, key_event: KeyEvent, context: Context) {
         // debug!("{:?}", key_event);
 
         if let Result::Ok(keystroke) = Keystroke::try_from(key_event) {
             debug!("{:?}", keystroke);
-            if let Some(action) = self.keymap.find(keystroke, key_context) {
+            if let Some(action) = self.keymap.find(context, keystroke) {
                 debug!("{:?}", action);
                 self.act(&action.try_into().unwrap());
             }
