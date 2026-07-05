@@ -13,7 +13,7 @@ use tui_scrollbar::{
     ScrollMetrics,
 };
 
-use crate::app::Context;
+use crate::Context;
 
 #[derive(Debug)]
 pub struct ConsoleState {

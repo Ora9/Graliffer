@@ -13,7 +13,7 @@ use ratatui::{
 };
 use tui_input::Input;
 
-use crate::app::Context;
+use crate::Context;
 
 #[derive(Debug, Default)]
 pub struct Cursor(grai::Position);
