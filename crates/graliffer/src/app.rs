@@ -1,5 +1,6 @@
 use std::{
     cell::RefCell,
+    fmt::Display,
     hash::{BuildHasher, Hash, RandomState},
     rc::Rc,
     str::FromStr,
@@ -11,7 +12,7 @@ use log::debug;
 use rand::seq::SliceRandom;
 
 use crate::{
-    ConsoleAction, ConsoleState, GridAction, GridState, KeyContextFlag,
+    ConsoleAction, ConsoleState, GridAction, GridState, KeyContextFlag, KeyContextPredicate,
     input::{InputMode, KeyContext, Keymap},
     ui::PickerState,
 };
@@ -138,7 +139,7 @@ impl AppState {
     }
 
     pub fn set_focus(&mut self, focus_id: impl Into<FocusId>) {
-        self.context.set_focus(focus_id);
+        self.context.set_focus(focus_id.into());
     }
 
     pub fn popup_opened(&self) -> bool {
@@ -188,13 +189,19 @@ pub struct ContextInner {
 pub struct Context(RefCell<ContextInner>);
 
 impl Context {
-    pub fn new(focus: impl Into<FocusId>, input_mode: InputMode) -> Self {
-        Self(RefCell::new(ContextInner {
-            focus: focus.into(),
+    pub fn new(focus_id: impl Into<FocusId>, input_mode: InputMode) -> Self {
+        let focus_id = focus_id.into();
+
+        let mut context = Self(RefCell::new(ContextInner {
+            focus: focus_id,
             input_mode,
 
             key_context: KeyContext::default(),
-        }))
+        }));
+
+        context.set_focus_flag(focus_id);
+
+        context
     }
 
     pub fn get_input_mode(&self) -> InputMode {
@@ -210,41 +217,53 @@ impl Context {
     }
 
     pub fn set_focus(&mut self, focus_id: impl Into<FocusId>) {
-        self.0.get_mut().focus = focus_id.into()
+        let focus_id = focus_id.into();
+
+        self.set_focus_flag(focus_id);
+        self.0.get_mut().focus = focus_id;
     }
 
-    pub fn insert_flag(&mut self, flag: KeyContextFlag) {
-        self.0.get_mut().key_context.insert(flag);
+    pub fn set_focus_flag(&mut self, focus_id: FocusId) {
+        let last = self.get_focus();
+
+        self.remove_flag(last.to_string());
+        self.insert_flag(focus_id.to_string());
     }
 
-    pub fn remove_flag(&mut self, flag: &KeyContextFlag) {
-        self.0.get_mut().key_context.remove(flag);
+    pub fn insert_flag(&mut self, flag: impl Into<KeyContextFlag>) {
+        self.0.get_mut().key_context.insert(flag.into());
+    }
+
+    pub fn remove_flag(&mut self, flag: impl Into<KeyContextFlag>) {
+        self.0.get_mut().key_context.remove(&flag.into());
     }
 
     pub fn has_flag(&self, flag: &KeyContextFlag) -> bool {
         self.0.borrow().key_context.has(flag)
     }
 
-    pub fn matches_key_context(&self, key_context: &KeyContext) -> bool {
-        for flag in key_context.iter() {
-            if self.has_flag(flag) {
-                continue;
-            } else {
-                return false;
-            }
-        }
+    pub fn matches_key_context(&self, predicate: &KeyContextPredicate) -> bool {
+        self.0.borrow().key_context.matches(predicate)
 
-        true
+        // for flag in key_context.iter() {
+        //     if self.has_flag(flag) {
+        //         continue;
+        //     } else {
+        //         return false;
+        //     }
+        // }
+
+        // true
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display)]
 pub enum PopupId {
     About,
     CommandPicker,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display)]
 pub enum PaneId {
     Grid,
     Console,
@@ -264,6 +283,15 @@ impl FocusId {
 
     pub fn is_popup(&self) -> bool {
         matches!(self, FocusId::Popup(_))
+    }
+}
+
+impl Display for FocusId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Pane(pane) => f.write_str(&pane.to_string()),
+            FocusId::Popup(popup) => f.write_str(&popup.to_string()),
+        }
     }
 }
 

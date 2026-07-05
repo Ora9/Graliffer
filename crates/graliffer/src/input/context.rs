@@ -9,16 +9,34 @@ use std::{
 
 use log::debug;
 
-use crate::{Context, FocusId, input::InputMode};
+use crate::{Context, FocusId, KeyContextPredicate::Flag, input::InputMode};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct KeyContextFlag(String);
 
-impl From<&str> for KeyContextFlag {
-    fn from(value: &str) -> Self {
-        Self(value.to_string())
+impl KeyContextFlag {
+    pub fn new(flag: &str) -> Self {
+        Self(flag.to_string())
     }
 }
+
+impl From<&str> for KeyContextFlag {
+    fn from(value: &str) -> Self {
+        Self::new(value)
+    }
+}
+
+impl From<String> for KeyContextFlag {
+    fn from(value: String) -> Self {
+        Self::new(&value)
+    }
+}
+
+// impl From<&String> for KeyContextFlag {
+//     fn from(value: &String) -> &Self {
+//         Self(*value)
+//     }
+// }
 
 #[derive(Debug, thiserror::Error)]
 pub enum KeyContextPredicateParseError {
@@ -91,8 +109,9 @@ impl Display for KeyContextPredicateOperation {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum KeyContextPredicate {
+    None,
     Flag(KeyContextFlag),
     And(Box<KeyContextPredicate>, Box<KeyContextPredicate>),
     Or(Box<KeyContextPredicate>, Box<KeyContextPredicate>),
@@ -101,7 +120,7 @@ pub enum KeyContextPredicate {
 }
 
 impl KeyContextPredicate {
-    pub fn parse(source: &str) -> Result<Option<Self>, KeyContextPredicateParseError> {
+    pub fn parse(source: &str) -> Result<Self, KeyContextPredicateParseError> {
         let mut predicate: Vec<KeyContextPredicate> = Vec::new();
 
         let mut pop = |operation: KeyContextPredicateOperation,
@@ -143,19 +162,30 @@ impl KeyContextPredicate {
             predicate.push(to_push);
         }
 
-        match predicate.len() {
-            0 => Ok(None),
-            1 => Ok(predicate.pop()),
-            _ => Err(
+        if predicate.len() > 1 {
+            Err(
                 KeyContextPredicateParseError::TooMuchOperandNotEnoughOperations {
                     predicate: source.to_string(),
                 },
-            ),
+            )
+        } else {
+            match predicate.pop() {
+                None => Ok(Self::None),
+                Some(predicate) => Ok(predicate),
+            }
         }
     }
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Eq)]
+// impl TryFrom<&str> for Option<KeyContextPredicate> {
+//     type Error = KeyContextPredicateParseError;
+
+//     fn try_from(value: &str) -> Result<Self, Self::Error> {
+//         Self::parse(value)
+//     }
+// }
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct KeyContext(HashSet<KeyContextFlag>);
 
 impl Hash for KeyContext {
@@ -181,16 +211,30 @@ impl KeyContext {
         self.0.iter()
     }
 
-    pub fn insert(&mut self, flag: impl Into<KeyContextFlag>) {
-        self.0.insert(flag.into());
+    pub fn insert(&mut self, flag: KeyContextFlag) {
+        self.0.insert(flag);
+        debug!("{self:?}");
     }
 
-    pub fn remove<'a>(&mut self, flag: impl Into<&'a KeyContextFlag>) {
-        self.0.remove(flag.into());
+    pub fn remove<'a>(&mut self, flag: &KeyContextFlag) {
+        self.0.remove(flag);
     }
 
-    pub fn has<'a>(&self, flag: impl Into<&'a KeyContextFlag>) -> bool {
-        self.0.contains(flag.into())
+    pub fn has<'a>(&self, flag: &KeyContextFlag) -> bool {
+        self.0.contains(flag)
+    }
+
+    pub fn matches(&self, predicate: &KeyContextPredicate) -> bool {
+        use KeyContextPredicate::*;
+
+        match predicate {
+            None => true,
+            Flag(KeyContextFlag(flag)) => self.has(&flag.clone().into()),
+            Not(predicate) => !self.matches(predicate),
+            And(lhs, rhs) => self.matches(lhs) && self.matches(rhs),
+            Or(lhs, rhs) => self.matches(lhs) || self.matches(rhs),
+            Xor(lhs, rhs) => self.matches(lhs) ^ self.matches(rhs),
+        }
     }
 
     // pub fn matches(&self, app_context: &Context) -> bool {
