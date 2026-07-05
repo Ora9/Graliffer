@@ -9,8 +9,8 @@ use ratatui::{
 
 use crate::{Context, app::AppState};
 
-mod context;
-pub use context::*;
+mod key_context;
+pub use key_context::*;
 
 mod keystroke;
 pub use keystroke::*;
