@@ -19,6 +19,9 @@ pub use tui::*;
 mod input;
 pub use input::*;
 
+mod focus;
+pub use focus::*;
+
 mod context;
 pub use context::*;
 
