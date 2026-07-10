@@ -42,7 +42,7 @@ impl<'a> MenuLine<'a> {
     }
 
     pub fn push_title(mut self, title: MenuTitle<'a>) -> Self {
-        if let Some(mut last) = self.groups.last_mut() {
+        if let Some(last) = self.groups.last_mut() {
             *last = last.clone().push_title(title);
             self
         } else {
@@ -50,7 +50,7 @@ impl<'a> MenuLine<'a> {
         }
     }
 
-    pub fn push_title_in_new_group(mut self, title: MenuTitle<'a>) -> Self {
+    pub fn push_title_in_new_group(self, title: MenuTitle<'a>) -> Self {
         self.push_group(MenuGroup::from_title(title))
     }
 
