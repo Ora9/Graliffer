@@ -1,4 +1,4 @@
-use std::{cell::RefCell, fmt::Display, rc::Rc, str::FromStr};
+use std::{cell::RefCell, rc::Rc, str::FromStr};
 
 use action::{Action, AnyAction, Revert, State};
 use eyre::eyre;
@@ -78,7 +78,7 @@ impl AppState {
             grai::Position::from_string("aa").unwrap(),
             grai::Cell::new_trim("jmp"),
         );
-        let mut frame = Rc::new(RefCell::new(grai::Frame {
+        let frame = Rc::new(RefCell::new(grai::Frame {
             grid,
             head: grai::Head::default(),
             stack: grai::Stack::default(),
@@ -109,7 +109,7 @@ impl AppState {
             phrase.join(" ").to_string()
         };
 
-        for i in 0..100 {
+        for _ in 0..100 {
             app.console_state.append_line(shuffler());
         }
 
@@ -117,11 +117,7 @@ impl AppState {
     }
 
     /// Handles the tick event of the terminal.
-    pub fn tick(&mut self) {
-        // self.console_state.scroll_down_by(1);
-
-        // self.console_state.scroll_offset = self.console_state.scroll_offset.wrapping_add(1);
-    }
+    pub fn tick(&mut self) {}
 
     pub fn is_focused(&self, focus_id: impl Into<FocusId>) -> bool {
         self.focused() == focus_id.into()
@@ -242,10 +238,10 @@ impl State for AppState {
 
         match action {
             ConcreteAnyAction::ConsoleAction(console_action) => {
-                self.console_state.act(console_action);
+                self.console_state.act(console_action)?;
             }
             ConcreteAnyAction::GridAction(grid_action) => {
-                self.grid_state.act(grid_action);
+                self.grid_state.act(grid_action)?;
             }
             ConcreteAnyAction::AppAction(app_action) => match app_action {
                 Quit => {
