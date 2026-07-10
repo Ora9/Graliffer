@@ -1,14 +1,9 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     fmt::Display,
     hash::{DefaultHasher, Hash, Hasher},
     num::Wrapping,
 };
-
-use log::debug;
-use rand::RngExt;
-
-use crate::{FocusId, InputMode};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct KeyContextFlagKeyHash(u64);
