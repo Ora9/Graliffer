@@ -143,16 +143,25 @@ impl AppState {
         if let Some(last_focus) = self.last_focused_pane {
             self.set_focus(last_focus);
         }
+
+        self.context.remove_flag(&"focusing_popup".to_string());
     }
 
-    pub fn toggle_popup(&mut self, focus_id: PopupId) {
-        if self.is_focused(focus_id) {
+    pub fn open_popup(&mut self, popup_id: PopupId) {
+        if let FocusId::Pane(pane_id) = self.focused() {
+            self.last_focused_pane = Some(pane_id);
+        }
+
+        self.context.insert_flag("focusing_popup".to_string());
+
+        self.set_focus(popup_id);
+    }
+
+    pub fn toggle_popup(&mut self, popup_id: PopupId) {
+        if self.is_focused(popup_id) {
             self.close_popup();
         } else {
-            if let FocusId::Pane(pane) = self.focused() {
-                self.last_focused_pane = Some(pane);
-            }
-            self.set_focus(focus_id);
+            self.open_popup(popup_id);
         }
     }
 

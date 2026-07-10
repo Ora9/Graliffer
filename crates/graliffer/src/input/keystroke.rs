@@ -1,7 +1,7 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::fmt::{Display, Formatter, Write};
 
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Modifiers {
     pub control: bool,
     pub shift: bool,
@@ -86,7 +86,7 @@ impl From<KeyModifiers> for Modifiers {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Key {
     Char(char),
     Backspace,
@@ -233,7 +233,7 @@ impl From<&str> for Key {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Keystroke {
     pub modifiers: Modifiers,
     pub key: Key,

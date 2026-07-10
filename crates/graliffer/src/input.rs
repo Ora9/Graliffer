@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use action::State;
 use crossterm::event::{KeyEvent, MouseEvent};
 use log::debug;
@@ -18,10 +20,19 @@ pub use keystroke::*;
 mod keymap;
 pub use keymap::*;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum InputMode {
     Insert,
     Command,
+}
+
+impl Display for InputMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Insert => f.write_str("insert"),
+            Self::Command => f.write_str("command"),
+        }
+    }
 }
 
 impl InputMode {

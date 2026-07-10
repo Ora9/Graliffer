@@ -4,25 +4,20 @@ use std::{
 };
 
 use action::{Action, AnyAction};
+use log::debug;
 
 use crate::{AppAction, Context, GridAction, KeyContextPredicate, Keystroke};
 
 #[derive(Debug)]
 pub struct KeymapEntry {
     keystroke: Keystroke,
-    // context_predicate: KeyContextPredicate,
     action: AnyAction,
 }
 
 impl KeymapEntry {
-    pub fn new(
-        keystroke: Keystroke,
-        // context_predicate: KeyContextPredicate,
-        action: impl Action,
-    ) -> Self {
+    pub fn new(keystroke: Keystroke, action: impl Action) -> Self {
         Self {
             keystroke,
-            // context_predicate,
             action: AnyAction::new(action),
         }
     }
@@ -99,14 +94,16 @@ impl Keymap {
             &grid_command,
             KeymapEntry::new(Keystroke::try_from("i").unwrap(), AppAction::InsertMode),
         );
-        // map.push(
-        //     Keystroke::try_from("i").unwrap(),
-        //     KeyContextPredicate {
-        //         input_mode: Some(InputMode::Command),
-        //         ..Default::default()
-        //     },
-        //     AppAction::InsertMode,
-        // );
+
+        let popup = KeyContextPredicate::parse("focusing_popup").unwrap();
+
+        map.insert(
+            &popup,
+            KeymapEntry::new(
+                Keystroke::try_from("escape").unwrap(),
+                AppAction::ClosePopup,
+            ),
+        );
 
         // map.push(
         //     Keystroke::try_from("escape").unwrap(),
@@ -190,14 +187,9 @@ impl Keymap {
     pub fn find(&self, app_context: Context, keystroke: Keystroke) -> Option<AnyAction> {
         // todo: make specific context predicate have a higher priorities
 
-        for (_, entries) in self
-            .0
+        self.0
             .iter()
-            .filter(|(context_predicate, _)| app_context.matches_key_context(context_predicate))
-        {
-            return entries.find_keystroke(keystroke);
-        }
-
-        None
+            .filter(|(predicate, _)| app_context.matches_key_context(predicate))
+            .find_map(|(b, entries)| entries.find_keystroke(keystroke))
     }
 }
