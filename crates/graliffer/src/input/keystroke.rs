@@ -45,12 +45,12 @@ impl Display for Modifiers {
         for (name, is_pressed) in [ctrl, shift, alt] {
             if is_pressed {
                 if !first {
-                    f.write_char('-');
+                    f.write_char('-')?;
                 }
 
                 first = false;
 
-                f.write_str(name);
+                f.write_str(name)?;
             }
         }
 
@@ -283,9 +283,9 @@ impl Display for Keystroke {
         let key = self.key.to_string();
 
         if modifiers.len() == 0 {
-            write!(f, "{key}");
+            write!(f, "{key}")?;
         } else {
-            write!(f, "{modifiers}-{key}");
+            write!(f, "{modifiers}-{key}")?;
         }
 
         Ok(())
