@@ -4,7 +4,6 @@ use std::{
 };
 
 use action::{Action, AnyAction};
-use log::debug;
 
 use crate::{AppAction, Context, GridAction, KeyContextPredicate, Keystroke};
 
@@ -61,9 +60,6 @@ impl Keymap {
     pub fn new() -> Self {
         let mut map = Self::default();
 
-        // let mut grid_insert = KeyContext::from(vec!["Grid", "insert"]);
-        // let mut grid_command = KeyContext::from(vec!["Grid", "command"]);
-
         let grid_insert = KeyContextPredicate::parse("Grid insert &&").unwrap();
         let grid_command = KeyContextPredicate::parse("Grid command &&").unwrap();
 
@@ -105,21 +101,6 @@ impl Keymap {
             ),
         );
 
-        // map.push(
-        //     Keystroke::try_from("escape").unwrap(),
-        //     KeyContextPredicate {
-        //         input_mode: Some(InputMode::Insert),
-        //         ..Default::default()
-        //     },
-        //     AppAction::CommandMode,
-        // );
-
-        // map.push(
-        //     Keystroke::try_from("ctrl-c").unwrap(),
-        //     KeyContextPredicate::default(),
-        //     AppAction::Quit,
-        // );
-
         map.insert(
             &KeyContextPredicate::None,
             KeymapEntry::new(
@@ -136,30 +117,6 @@ impl Keymap {
             ),
         );
 
-        // map.push(
-        //     Keystroke::try_from("ctrl-a").unwrap(),
-        //     KeyContextPredicate::default(),
-        //     AppAction::ToggleAbout,
-        // );
-
-        // map.push(
-        //     Keystroke::try_from("ctrl-p").unwrap(),
-        //     KeyContextPredicate::default(),
-        //     AppAction::ToggleCommandPicker,
-        // );
-
-        // map.push(
-        //     Keystroke::try_from("shift-c").unwrap(),
-        //     KeyContextPredicate::default(),
-        //     ConsoleAction::Clear,
-        // );
-
-        // map.push(
-        //     Keystroke::try_from("ctrl-f").unwrap(),
-        //     KeyContextPredicate::default(),
-        //     AppAction::FocusStack,
-        // );
-
         map
     }
 
@@ -171,25 +128,12 @@ impl Keymap {
         }
     }
 
-    // pub fn push(
-    //     &mut self,
-    //     keystroke: Keystroke,
-    //     context_predicate: KeyContextPredicate,
-    //     action: impl Action,
-    // ) {
-    //     self.0.push(KeymapEntry {
-    //         keystroke,
-    //         context_predicate,
-    //         action: AnyAction::new(action),
-    //     });
-    // }
-
     pub fn find(&self, app_context: Context, keystroke: Keystroke) -> Option<AnyAction> {
         // todo: make specific context predicate have a higher priorities
 
         self.0
             .iter()
             .filter(|(predicate, _)| app_context.matches_key_context(predicate))
-            .find_map(|(b, entries)| entries.find_keystroke(keystroke))
+            .find_map(|(_, entries)| entries.find_keystroke(keystroke))
     }
 }
