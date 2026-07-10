@@ -236,8 +236,8 @@ impl Widget for Popup<'_> {
         Self: Sized,
     {
         let popup_inner = self.inner(area);
-
         Clear.render(popup_inner, buf);
+
         if self.borders != Borders::NONE {
             let block = Block::default()
                 .borders(self.borders)
@@ -246,7 +246,6 @@ impl Widget for Popup<'_> {
                 .title(self.title)
                 .style(self.style);
 
-            let inner_area = block.inner(popup_inner);
             block.render(popup_inner, buf);
         };
     }
