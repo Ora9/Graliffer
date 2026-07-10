@@ -50,7 +50,7 @@ impl AppState {
         if let Result::Ok(keystroke) = Keystroke::try_from(key_event) {
             if let Some(action) = self.keymap.find(app_context, keystroke) {
                 debug!("{:?}", action);
-                self.act(&action.try_into().unwrap());
+                let _ = self.act(&action.try_into().unwrap());
             }
         }
     }
