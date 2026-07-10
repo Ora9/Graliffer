@@ -10,7 +10,7 @@ use ratatui::{
     widgets::{Block, Borders, StatefulWidget, Widget},
 };
 
-use crate::ui::{Align2, Popup, PopupPosition};
+use crate::ui::Popup;
 
 #[derive(Debug, Clone)]
 pub struct PickerItem {

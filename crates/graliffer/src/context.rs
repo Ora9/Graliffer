@@ -1,7 +1,5 @@
 use std::cell::RefCell;
 
-use log::debug;
-
 use crate::{
     FocusId, KeyContextFlag, KeyContextFlagKey, KeyContextPredicate,
     input::{InputMode, KeyContext},

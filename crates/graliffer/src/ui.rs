@@ -1,4 +1,3 @@
-use log::debug;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Margin, Rect, Spacing},
@@ -21,7 +20,7 @@ pub use about::*;
 mod picker;
 pub use picker::*;
 
-use crate::{App, AppState, Console, FocusId, GridWidget, PaneId, PopupId};
+use crate::{App, AppState, Console, GridWidget, PaneId, PopupId};
 
 impl StatefulWidget for App {
     type State = AppState;

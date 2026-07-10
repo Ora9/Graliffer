@@ -11,8 +11,6 @@ use ratatui::{
     widgets::{Block, Borders, Clear, Widget},
 };
 
-use crate::ui::Align::Center;
-
 #[derive(Debug, Clone, Copy)]
 pub enum Align {
     Start,

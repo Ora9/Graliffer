@@ -5,7 +5,7 @@ use ratatui::{
     widgets::{Block, BorderType, Widget},
 };
 
-use crate::ui::{MenuLine, MenuLineAlignement, MenuLinePosition, MenuTitle};
+use crate::ui::{MenuLine, MenuLinePosition};
 
 #[derive(Debug)]
 pub struct PaneBorder<'a> {
@@ -27,8 +27,6 @@ impl<'a> PaneBorder<'a> {
 
 impl<'a> Widget for PaneBorder<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        use ratatui::symbols::line;
-
         let mut block = Block::bordered()
             .border_type(BorderType::Rounded)
             .merge_borders(MergeStrategy::Fuzzy);
