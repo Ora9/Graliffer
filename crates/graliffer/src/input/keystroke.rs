@@ -1,48 +1,55 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::fmt::{Display, Formatter, Write};
 
+/// Key modifiers for keystrokes
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Modifiers {
     pub control: bool,
-    pub shift: bool,
     pub alt: bool,
+    pub shift: bool,
 }
 
 impl Modifiers {
     pub const NONE: Self = Self {
         control: false,
-        shift: false,
         alt: false,
+        shift: false,
+    };
+
+    pub const ALL: Self = Self {
+        control: true,
+        alt: true,
+        shift: true,
     };
 
     pub const CONTROL: Self = Self {
         control: true,
-        shift: false,
         alt: false,
+        shift: false,
     };
 
     pub const SHIFT: Self = Self {
         control: false,
-        shift: true,
         alt: false,
+        shift: true,
     };
 
     pub const ALT: Self = Self {
         control: false,
-        shift: false,
         alt: true,
+        shift: false,
     };
 }
 
 impl Display for Modifiers {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let ctrl = ("ctrl", self.control);
-        let shift = ("shift", self.shift);
         let alt = ("alt", self.alt);
+        let shift = ("shift", self.shift);
 
         let mut first = true;
 
-        for (name, is_pressed) in [ctrl, shift, alt] {
+        for (name, is_pressed) in [ctrl, alt, shift] {
             if is_pressed {
                 if !first {
                     f.write_char('-')?;
@@ -66,8 +73,8 @@ impl From<&str> for Modifiers {
         while let Some(part) = parts.next() {
             match part.to_ascii_lowercase().as_str() {
                 "ctrl" => modifiers.control = true,
-                "shift" => modifiers.shift = true,
                 "alt" => modifiers.alt = true,
+                "shift" => modifiers.shift = true,
                 _ => {}
             }
         }
@@ -289,5 +296,22 @@ impl Display for Keystroke {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn modifiers_to_string() {
+        assert_eq!(Modifiers::CONTROL.to_string(), "ctrl");
+        assert_eq!(Modifiers::SHIFT.to_string(), "shift");
+        assert_eq!(Modifiers::ALT.to_string(), "alt");
+    }
+
+    #[test]
+    fn modifiers_to_string_order() {
+        assert_eq!(Modifiers::ALL.to_string(), "ctrl-alt-shift");
     }
 }
