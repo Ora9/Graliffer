@@ -17,6 +17,12 @@ pub use key_context::*;
 mod keystroke;
 pub use keystroke::*;
 
+mod key;
+pub use key::*;
+
+mod modifiers;
+pub use modifiers::*;
+
 mod keymap;
 pub use keymap::*;
 
