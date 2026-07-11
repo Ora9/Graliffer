@@ -24,21 +24,21 @@ impl TryFrom<&str> for Keystroke {
         if let Some((source_modifiers, source_key)) = source.rsplit_once("-") {
             Ok(Self {
                 modifiers: source_modifiers.try_into()?,
-                key: source_key.into(),
+                key: source_key.try_into()?,
             })
         } else {
             Ok(Self {
                 modifiers: Modifiers::NONE,
-                key: source.into(),
+                key: source.try_into()?,
             })
         }
     }
 }
 
-impl TryFrom<KeyEvent> for Keystroke {
+impl TryFrom<crossterm::event::KeyEvent> for Keystroke {
     type Error = eyre::Error;
 
-    fn try_from(event: KeyEvent) -> Result<Self, Self::Error> {
+    fn try_from(event: crossterm::event::KeyEvent) -> Result<Self, Self::Error> {
         Ok(Self {
             key: event.code.try_into()?,
             modifiers: event.modifiers.into(),
