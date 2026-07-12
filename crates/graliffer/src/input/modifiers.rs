@@ -121,8 +121,16 @@ impl Display for Modifiers {
     }
 }
 
-impl From<&str> for Modifiers {
-    fn from(value: &str) -> Self {
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum ModifiersParseError {
+    #[error("invalid modifier, got `{0}`")]
+    InvalidModifiers(String),
+}
+
+impl TryFrom<&str> for Modifiers {
+    type Error = ModifiersParseError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
         let mut modifiers = Modifiers::NONE;
 
         let mut parts = value.split('-');
@@ -131,11 +139,14 @@ impl From<&str> for Modifiers {
                 "ctrl" => modifiers.control = true,
                 "alt" => modifiers.alt = true,
                 "shift" => modifiers.shift = true,
-                _ => {}
+                "" => {}
+                _ => {
+                    return Err(ModifiersParseError::InvalidModifiers(String::from(part)));
+                }
             }
         }
 
-        modifiers
+        Ok(modifiers)
     }
 }
 
@@ -169,6 +180,11 @@ mod tests {
     #[test]
     fn or() {
         assert_eq!(
+            Modifiers::CONTROL.or(Modifiers::ALT),
+            Modifiers::CONTROL | Modifiers::ALT,
+        );
+
+        assert_eq!(
             Modifiers::CONTROL | Modifiers::ALT,
             Modifiers {
                 control: true,
@@ -180,11 +196,6 @@ mod tests {
         assert_eq!(
             Modifiers::ALT | Modifiers::CONTROL,
             Modifiers::CONTROL | Modifiers::ALT,
-        );
-
-        assert_eq!(
-            Modifiers::CONTROL | Modifiers::ALT,
-            Modifiers::CONTROL.or(Modifiers::ALT),
         );
     }
 
@@ -216,19 +227,81 @@ mod tests {
     }
 
     #[test]
-    fn display_order() {
+    fn display_order() -> Result<(), ModifiersParseError> {
         assert_eq!(Modifiers::ALL.to_string(), "ctrl-alt-shift");
+        assert_eq!(
+            (Modifiers::CONTROL | Modifiers::SHIFT).to_string(),
+            "ctrl-shift"
+        );
+        Ok(())
     }
 
     #[test]
-    fn parse() {
-        assert_eq!(Modifiers::from("ctrl-alt-shift"), Modifiers::ALL);
+    fn parse() -> Result<(), ModifiersParseError> {
+        assert_eq!(Modifiers::try_from("ctrl")?, Modifiers::CONTROL);
+        assert_eq!(Modifiers::try_from("alt")?, Modifiers::ALT);
+        assert_eq!(Modifiers::try_from("shift")?, Modifiers::SHIFT);
 
-        assert_eq!(Modifiers::from("ctrl"), Modifiers::CONTROL);
-        assert_eq!(Modifiers::from("alt"), Modifiers::ALT);
-        assert_eq!(Modifiers::from("shift"), Modifiers::SHIFT);
+        assert_eq!(Modifiers::try_from("ctrl-alt-shift")?, Modifiers::ALL);
 
-        assert_eq!(Modifiers::from("oops"), Modifiers::NONE);
-        assert_eq!(Modifiers::from("control-alt"), Modifiers::ALT)
+        assert_eq!(
+            Modifiers::try_from("ctrl-shift")?,
+            Modifiers::CONTROL | Modifiers::SHIFT
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_order() -> Result<(), ModifiersParseError> {
+        assert_eq!(Modifiers::try_from("shift-alt-ctrl")?, Modifiers::ALL);
+        assert_eq!(
+            Modifiers::try_from("alt-ctrl")?,
+            Modifiers::try_from("ctrl-alt")?
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parse_dashes() -> Result<(), ModifiersParseError> {
+        assert_eq!(
+            Modifiers::try_from("ctrl--alt")?,
+            Modifiers::CONTROL | Modifiers::ALT
+        );
+        assert_eq!(Modifiers::try_from("-")?, Modifiers::NONE);
+        Ok(())
+    }
+
+    #[test]
+    fn parse_duplicate() -> Result<(), ModifiersParseError> {
+        assert_eq!(Modifiers::try_from("ctrl-ctrl")?, Modifiers::CONTROL);
+        assert_eq!(
+            Modifiers::try_from("ctrl-alt-ctrl")?,
+            Modifiers::CONTROL | Modifiers::ALT
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parse_invalid() -> Result<(), ModifiersParseError> {
+        assert_eq!(
+            Modifiers::try_from("oops"),
+            Err(ModifiersParseError::InvalidModifiers("oops".to_string()))
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parse_empty() -> Result<(), ModifiersParseError> {
+        assert_eq!(Modifiers::try_from("")?, Modifiers::NONE);
+        assert_eq!(
+            Modifiers::try_from(" "),
+            Err(ModifiersParseError::InvalidModifiers(" ".to_string()))
+        );
+        assert_eq!(
+            Modifiers::try_from("ctrl- -alt"),
+            Err(ModifiersParseError::InvalidModifiers(" ".to_string()))
+        );
+        Ok(())
     }
 }
