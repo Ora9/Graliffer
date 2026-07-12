@@ -126,7 +126,7 @@ impl TryFrom<&str> for Key {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum KeyFromCrosstermError {
     #[error("invalid function key, must be inbetween 1 and 12, got {0}")]
     InvalidFnKey(u8),
@@ -179,55 +179,60 @@ impl TryFrom<crossterm::event::KeyCode> for Key {
 
 #[cfg(test)]
 mod tests {
+    use crossterm::event::KeyCode;
+
     use super::*;
+
+    fn assert_display(key: Key, string: &str) {
+        assert_eq!(key.to_string(), string);
+    }
 
     #[test]
     fn display_char() {
-        assert_eq!(Key::Char('a').to_string(), "a");
-        assert_eq!(Key::Char('Ä').to_string(), "ä");
+        assert_display(Key::Char('a'), "a");
+        assert_display(Key::Char('Ä'), "ä");
     }
 
     #[test]
     fn display_special() {
-        assert_eq!(Key::Backspace.to_string(), "backspace");
-        assert_eq!(Key::Enter.to_string(), "enter");
-        assert_eq!(Key::Left.to_string(), "left");
-        assert_eq!(Key::Right.to_string(), "right");
-        assert_eq!(Key::Up.to_string(), "up");
-        assert_eq!(Key::Down.to_string(), "down");
-        assert_eq!(Key::Home.to_string(), "home");
-        assert_eq!(Key::End.to_string(), "end");
-        assert_eq!(Key::PageUp.to_string(), "pageup");
-        assert_eq!(Key::PageDown.to_string(), "pagedown");
-        assert_eq!(Key::Tab.to_string(), "tab");
-        assert_eq!(Key::BackTab.to_string(), "backtab");
-        assert_eq!(Key::Delete.to_string(), "delete");
-        assert_eq!(Key::Insert.to_string(), "insert");
-        assert_eq!(Key::Escape.to_string(), "escape");
+        assert_display(Key::Backspace, "backspace");
+        assert_display(Key::Enter, "enter");
+        assert_display(Key::Left, "left");
+        assert_display(Key::Right, "right");
+        assert_display(Key::Up, "up");
+        assert_display(Key::Down, "down");
+        assert_display(Key::Home, "home");
+        assert_display(Key::End, "end");
+        assert_display(Key::PageUp, "pageup");
+        assert_display(Key::PageDown, "pagedown");
+        assert_display(Key::Tab, "tab");
+        assert_display(Key::BackTab, "backtab");
+        assert_display(Key::Delete, "delete");
+        assert_display(Key::Insert, "insert");
+        assert_display(Key::Escape, "escape");
     }
 
     #[test]
     fn display_fn() {
-        assert_eq!(Key::F1.to_string(), "f1");
-        assert_eq!(Key::F2.to_string(), "f2");
-        assert_eq!(Key::F3.to_string(), "f3");
-        assert_eq!(Key::F4.to_string(), "f4");
-        assert_eq!(Key::F5.to_string(), "f5");
-        assert_eq!(Key::F6.to_string(), "f6");
-        assert_eq!(Key::F7.to_string(), "f7");
-        assert_eq!(Key::F8.to_string(), "f8");
-        assert_eq!(Key::F9.to_string(), "f9");
-        assert_eq!(Key::F10.to_string(), "f10");
-        assert_eq!(Key::F11.to_string(), "f11");
-        assert_eq!(Key::F12.to_string(), "f12");
+        assert_display(Key::F1, "f1");
+        assert_display(Key::F2, "f2");
+        assert_display(Key::F3, "f3");
+        assert_display(Key::F4, "f4");
+        assert_display(Key::F5, "f5");
+        assert_display(Key::F6, "f6");
+        assert_display(Key::F7, "f7");
+        assert_display(Key::F8, "f8");
+        assert_display(Key::F9, "f9");
+        assert_display(Key::F10, "f10");
+        assert_display(Key::F11, "f11");
+        assert_display(Key::F12, "f12");
     }
 
-    #[test]
-    fn parse_char() -> Result<(), KeyParseError> {
-        assert_eq!(Key::try_from("a")?, Key::Char('a'));
-        assert_eq!(Key::try_from("æ")?, Key::Char('æ'));
-
-        Ok(())
+    fn assert_parse(string: &str, key: Key) {
+        assert_eq!(
+            Key::try_from(string).expect("[test]: should have parsed a valid key"),
+            key
+        );
     }
 
     #[test]
@@ -241,41 +246,110 @@ mod tests {
     }
 
     #[test]
-    fn parse_special() -> Result<(), KeyParseError> {
-        assert_eq!(Key::try_from("backspace")?, Key::Backspace);
-        assert_eq!(Key::try_from("enter")?, Key::Enter);
-        assert_eq!(Key::try_from("left")?, Key::Left);
-        assert_eq!(Key::try_from("right")?, Key::Right);
-        assert_eq!(Key::try_from("up")?, Key::Up);
-        assert_eq!(Key::try_from("down")?, Key::Down);
-        assert_eq!(Key::try_from("home")?, Key::Home);
-        assert_eq!(Key::try_from("end")?, Key::End);
-        assert_eq!(Key::try_from("pageup")?, Key::PageUp);
-        assert_eq!(Key::try_from("pagedown")?, Key::PageDown);
-        assert_eq!(Key::try_from("tab")?, Key::Tab);
-        assert_eq!(Key::try_from("backtab")?, Key::BackTab);
-        assert_eq!(Key::try_from("delete")?, Key::Delete);
-        assert_eq!(Key::try_from("insert")?, Key::Insert);
-        assert_eq!(Key::try_from("escape")?, Key::Escape);
-
-        Ok(())
+    fn parse_char() {
+        assert_parse("a", Key::Char('a'));
+        assert_parse("æ", Key::Char('æ'));
     }
 
     #[test]
-    fn parse_fn() -> Result<(), KeyParseError> {
-        assert_eq!(Key::try_from("f1")?, Key::F1);
-        assert_eq!(Key::try_from("f2")?, Key::F2);
-        assert_eq!(Key::try_from("f3")?, Key::F3);
-        assert_eq!(Key::try_from("f4")?, Key::F4);
-        assert_eq!(Key::try_from("f5")?, Key::F5);
-        assert_eq!(Key::try_from("f6")?, Key::F6);
-        assert_eq!(Key::try_from("f7")?, Key::F7);
-        assert_eq!(Key::try_from("f8")?, Key::F8);
-        assert_eq!(Key::try_from("f9")?, Key::F9);
-        assert_eq!(Key::try_from("f10")?, Key::F10);
-        assert_eq!(Key::try_from("f11")?, Key::F11);
-        assert_eq!(Key::try_from("f12")?, Key::F12);
+    fn parse_special() {
+        assert_parse("backspace", Key::Backspace);
+        assert_parse("enter", Key::Enter);
+        assert_parse("left", Key::Left);
+        assert_parse("right", Key::Right);
+        assert_parse("up", Key::Up);
+        assert_parse("down", Key::Down);
+        assert_parse("home", Key::Home);
+        assert_parse("end", Key::End);
+        assert_parse("pageup", Key::PageUp);
+        assert_parse("pagedown", Key::PageDown);
+        assert_parse("tab", Key::Tab);
+        assert_parse("backtab", Key::BackTab);
+        assert_parse("delete", Key::Delete);
+        assert_parse("insert", Key::Insert);
+        assert_parse("escape", Key::Escape);
+    }
 
-        Ok(())
+    #[test]
+    fn parse_fn() {
+        assert_parse("f1", Key::F1);
+        assert_parse("f2", Key::F2);
+        assert_parse("f3", Key::F3);
+        assert_parse("f4", Key::F4);
+        assert_parse("f5", Key::F5);
+        assert_parse("f6", Key::F6);
+        assert_parse("f7", Key::F7);
+        assert_parse("f8", Key::F8);
+        assert_parse("f9", Key::F9);
+        assert_parse("f10", Key::F10);
+        assert_parse("f11", Key::F11);
+        assert_parse("f12", Key::F12);
+    }
+
+    fn assert_from_ct(ct_key: KeyCode, key: Key) {
+        assert_eq!(
+            Key::try_from(ct_key)
+                .expect("[test]: should have been able to try_from a valid crossterm key"),
+            key
+        );
+    }
+
+    #[test]
+    fn from_crossterm_unrepresentable() {
+        assert_eq!(
+            Key::try_from(KeyCode::Null),
+            Err(KeyFromCrosstermError::UnrepresentableKey(KeyCode::Null))
+        );
+    }
+
+    #[test]
+    fn from_crossterm_char() {
+        assert_from_ct(KeyCode::Char('a'), Key::Char('a'));
+        assert_from_ct(KeyCode::Char('ß'), Key::Char('ß'));
+    }
+
+    #[test]
+    fn from_crossterm_special() {
+        assert_from_ct(KeyCode::Backspace, Key::Backspace);
+        assert_from_ct(KeyCode::Enter, Key::Enter);
+        assert_from_ct(KeyCode::Left, Key::Left);
+        assert_from_ct(KeyCode::Right, Key::Right);
+        assert_from_ct(KeyCode::Up, Key::Up);
+        assert_from_ct(KeyCode::Down, Key::Down);
+        assert_from_ct(KeyCode::Home, Key::Home);
+        assert_from_ct(KeyCode::End, Key::End);
+        assert_from_ct(KeyCode::PageUp, Key::PageUp);
+        assert_from_ct(KeyCode::PageDown, Key::PageDown);
+        assert_from_ct(KeyCode::Tab, Key::Tab);
+        assert_from_ct(KeyCode::BackTab, Key::BackTab);
+        assert_from_ct(KeyCode::Delete, Key::Delete);
+        assert_from_ct(KeyCode::Insert, Key::Insert);
+        assert_from_ct(KeyCode::Esc, Key::Escape);
+    }
+
+    #[test]
+    fn from_crossterm_fn() {
+        assert_from_ct(KeyCode::F(1), Key::F1);
+        assert_from_ct(KeyCode::F(2), Key::F2);
+        assert_from_ct(KeyCode::F(3), Key::F3);
+        assert_from_ct(KeyCode::F(4), Key::F4);
+        assert_from_ct(KeyCode::F(5), Key::F5);
+        assert_from_ct(KeyCode::F(6), Key::F6);
+        assert_from_ct(KeyCode::F(7), Key::F7);
+        assert_from_ct(KeyCode::F(8), Key::F8);
+        assert_from_ct(KeyCode::F(9), Key::F9);
+        assert_from_ct(KeyCode::F(10), Key::F10);
+        assert_from_ct(KeyCode::F(11), Key::F11);
+        assert_from_ct(KeyCode::F(12), Key::F12);
+
+        assert_eq!(
+            Key::try_from(KeyCode::F(13)),
+            Err(KeyFromCrosstermError::InvalidFnKey(13))
+        );
+
+        assert_eq!(
+            Key::try_from(KeyCode::F(u8::MAX)),
+            Err(KeyFromCrosstermError::InvalidFnKey(u8::MAX))
+        );
     }
 }
