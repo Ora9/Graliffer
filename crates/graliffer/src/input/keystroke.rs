@@ -22,11 +22,11 @@ impl Keystroke {
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum KeystrokeParseError {
-    #[error("empty string")]
-    EmptyString,
+    #[error("invalid key, got empty string")]
+    EmptyKey,
 
-    #[error("invalid key, got `{0}`")]
-    InvalidKey(String),
+    #[error("unknown key, got `{0}`")]
+    UnknownKey(String),
 
     #[error("invalid modifier, got `{0}`")]
     InvalidModifiers(String),
@@ -39,12 +39,12 @@ impl TryFrom<&str> for Keystroke {
         if let Some((modifiers, key)) = source.rsplit_once("-") {
             Ok(Self {
                 modifiers: modifiers.parse()?,
-                key: key.try_into()?,
+                key: key.parse()?,
             })
         } else {
             Ok(Self {
                 modifiers: Modifiers::NONE,
-                key: source.try_into()?,
+                key: source.parse()?,
             })
         }
     }

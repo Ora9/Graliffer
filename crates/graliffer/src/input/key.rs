@@ -1,9 +1,13 @@
-use std::fmt::{Display, Formatter};
+use std::{
+    fmt::{Display, Formatter},
+    str::FromStr,
+};
 
 use crossterm::event;
 
 use crate::{KeystrokeParseError, Modifiers};
 
+/// Keyboard key of a keystroke
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Key {
     Char(char),
@@ -37,6 +41,15 @@ pub enum Key {
 }
 
 impl Display for Key {
+    /// Format key
+    ///
+    /// ```
+    /// # use graliffer::Key;
+    /// assert_eq!(Key::Enter.to_string(), "enter");
+    /// assert_eq!(Key::F5.to_string(), "f5");
+    /// assert_eq!(Key::Char('h').to_string(), "h");
+    /// assert_eq!(Key::Char('H').to_string(), "h");
+    /// ```
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let string = match self {
             Key::Char(char) => &char.to_string().to_lowercase(),
@@ -73,15 +86,21 @@ impl Display for Key {
     }
 }
 
-// #[derive(Debug, thiserror::Error, PartialEq, Eq)]
-// pub enum KeystrokeParseError {
-// }
+impl FromStr for Key {
+    type Err = KeystrokeParseError;
 
-impl TryFrom<&str> for Key {
-    type Error = KeystrokeParseError;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        match value {
+    /// Parse from `&str`
+    ///
+    /// ```
+    /// # use graliffer::{Key, KeystrokeParseError};
+    /// # use std::str::FromStr;
+    /// assert_eq!(Key::from_str("pageup")?, Key::PageUp);
+    /// assert_eq!(Key::from_str("f9")?, Key::F9);
+    /// assert_eq!(Key::from_str("ß")?, Key::Char('ß'));
+    /// # Ok::<(), KeystrokeParseError>(())
+    /// ```
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value.to_ascii_lowercase().as_str() {
             "backspace" => Ok(Key::Backspace),
             "enter" => Ok(Key::Enter),
             "left" => Ok(Key::Left),
@@ -112,9 +131,9 @@ impl TryFrom<&str> for Key {
             _ => {
                 let mut chars = value.chars();
                 match (chars.next(), chars.next()) {
-                    (None, _) => Err(KeystrokeParseError::EmptyString),
+                    (None, _) => Err(KeystrokeParseError::EmptyKey),
                     (Some(c), None) => Ok(Key::Char(c)),
-                    _ => Err(KeystrokeParseError::InvalidKey(value.to_string())),
+                    _ => Err(KeystrokeParseError::UnknownKey(value.to_string())),
                 }
             }
         }
@@ -225,25 +244,17 @@ mod tests {
 
     fn assert_parse(string: &str, key: Key) {
         assert_eq!(
-            Key::try_from(string).expect("[test]: should have parsed a valid key"),
+            Key::from_str(string).expect("[test]: should have parsed a valid key"),
             key
         );
-    }
-
-    #[test]
-    fn parse_error() {
-        assert_eq!(
-            Key::try_from("invalid"),
-            Err(KeystrokeParseError::InvalidKey(String::from("invalid")))
-        );
-
-        assert_eq!(Key::try_from(""), Err(KeystrokeParseError::EmptyString));
     }
 
     #[test]
     fn parse_char() {
         assert_parse("a", Key::Char('a'));
         assert_parse("æ", Key::Char('æ'));
+
+        assert_parse("-", Key::Char('-'));
     }
 
     #[test]
@@ -279,6 +290,24 @@ mod tests {
         assert_parse("f10", Key::F10);
         assert_parse("f11", Key::F11);
         assert_parse("f12", Key::F12);
+    }
+
+    #[test]
+    fn parse_ignore_case() {
+        assert_parse("BaCkSpAcE", Key::Backspace);
+    }
+
+    #[test]
+    fn parse_empty() {
+        assert_eq!(Key::from_str(""), Err(KeystrokeParseError::EmptyKey));
+    }
+
+    #[test]
+    fn parse_invalid() {
+        assert_eq!(
+            Key::from_str("invalid"),
+            Err(KeystrokeParseError::UnknownKey(String::from("invalid")))
+        );
     }
 
     fn assert_from_ct(ct_key: KeyCode, key: Key) {
