@@ -3,7 +3,7 @@ use std::{
     fmt::{Display, Formatter},
 };
 
-use crate::{Key, KeyFromCrosstermError, KeyParseError, Modifiers, ModifiersParseError};
+use crate::{Key, KeyFromCrosstermError, Modifiers};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Keystroke {
@@ -20,46 +20,31 @@ impl Keystroke {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum KeystrokeParseError {
-    #[error("could not parse the key part of the keystroke")]
-    KeyParseError(#[source] KeyParseError),
+    #[error("empty string")]
+    EmptyString,
 
-    #[error("could not parse the modifiers part of the keystroke")]
-    ModifiersParseError(#[source] ModifiersParseError),
-}
+    #[error("invalid key, got `{0}`")]
+    InvalidKey(String),
 
-impl From<KeyParseError> for KeystrokeParseError {
-    fn from(value: KeyParseError) -> Self {
-        KeystrokeParseError::KeyParseError(value)
-    }
-}
-
-impl From<ModifiersParseError> for KeystrokeParseError {
-    fn from(value: ModifiersParseError) -> Self {
-        KeystrokeParseError::ModifiersParseError(value)
-    }
+    #[error("invalid modifier, got `{0}`")]
+    InvalidModifiers(String),
 }
 
 impl TryFrom<&str> for Keystroke {
     type Error = KeystrokeParseError;
 
     fn try_from(source: &str) -> Result<Self, Self::Error> {
-        if let Some((source_modifiers, source_key)) = source.rsplit_once("-") {
+        if let Some((modifiers, key)) = source.rsplit_once("-") {
             Ok(Self {
-                modifiers: source_modifiers
-                    .try_into()
-                    .map_err(|err| KeystrokeParseError::ModifiersParseError(err))?,
-                key: source_key
-                    .try_into()
-                    .map_err(|err| KeystrokeParseError::KeyParseError(err))?,
+                modifiers: modifiers.try_into()?,
+                key: key.try_into()?,
             })
         } else {
             Ok(Self {
                 modifiers: Modifiers::NONE,
-                key: source
-                    .try_into()
-                    .map_err(|err| KeystrokeParseError::KeyParseError(err))?,
+                key: source.try_into()?,
             })
         }
     }

@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 
 use crossterm::event;
 
-use crate::Modifiers;
+use crate::{KeystrokeParseError, Modifiers};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Key {
@@ -73,17 +73,12 @@ impl Display for Key {
     }
 }
 
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
-pub enum KeyParseError {
-    #[error("empty string")]
-    EmptyString,
-
-    #[error("invalid key, got `{0}`")]
-    InvalidKey(String),
-}
+// #[derive(Debug, thiserror::Error, PartialEq, Eq)]
+// pub enum KeystrokeParseError {
+// }
 
 impl TryFrom<&str> for Key {
-    type Error = KeyParseError;
+    type Error = KeystrokeParseError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value {
@@ -117,9 +112,9 @@ impl TryFrom<&str> for Key {
             _ => {
                 let mut chars = value.chars();
                 match (chars.next(), chars.next()) {
-                    (None, _) => Err(KeyParseError::EmptyString),
+                    (None, _) => Err(KeystrokeParseError::EmptyString),
                     (Some(c), None) => Ok(Key::Char(c)),
-                    _ => Err(KeyParseError::InvalidKey(value.to_string())),
+                    _ => Err(KeystrokeParseError::InvalidKey(value.to_string())),
                 }
             }
         }
@@ -239,10 +234,10 @@ mod tests {
     fn parse_error() {
         assert_eq!(
             Key::try_from("invalid"),
-            Err(KeyParseError::InvalidKey(String::from("invalid")))
+            Err(KeystrokeParseError::InvalidKey(String::from("invalid")))
         );
 
-        assert_eq!(Key::try_from(""), Err(KeyParseError::EmptyString));
+        assert_eq!(Key::try_from(""), Err(KeystrokeParseError::EmptyString));
     }
 
     #[test]
