@@ -302,12 +302,23 @@ mod tests {
     }
 
     #[test]
-    fn parse_dashes() -> Result<(), KeystrokeParseError> {
+    fn parse_ignore_case() -> Result<(), KeystrokeParseError> {
+        assert_eq!(
+            Modifiers::from_str("ctrl-alt")?,
+            Modifiers::from_str("AlT-CtRl")?
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parse_ignore_dashes() -> Result<(), KeystrokeParseError> {
         assert_eq!(
             Modifiers::from_str("ctrl--alt")?,
             Modifiers::CONTROL | Modifiers::ALT
         );
+        assert_eq!(Modifiers::from_str("shift-")?, Modifiers::SHIFT);
         assert_eq!(Modifiers::from_str("-")?, Modifiers::NONE);
+        assert_eq!(Modifiers::from_str("----")?, Modifiers::NONE);
         Ok(())
     }
 
@@ -322,17 +333,15 @@ mod tests {
     }
 
     #[test]
-    fn parse_invalid() -> Result<(), KeystrokeParseError> {
+    fn parse_invalid_modifier_name() -> Result<(), KeystrokeParseError> {
         assert_eq!(
             Modifiers::from_str("oops"),
             Err(KeystrokeParseError::InvalidModifiers("oops".to_string()))
         );
-        Ok(())
-    }
-
-    #[test]
-    fn parse_empty() -> Result<(), KeystrokeParseError> {
-        assert_eq!(Modifiers::from_str("")?, Modifiers::NONE);
+        assert_eq!(
+            Modifiers::from_str("control-alt-shift"),
+            Err(KeystrokeParseError::InvalidModifiers("control".to_string()))
+        );
         assert_eq!(
             Modifiers::from_str(" "),
             Err(KeystrokeParseError::InvalidModifiers(" ".to_string()))
@@ -341,6 +350,12 @@ mod tests {
             Modifiers::from_str("ctrl- -alt"),
             Err(KeystrokeParseError::InvalidModifiers(" ".to_string()))
         );
+        Ok(())
+    }
+
+    #[test]
+    fn parse_empty() -> Result<(), KeystrokeParseError> {
+        assert_eq!(Modifiers::from_str("")?, Modifiers::NONE);
         Ok(())
     }
 }
