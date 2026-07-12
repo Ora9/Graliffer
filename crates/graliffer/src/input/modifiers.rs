@@ -1,4 +1,7 @@
-use std::fmt::{Display, Formatter, Write};
+use std::{
+    fmt::{Display, Formatter, Write},
+    str::FromStr,
+};
 
 use crate::KeystrokeParseError;
 
@@ -11,12 +14,14 @@ pub struct Modifiers {
 }
 
 impl Modifiers {
+    /// None of the modifiers pressed
     pub const NONE: Self = Self {
         control: false,
         alt: false,
         shift: false,
     };
 
+    /// All modifiers pressed
     pub const ALL: Self = Self {
         control: true,
         alt: true,
@@ -43,7 +48,8 @@ impl Modifiers {
 }
 
 impl Modifiers {
-    /// Add two modifiers
+    /// Add (or) two modifiers
+    ///
     /// ```
     /// # use graliffer::Modifiers;
     /// assert_eq!(
@@ -55,6 +61,7 @@ impl Modifiers {
     ///     }
     /// );
     /// ```
+    #[must_use]
     pub fn or(self, rhs: Self) -> Self {
         Self {
             control: self.control | rhs.control,
@@ -64,6 +71,7 @@ impl Modifiers {
     }
 
     /// Test if none of the modifiers keys are pressed
+    ///
     /// ```
     /// # use graliffer::Modifiers;
     /// assert!(Modifiers::default().is_none());
@@ -73,6 +81,7 @@ impl Modifiers {
     }
 
     /// Test if any of the modifiers keys are pressed
+    ///
     /// ```
     /// # use graliffer::Modifiers;
     /// assert!(Modifiers::CONTROL.is_any());
@@ -82,6 +91,7 @@ impl Modifiers {
     }
 
     /// Test if all modifiers keys are pressed
+    ///
     /// ```
     /// # use graliffer::Modifiers;
     /// assert!(Modifiers::ALL.is_all());
@@ -100,6 +110,15 @@ impl std::ops::BitOr for Modifiers {
 }
 
 impl Display for Modifiers {
+    /// Format modifiers
+    ///
+    /// ```
+    /// # use graliffer::Modifiers;
+    /// assert_eq!(Modifiers::CONTROL.to_string(), "ctrl");
+    /// assert_eq!(Modifiers::ALL.to_string(), "ctrl-alt-shift");
+    /// assert_eq!((Modifiers::ALT | Modifiers::SHIFT).to_string(), "alt-shift");
+    /// assert_eq!(Modifiers::NONE.to_string(), "");
+    /// ```
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let ctrl = ("ctrl", self.control);
         let alt = ("alt", self.alt);
@@ -123,10 +142,20 @@ impl Display for Modifiers {
     }
 }
 
-impl TryFrom<&str> for Modifiers {
-    type Error = KeystrokeParseError;
+impl FromStr for Modifiers {
+    type Err = KeystrokeParseError;
 
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
+    /// Parse from `&str`
+    ///
+    /// ```
+    /// # use graliffer::{Modifiers, KeystrokeParseError};
+    /// # use std::str::FromStr;
+    /// assert_eq!(Modifiers::from_str("ctrl")?, Modifiers::CONTROL);
+    /// assert_eq!(Modifiers::from_str("alt-shift")?, Modifiers::ALT | Modifiers::SHIFT);
+    /// assert_eq!(Modifiers::from_str("ctrl-alt-shift")?, Modifiers::ALL);
+    /// # Ok::<(), KeystrokeParseError>(())
+    /// ```
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
         let mut modifiers = Modifiers::NONE;
 
         let mut parts = value.split('-');
@@ -145,6 +174,10 @@ impl TryFrom<&str> for Modifiers {
         Ok(modifiers)
     }
 }
+
+// impl TryFrom<&str> for Modifiers {
+//     type Error = KeystrokeParseError;
+// }
 
 impl From<crossterm::event::KeyModifiers> for Modifiers {
     fn from(modifiers: crossterm::event::KeyModifiers) -> Self {
@@ -169,7 +202,7 @@ mod tests {
         assert_eq!(Modifiers::from(KeyModifiers::ALT), Modifiers::ALT);
         assert_eq!(Modifiers::from(KeyModifiers::SHIFT), Modifiers::SHIFT);
 
-        /// Fuck meta
+        // Casse toi meta
         assert_eq!(Modifiers::from(KeyModifiers::META), Modifiers::NONE);
     }
 
@@ -233,15 +266,25 @@ mod tests {
     }
 
     #[test]
-    fn parse() -> Result<(), KeystrokeParseError> {
-        assert_eq!(Modifiers::try_from("ctrl")?, Modifiers::CONTROL);
-        assert_eq!(Modifiers::try_from("alt")?, Modifiers::ALT);
-        assert_eq!(Modifiers::try_from("shift")?, Modifiers::SHIFT);
+    fn parse_display() -> Result<(), KeystrokeParseError> {
+        assert_eq!(
+            Modifiers::from_str(&Modifiers::ALL.to_string())?,
+            Modifiers::ALL
+        );
 
-        assert_eq!(Modifiers::try_from("ctrl-alt-shift")?, Modifiers::ALL);
+        Ok(())
+    }
+
+    #[test]
+    fn parse() -> Result<(), KeystrokeParseError> {
+        assert_eq!(Modifiers::from_str("ctrl")?, Modifiers::CONTROL);
+        assert_eq!(Modifiers::from_str("alt")?, Modifiers::ALT);
+        assert_eq!(Modifiers::from_str("shift")?, Modifiers::SHIFT);
+
+        assert_eq!(Modifiers::from_str("ctrl-alt-shift")?, Modifiers::ALL);
 
         assert_eq!(
-            Modifiers::try_from("ctrl-shift")?,
+            Modifiers::from_str("ctrl-shift")?,
             Modifiers::CONTROL | Modifiers::SHIFT
         );
 
@@ -250,10 +293,10 @@ mod tests {
 
     #[test]
     fn parse_order() -> Result<(), KeystrokeParseError> {
-        assert_eq!(Modifiers::try_from("shift-alt-ctrl")?, Modifiers::ALL);
+        assert_eq!(Modifiers::from_str("shift-alt-ctrl")?, Modifiers::ALL);
         assert_eq!(
-            Modifiers::try_from("alt-ctrl")?,
-            Modifiers::try_from("ctrl-alt")?
+            Modifiers::from_str("alt-ctrl")?,
+            Modifiers::from_str("ctrl-alt")?
         );
         Ok(())
     }
@@ -261,18 +304,18 @@ mod tests {
     #[test]
     fn parse_dashes() -> Result<(), KeystrokeParseError> {
         assert_eq!(
-            Modifiers::try_from("ctrl--alt")?,
+            Modifiers::from_str("ctrl--alt")?,
             Modifiers::CONTROL | Modifiers::ALT
         );
-        assert_eq!(Modifiers::try_from("-")?, Modifiers::NONE);
+        assert_eq!(Modifiers::from_str("-")?, Modifiers::NONE);
         Ok(())
     }
 
     #[test]
     fn parse_duplicate() -> Result<(), KeystrokeParseError> {
-        assert_eq!(Modifiers::try_from("ctrl-ctrl")?, Modifiers::CONTROL);
+        assert_eq!(Modifiers::from_str("ctrl-ctrl")?, Modifiers::CONTROL);
         assert_eq!(
-            Modifiers::try_from("ctrl-alt-ctrl")?,
+            Modifiers::from_str("ctrl-alt-ctrl")?,
             Modifiers::CONTROL | Modifiers::ALT
         );
         Ok(())
@@ -281,7 +324,7 @@ mod tests {
     #[test]
     fn parse_invalid() -> Result<(), KeystrokeParseError> {
         assert_eq!(
-            Modifiers::try_from("oops"),
+            Modifiers::from_str("oops"),
             Err(KeystrokeParseError::InvalidModifiers("oops".to_string()))
         );
         Ok(())
@@ -289,13 +332,13 @@ mod tests {
 
     #[test]
     fn parse_empty() -> Result<(), KeystrokeParseError> {
-        assert_eq!(Modifiers::try_from("")?, Modifiers::NONE);
+        assert_eq!(Modifiers::from_str("")?, Modifiers::NONE);
         assert_eq!(
-            Modifiers::try_from(" "),
+            Modifiers::from_str(" "),
             Err(KeystrokeParseError::InvalidModifiers(" ".to_string()))
         );
         assert_eq!(
-            Modifiers::try_from("ctrl- -alt"),
+            Modifiers::from_str("ctrl- -alt"),
             Err(KeystrokeParseError::InvalidModifiers(" ".to_string()))
         );
         Ok(())

@@ -38,7 +38,7 @@ impl TryFrom<&str> for Keystroke {
     fn try_from(source: &str) -> Result<Self, Self::Error> {
         if let Some((modifiers, key)) = source.rsplit_once("-") {
             Ok(Self {
-                modifiers: modifiers.try_into()?,
+                modifiers: modifiers.parse()?,
                 key: key.try_into()?,
             })
         } else {
