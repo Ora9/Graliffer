@@ -61,8 +61,8 @@ impl Keymap {
     pub fn new() -> Self {
         let mut map = Self::default();
 
-        let grid_insert = KeyContextPredicate::parse("Grid insert &&").unwrap();
-        let grid_command = KeyContextPredicate::parse("Grid command &&").unwrap();
+        let grid_insert = "Grid insert &&".parse().unwrap();
+        let grid_command = "Grid command &&".parse().unwrap();
 
         map.insert(
             &grid_insert,
@@ -92,7 +92,7 @@ impl Keymap {
             KeymapEntry::new(Keystroke::from_str("i").unwrap(), AppAction::InsertMode),
         );
 
-        let popup = KeyContextPredicate::parse("focusing_popup").unwrap();
+        let popup = "focusing_popup".parse().unwrap();
 
         map.insert(
             &popup,

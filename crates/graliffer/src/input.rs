@@ -14,6 +14,9 @@ use crate::{Context, app::AppState};
 mod key_context;
 pub use key_context::*;
 
+mod key_context_predicate;
+pub use key_context_predicate::*;
+
 mod keystroke;
 pub use keystroke::*;
 
