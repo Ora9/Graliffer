@@ -100,15 +100,15 @@ impl PartialEq for KeyContextPredicate {
 #[derive(Debug, thiserror::Error)]
 pub enum KeyContextPredicateParseError {
     #[error(
-        "not enough operands for `{operation}` ({operation:#}) operation in `{predicate}`, expected {}, found 0", operation.arity()
+        "missing operand for `{operation}` ({operation:#}) operation in `{source}`, expected {}", operation.arity()
     )]
-    NotEnoughOperand {
-        predicate: String,
+    MissingOperand {
+        r#source: String,
         operation: KeyContextPredicateOperation,
     },
 
-    #[error("too much operands, not enough operations in `{predicate}`")]
-    TooMuchOperandNotEnoughOperations { predicate: String },
+    #[error("Missing operation in `{source}`, the predicate stack did not folded completely")]
+    MissingOperation { r#source: String },
 }
 
 impl FromStr for KeyContextPredicate {
@@ -120,9 +120,9 @@ impl FromStr for KeyContextPredicate {
         let pop = |operation, stack: &mut Vec<KeyContextPredicate>| {
             stack
                 .pop()
-                .ok_or(KeyContextPredicateParseError::NotEnoughOperand {
+                .ok_or(KeyContextPredicateParseError::MissingOperand {
                     operation: operation,
-                    predicate: source.to_string(),
+                    source: source.to_string(),
                 })
                 .and_then(|flag| Ok(Box::new(flag)))
         };
@@ -167,11 +167,9 @@ impl FromStr for KeyContextPredicate {
         match (stack.next(), stack.next()) {
             (None, None) => Ok(Self::None),
             (Some(predicate), None) => Ok(predicate),
-            _ => Err(
-                KeyContextPredicateParseError::TooMuchOperandNotEnoughOperations {
-                    predicate: source.to_string(),
-                },
-            ),
+            _ => Err(KeyContextPredicateParseError::MissingOperation {
+                source: source.to_string(),
+            }),
         }
     }
 }
