@@ -1,8 +1,8 @@
-use std::{fmt::Display, str::FromStr};
+use std::{fmt::Display, ops::Deref, str::FromStr};
 
 use crate::KeyContextFlag;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Eq, Hash)]
 pub enum KeyContextPredicate {
     None,
     Flag(KeyContextFlag),
@@ -20,6 +20,15 @@ impl KeyContextPredicate {
             Self::Or(_, _) => Some(KeyContextPredicateOperation::Or),
             Self::Xor(_, _) => Some(KeyContextPredicateOperation::Xor),
             KeyContextPredicate::Not(_) => Some(KeyContextPredicateOperation::Not),
+        }
+    }
+
+    fn operands(&self) -> Option<(&KeyContextPredicate, &KeyContextPredicate)> {
+        match self {
+            Self::Flag(_) | Self::Not(_) | Self::None => None,
+            Self::And(lhs, rhs) | Self::Or(lhs, rhs) | Self::Xor(lhs, rhs) => {
+                Some((lhs.deref(), rhs.deref()))
+            }
         }
     }
 
@@ -71,6 +80,23 @@ impl Display for KeyContextPredicate {
     }
 }
 
+impl PartialEq for KeyContextPredicate {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Flag(lhs), Self::Flag(rhs)) => lhs == rhs,
+            (Self::None, Self::None) => true,
+            (Self::Not(lhs), Self::Not(rhs)) => lhs == rhs,
+            (Self::And(l1, l2), Self::And(r1, r2))
+            | (Self::Or(l1, l2), Self::Or(r1, r2))
+            | (Self::Xor(l1, l2), Self::Xor(r1, r2)) => {
+                // assure symmetry And(a, b) == And(b, a)
+                (l1 == r1) && (l2 == r2) || (l1 == r2) && (l2 == r1)
+            }
+            _ => false,
+        }
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum KeyContextPredicateParseError {
     #[error(
@@ -89,59 +115,63 @@ impl FromStr for KeyContextPredicate {
     type Err = KeyContextPredicateParseError;
 
     fn from_str(source: &str) -> Result<Self, Self::Err> {
-        let mut predicate: Vec<KeyContextPredicate> = Vec::new();
+        let mut stack: Vec<KeyContextPredicate> = Vec::new();
 
-        let pop = |operation: KeyContextPredicateOperation,
-                   stack: &mut Vec<KeyContextPredicate>| {
-            match stack.pop() {
-                None => Err(KeyContextPredicateParseError::NotEnoughOperand {
+        let pop = |operation, stack: &mut Vec<KeyContextPredicate>| {
+            stack
+                .pop()
+                .ok_or(KeyContextPredicateParseError::NotEnoughOperand {
                     operation: operation,
                     predicate: source.to_string(),
-                }),
-                Some(flag) => Ok(Box::new(flag)),
+                })
+                .and_then(|flag| Ok(Box::new(flag)))
+        };
+
+        let operate = |operation, stack: &mut Vec<KeyContextPredicate>| {
+            use KeyContextPredicateOperation::*;
+            match operation {
+                Not => {
+                    let operand = pop(operation, stack)?;
+
+                    stack.push(KeyContextPredicate::Not(operand));
+                }
+                And | Or | Xor => {
+                    let rhs = pop(operation, stack)?;
+                    let lhs = pop(operation, stack)?;
+
+                    match operation {
+                        And => stack.push(KeyContextPredicate::And(lhs, rhs)),
+                        Or => stack.push(KeyContextPredicate::Or(lhs, rhs)),
+                        Xor => stack.push(KeyContextPredicate::Xor(lhs, rhs)),
+                        _ => unreachable!(),
+                    };
+                }
             }
+            Ok(())
         };
 
         let parts = source.split_whitespace();
         for part in parts {
-            let to_push = if let Some(operation) = KeyContextPredicateOperation::from_str(part) {
-                use KeyContextPredicateOperation::*;
-                match operation {
-                    Not => {
-                        let operand = pop(operation, &mut predicate)?;
-
-                        KeyContextPredicate::Not(operand)
-                    }
-                    And | Or | Xor => {
-                        let lhs = pop(operation, &mut predicate)?;
-                        let rhs = pop(operation, &mut predicate)?;
-
-                        match operation {
-                            And => KeyContextPredicate::And(lhs, rhs),
-                            Or => KeyContextPredicate::Or(lhs, rhs),
-                            Xor => KeyContextPredicate::Xor(lhs, rhs),
-                            _ => unreachable!(),
-                        }
-                    }
-                }
+            if let Some(operation) = KeyContextPredicateOperation::from_str(part) {
+                operate(operation, &mut stack)?;
+            } else if part.trim().is_empty() {
+                // Whitespace or empty string are ignored
+                continue;
             } else {
-                KeyContextPredicate::Flag(part.into())
+                stack.push(KeyContextPredicate::from_flag(part));
             };
-
-            predicate.push(to_push);
         }
 
-        if predicate.len() > 1 {
-            Err(
+        let mut stack = stack.into_iter();
+
+        match (stack.next(), stack.next()) {
+            (None, None) => Ok(Self::None),
+            (Some(predicate), None) => Ok(predicate),
+            _ => Err(
                 KeyContextPredicateParseError::TooMuchOperandNotEnoughOperations {
                     predicate: source.to_string(),
                 },
-            )
-        } else {
-            match predicate.pop() {
-                None => Ok(Self::None),
-                Some(predicate) => Ok(predicate),
-            }
+            ),
         }
     }
 }
@@ -209,11 +239,149 @@ mod tests {
 
     #[test]
     fn display() {
-        let a = KeyContextPredicate::from_flag("someflag")
-            .not()
-            .and(KeyContextPredicate::from_flag("otherflag"))
-            .and(KeyContextPredicate::from_flag("lastflag").not());
+        assert_eq!(
+            KeyContextPredicate::from_flag("A")
+                .and(KeyContextPredicate::from_flag("B"))
+                .to_string(),
+            "A B &&"
+        );
 
-        assert_eq!(a.to_string(), "someflag ! otherflag && lastflag ! &&");
+        assert_eq!(
+            KeyContextPredicate::from_flag("A")
+                .and(KeyContextPredicate::from_flag("B").not())
+                .and(KeyContextPredicate::from_flag("C"))
+                .to_string(),
+            "A B ! && C &&"
+        );
+    }
+
+    // fn parse(s: &str) -> KeyContextPredicate {
+    //     KeyContextPredicate::from_str(s).unwrap()
+    // }
+
+    #[test]
+    fn parse_flag() -> Result<(), KeyContextPredicateParseError> {
+        assert_eq!(
+            KeyContextPredicate::from_str("insert")?,
+            KeyContextPredicate::Flag(KeyContextFlag::from("insert"))
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_and() -> Result<(), KeyContextPredicateParseError> {
+        assert_eq!(
+            KeyContextPredicate::from_str("A B &&")?,
+            KeyContextPredicate::from_flag("A").and(KeyContextPredicate::from_flag("B"))
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_or() -> Result<(), KeyContextPredicateParseError> {
+        assert_eq!(
+            KeyContextPredicate::from_str("A B ||")?,
+            KeyContextPredicate::from_flag("A").or(KeyContextPredicate::from_flag("B"))
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_xor() -> Result<(), KeyContextPredicateParseError> {
+        assert_eq!(
+            KeyContextPredicate::from_str("A B ^^")?,
+            KeyContextPredicate::from_flag("A").xor(KeyContextPredicate::from_flag("B"))
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_not() -> Result<(), KeyContextPredicateParseError> {
+        assert_eq!(
+            KeyContextPredicate::from_str("A !")?,
+            KeyContextPredicate::from_flag("A").not()
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_empty() -> Result<(), KeyContextPredicateParseError> {
+        assert_eq!(
+            KeyContextPredicate::from_str("")?,
+            KeyContextPredicate::None
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_ignore_excess_whitespace() -> Result<(), KeyContextPredicateParseError> {
+        assert_eq!(
+            KeyContextPredicate::from_str("A  B &&")?,
+            KeyContextPredicate::from_str("A B &&")?
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn eq() -> Result<(), KeyContextPredicateParseError> {
+        assert_eq!(
+            KeyContextPredicate::from_str("A B &&")?,
+            KeyContextPredicate::from_str("A B &&")?,
+        );
+
+        assert_eq!(
+            KeyContextPredicate::from_str("A B &&")?,
+            KeyContextPredicate::from_str("B A &&")?,
+        );
+
+        assert_eq!(
+            KeyContextPredicate::from_str("A B C && &&")?,
+            KeyContextPredicate::from_str("B C && A &&")?,
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_lot() -> Result<(), KeyContextPredicateParseError> {
+        assert_eq!(
+            KeyContextPredicate::from_str("we are going to the beach today && && && && && &&")?,
+            KeyContextPredicate::from_flag("we").and(
+                KeyContextPredicate::from_flag("are").and(
+                    KeyContextPredicate::from_flag("going").and(
+                        KeyContextPredicate::from_flag("to").and(
+                            KeyContextPredicate::from_flag("the").and(
+                                KeyContextPredicate::from_flag("beach")
+                                    .and(KeyContextPredicate::from_flag("today"))
+                            )
+                        )
+                    )
+                )
+            )
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_display_roundtrip() -> Result<(), KeyContextPredicateParseError> {
+        let a = "just watch && the ! || sky ||";
+
+        assert_eq!(KeyContextPredicate::from_str(a)?.to_string(), a);
+
+        assert_eq!(
+            KeyContextPredicate::from_str(&KeyContextPredicate::from_str(a)?.to_string())?
+                .to_string(),
+            a
+        );
+
+        Ok(())
     }
 }
