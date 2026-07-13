@@ -3,8 +3,6 @@ use std::{
     str::FromStr,
 };
 
-use crate::KeystrokeParseError;
-
 /// Key modifiers for keystrokes
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Modifiers {
@@ -142,8 +140,38 @@ impl Display for Modifiers {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum UnexpectedDashPlacement {
+    Leading,
+    Trailing,
+    Double,
+}
+
+impl Display for UnexpectedDashPlacement {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Leading => f.write_str("leading"),
+            Self::Trailing => f.write_str("trailing"),
+            Self::Double => f.write_str("double"),
+        }
+    }
+}
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum ModifiersParseError {
+    #[error("invalid modifier, got `{got}`")]
+    InvalidModifier { got: String },
+
+    #[error(
+        "unexpected {dash_placement} dash (`-`), expected only one dash seperating every modifier"
+    )]
+    UnexpectedDash {
+        dash_placement: UnexpectedDashPlacement,
+    },
+}
+
 impl FromStr for Modifiers {
-    type Err = KeystrokeParseError;
+    type Err = ModifiersParseError;
 
     /// Parse from `&str`
     ///
@@ -158,15 +186,39 @@ impl FromStr for Modifiers {
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         let mut modifiers = Modifiers::NONE;
 
-        let mut parts = value.split('-');
-        while let Some(part) = parts.next() {
+        let mut parts = value.split('-').enumerate().peekable();
+
+        while let Some((i, part)) = parts.next() {
             match part.to_ascii_lowercase().as_str() {
                 "ctrl" => modifiers.control = true,
                 "alt" => modifiers.alt = true,
                 "shift" => modifiers.shift = true,
-                "" => {}
+                "" if value.len() == 0 => {
+                    /// empty source ""
+                    return Ok(Modifiers::NONE);
+                }
+                "" if i == 0 => {
+                    // leading dash "-.."
+                    return Err(ModifiersParseError::UnexpectedDash {
+                        dash_placement: UnexpectedDashPlacement::Leading,
+                    });
+                }
+                "" if parts.peek().is_none() => {
+                    // trailing dash "..-"
+                    return Err(ModifiersParseError::UnexpectedDash {
+                        dash_placement: UnexpectedDashPlacement::Trailing,
+                    });
+                }
+                "" => {
+                    // double dash "..--.."
+                    return Err(ModifiersParseError::UnexpectedDash {
+                        dash_placement: UnexpectedDashPlacement::Double,
+                    });
+                }
                 _ => {
-                    return Err(KeystrokeParseError::InvalidModifiers(String::from(part)));
+                    return Err(ModifiersParseError::InvalidModifier {
+                        got: part.to_string(),
+                    });
                 }
             }
         }
@@ -256,7 +308,7 @@ mod tests {
     }
 
     #[test]
-    fn display_order() -> Result<(), KeystrokeParseError> {
+    fn display_order() -> Result<(), ModifiersParseError> {
         assert_eq!(Modifiers::ALL.to_string(), "ctrl-alt-shift");
         assert_eq!(
             (Modifiers::CONTROL | Modifiers::SHIFT).to_string(),
@@ -266,7 +318,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_display() -> Result<(), KeystrokeParseError> {
+    fn parse_display() -> Result<(), ModifiersParseError> {
         assert_eq!(
             Modifiers::from_str(&Modifiers::ALL.to_string())?,
             Modifiers::ALL
@@ -276,7 +328,7 @@ mod tests {
     }
 
     #[test]
-    fn parse() -> Result<(), KeystrokeParseError> {
+    fn parse() -> Result<(), ModifiersParseError> {
         assert_eq!(Modifiers::from_str("ctrl")?, Modifiers::CONTROL);
         assert_eq!(Modifiers::from_str("alt")?, Modifiers::ALT);
         assert_eq!(Modifiers::from_str("shift")?, Modifiers::SHIFT);
@@ -292,7 +344,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_order() -> Result<(), KeystrokeParseError> {
+    fn parse_order() -> Result<(), ModifiersParseError> {
         assert_eq!(Modifiers::from_str("shift-alt-ctrl")?, Modifiers::ALL);
         assert_eq!(
             Modifiers::from_str("alt-ctrl")?,
@@ -302,7 +354,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_ignore_case() -> Result<(), KeystrokeParseError> {
+    fn parse_ignore_case() -> Result<(), ModifiersParseError> {
         assert_eq!(
             Modifiers::from_str("ctrl-alt")?,
             Modifiers::from_str("AlT-CtRl")?
@@ -311,19 +363,60 @@ mod tests {
     }
 
     #[test]
-    fn parse_ignore_dashes() -> Result<(), KeystrokeParseError> {
+    fn parse_double_dashes_error() -> Result<(), ModifiersParseError> {
         assert_eq!(
-            Modifiers::from_str("ctrl--alt")?,
-            Modifiers::CONTROL | Modifiers::ALT
+            Modifiers::from_str("ctrl--alt"),
+            Err(ModifiersParseError::UnexpectedDash {
+                dash_placement: UnexpectedDashPlacement::Double
+            })
         );
-        assert_eq!(Modifiers::from_str("shift-")?, Modifiers::SHIFT);
-        assert_eq!(Modifiers::from_str("-")?, Modifiers::NONE);
-        assert_eq!(Modifiers::from_str("----")?, Modifiers::NONE);
         Ok(())
     }
 
     #[test]
-    fn parse_duplicate() -> Result<(), KeystrokeParseError> {
+    fn parse_trailing_dashes_error() -> Result<(), ModifiersParseError> {
+        assert_eq!(
+            Modifiers::from_str("shift-"),
+            Err(ModifiersParseError::UnexpectedDash {
+                dash_placement: UnexpectedDashPlacement::Trailing
+            })
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parse_leading_dashes_error() -> Result<(), ModifiersParseError> {
+        assert_eq!(
+            Modifiers::from_str("-shift-ctrl"),
+            Err(ModifiersParseError::UnexpectedDash {
+                dash_placement: UnexpectedDashPlacement::Leading
+            })
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_only_dashes_error() -> Result<(), ModifiersParseError> {
+        assert_eq!(
+            Modifiers::from_str("-"),
+            Err(ModifiersParseError::UnexpectedDash {
+                dash_placement: UnexpectedDashPlacement::Leading
+            })
+        );
+
+        assert_eq!(
+            Modifiers::from_str("------"),
+            Err(ModifiersParseError::UnexpectedDash {
+                dash_placement: UnexpectedDashPlacement::Leading
+            })
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_ignore_duplicate() -> Result<(), ModifiersParseError> {
         assert_eq!(Modifiers::from_str("ctrl-ctrl")?, Modifiers::CONTROL);
         assert_eq!(
             Modifiers::from_str("ctrl-alt-ctrl")?,
@@ -333,28 +426,41 @@ mod tests {
     }
 
     #[test]
-    fn parse_invalid_modifier_name() -> Result<(), KeystrokeParseError> {
+    fn parse_invalid_modifier_name() -> Result<(), ModifiersParseError> {
         assert_eq!(
             Modifiers::from_str("oops"),
-            Err(KeystrokeParseError::InvalidModifiers("oops".to_string()))
+            Err(ModifiersParseError::InvalidModifier {
+                got: "oops".to_string()
+            })
         );
         assert_eq!(
             Modifiers::from_str("control-alt-shift"),
-            Err(KeystrokeParseError::InvalidModifiers("control".to_string()))
-        );
-        assert_eq!(
-            Modifiers::from_str(" "),
-            Err(KeystrokeParseError::InvalidModifiers(" ".to_string()))
-        );
-        assert_eq!(
-            Modifiers::from_str("ctrl- -alt"),
-            Err(KeystrokeParseError::InvalidModifiers(" ".to_string()))
+            Err(ModifiersParseError::InvalidModifier {
+                got: "control".to_string()
+            })
         );
         Ok(())
     }
 
     #[test]
-    fn parse_empty() -> Result<(), KeystrokeParseError> {
+    fn parse_whitespace() -> Result<(), ModifiersParseError> {
+        assert_eq!(
+            Modifiers::from_str(" "),
+            Err(ModifiersParseError::InvalidModifier {
+                got: " ".to_string()
+            })
+        );
+        assert_eq!(
+            Modifiers::from_str("ctrl- -alt"),
+            Err(ModifiersParseError::InvalidModifier {
+                got: " ".to_string()
+            })
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parse_empty() -> Result<(), ModifiersParseError> {
         assert_eq!(Modifiers::from_str("")?, Modifiers::NONE);
         Ok(())
     }

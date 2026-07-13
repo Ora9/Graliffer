@@ -5,7 +5,7 @@ use std::{
 
 use crossterm::event;
 
-use crate::{KeystrokeParseError, Modifiers};
+use crate::Modifiers;
 
 /// Keyboard key of a keystroke
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -86,18 +86,27 @@ impl Display for Key {
     }
 }
 
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum KeyParseError {
+    #[error("expected a valid key, got an empty string")]
+    EmptyKey,
+
+    #[error("expected a valid key, got unknown key: `{got}`")]
+    UnknownKey { got: String },
+}
+
 impl FromStr for Key {
-    type Err = KeystrokeParseError;
+    type Err = KeyParseError;
 
     /// Parse from `&str`
     ///
     /// ```
-    /// # use graliffer::{Key, KeystrokeParseError};
+    /// # use graliffer::{Key, KeyParseError};
     /// # use std::str::FromStr;
     /// assert_eq!(Key::from_str("pageup")?, Key::PageUp);
     /// assert_eq!(Key::from_str("f9")?, Key::F9);
     /// assert_eq!(Key::from_str("ß")?, Key::Char('ß'));
-    /// # Ok::<(), KeystrokeParseError>(())
+    /// # Ok::<(), KeyParseError>(())
     /// ```
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         match value.to_ascii_lowercase().as_str() {
@@ -131,9 +140,11 @@ impl FromStr for Key {
             _ => {
                 let mut chars = value.chars();
                 match (chars.next(), chars.next()) {
-                    (None, _) => Err(KeystrokeParseError::EmptyKey),
+                    (None, _) => Err(KeyParseError::EmptyKey),
                     (Some(c), None) => Ok(Key::Char(c)),
-                    _ => Err(KeystrokeParseError::UnknownKey(value.to_string())),
+                    _ => Err(KeyParseError::UnknownKey {
+                        got: value.to_string(),
+                    }),
                 }
             }
         }
@@ -299,14 +310,16 @@ mod tests {
 
     #[test]
     fn parse_empty() {
-        assert_eq!(Key::from_str(""), Err(KeystrokeParseError::EmptyKey));
+        assert_eq!(Key::from_str(""), Err(KeyParseError::EmptyKey));
     }
 
     #[test]
     fn parse_invalid() {
         assert_eq!(
             Key::from_str("invalid"),
-            Err(KeystrokeParseError::UnknownKey(String::from("invalid")))
+            Err(KeyParseError::UnknownKey {
+                got: "invalid".to_string()
+            })
         );
     }
 

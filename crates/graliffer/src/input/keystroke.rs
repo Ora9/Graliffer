@@ -1,10 +1,14 @@
 use std::{
     error,
     fmt::{Display, Formatter},
+    str::FromStr,
 };
 
-use crate::{Key, KeyFromCrosstermError, Modifiers};
+use crate::{
+    Key, KeyFromCrosstermError, KeyParseError, Modifiers, ModifiersParseError, input::modifiers,
+};
 
+// A single keystroke, with a key press, and currently pressed modifiers
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Keystroke {
     pub modifiers: Modifiers,
@@ -12,6 +16,11 @@ pub struct Keystroke {
 }
 
 impl Keystroke {
+    pub fn new(key: Key, modifiers: Modifiers) -> Self {
+        Self { modifiers, key }
+    }
+
+    /// Get keystroke from key, with default modifiers (none pressed)
     pub fn from_key(key: Key) -> Self {
         Self {
             key,
@@ -22,29 +31,63 @@ impl Keystroke {
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum KeystrokeParseError {
-    #[error("invalid key, got empty string")]
-    EmptyKey,
+    #[error("error while parsing the modifiers part, expected valid keystroke, got `{got}`")]
+    ModifiersParseError {
+        got: String,
+        source_error: ModifiersParseError,
+    },
 
-    #[error("unknown key, got `{0}`")]
-    UnknownKey(String),
-
-    #[error("invalid modifier, got `{0}`")]
-    InvalidModifiers(String),
+    #[error("error while parsing the key part, expected valid keystroke, got `{got}`")]
+    KeyParseError {
+        got: String,
+        source_error: KeyParseError,
+    },
 }
 
-impl TryFrom<&str> for Keystroke {
-    type Error = KeystrokeParseError;
+impl FromStr for Keystroke {
+    type Err = KeystrokeParseError;
 
-    fn try_from(source: &str) -> Result<Self, Self::Error> {
-        if let Some((modifiers, key)) = source.rsplit_once("-") {
-            Ok(Self {
-                modifiers: modifiers.parse()?,
-                key: key.parse()?,
-            })
-        } else {
+    fn from_str(source: &str) -> Result<Self, Self::Err> {
+        let parse_modifiers = |modifiers: &str| {
+            modifiers
+                .parse()
+                .map_err(|err| KeystrokeParseError::ModifiersParseError {
+                    got: source.to_string(),
+                    source_error: err,
+                })
+        };
+
+        let parse_key = |key: &str| {
+            key.parse()
+                .map_err(|err| KeystrokeParseError::KeyParseError {
+                    got: source.to_string(),
+                    source_error: err,
+                })
+        };
+
+        if source.ends_with("-") && source.len() == 1 {
+            // Dash key "-"
             Ok(Self {
                 modifiers: Modifiers::NONE,
-                key: source.parse()?,
+                key: parse_key(source)?,
+            })
+        } else if source.ends_with("--") {
+            // Dash key with modifiers "..--"
+            Ok(Self {
+                modifiers: parse_modifiers(source.trim_end_matches("--"))?,
+                key: parse_key("-")?,
+            })
+        } else if let Some((modifiers, key)) = source.rsplit_once("-") {
+            // Key with modifiers "..-.."
+            Ok(Self {
+                modifiers: parse_modifiers(modifiers)?,
+                key: parse_key(key)?,
+            })
+        } else {
+            // Key without modifiers ".."
+            Ok(Self {
+                modifiers: Modifiers::NONE,
+                key: parse_key(source)?,
             })
         }
     }
@@ -87,6 +130,8 @@ impl Display for Keystroke {
 
 #[cfg(test)]
 mod tests {
+    use crate::{UnexpectedDashPlacement, input::keystroke};
+
     use super::*;
 
     #[test]
@@ -160,25 +205,60 @@ mod tests {
 
     #[test]
     fn parse_empty() -> Result<(), KeystrokeParseError> {
-        assert_eq!(Keystroke::from_str(""), Err(KeystrokeParseError::EmptyKey));
+        assert_eq!(
+            Keystroke::from_str(""),
+            Err(KeystrokeParseError::KeyParseError {
+                got: "".to_string(),
+                source_error: KeyParseError::EmptyKey
+            })
+        );
+
         assert_eq!(
             Keystroke::from_str("alt-"),
-            Err(KeystrokeParseError::EmptyKey)
+            Err(KeystrokeParseError::KeyParseError {
+                got: "alt-".to_string(),
+                source_error: KeyParseError::EmptyKey
+            })
         );
 
         Ok(())
     }
 
     #[test]
-    fn parse_multi_dashes() -> Result<(), KeystrokeParseError> {
+    fn parse_dash_as_key() -> Result<(), KeystrokeParseError> {
         assert_eq!(
-            Keystroke::from_str("alt--ctrl-a")?,
-            Keystroke::new(Key::Char('a'), Modifiers::ALT | Modifiers::CONTROL)
+            Keystroke::from_str("-")?,
+            Keystroke::new(Key::Char('-'), Modifiers::NONE),
         );
 
         assert_eq!(
-            Keystroke::from_str("alt-ctrl--a")?,
-            Keystroke::new(Key::Char('a'), Modifiers::ALT | Modifiers::CONTROL)
+            Keystroke::from_str("alt-shift--")?,
+            Keystroke::new(Key::Char('-'), Modifiers::ALT | Modifiers::SHIFT),
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_unexpected_dash_error() -> Result<(), KeystrokeParseError> {
+        assert_eq!(
+            Keystroke::from_str("alt--ctrl-a"),
+            Err(KeystrokeParseError::ModifiersParseError {
+                got: "alt--ctrl-a".to_string(),
+                source_error: ModifiersParseError::UnexpectedDash {
+                    dash_placement: UnexpectedDashPlacement::Double
+                }
+            })
+        );
+
+        assert_eq!(
+            Keystroke::from_str("alt-ctrl--a"),
+            Err(KeystrokeParseError::ModifiersParseError {
+                got: "alt-ctrl--a".to_string(),
+                source_error: ModifiersParseError::UnexpectedDash {
+                    dash_placement: UnexpectedDashPlacement::Trailing
+                }
+            })
         );
 
         Ok(())

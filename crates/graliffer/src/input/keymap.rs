@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     ops::{Deref, DerefMut},
+    str::FromStr,
 };
 
 use action::{Action, AnyAction};
@@ -65,30 +66,30 @@ impl Keymap {
 
         map.insert(
             &grid_insert,
-            KeymapEntry::new(Keystroke::try_from("up").unwrap(), GridAction::CursorUp),
+            KeymapEntry::new(Keystroke::from_str("up").unwrap(), GridAction::CursorUp),
         );
 
         map.insert(
             &grid_insert,
-            KeymapEntry::new(Keystroke::try_from("down").unwrap(), GridAction::CursorDown),
+            KeymapEntry::new(Keystroke::from_str("down").unwrap(), GridAction::CursorDown),
         );
 
         map.insert(
             &KeyContextPredicate::None,
-            KeymapEntry::new(Keystroke::try_from("q").unwrap(), AppAction::Quit),
+            KeymapEntry::new(Keystroke::from_str("q").unwrap(), AppAction::Quit),
         );
 
         map.insert(
             &grid_insert,
             KeymapEntry::new(
-                Keystroke::try_from("escape").unwrap(),
+                Keystroke::from_str("escape").unwrap(),
                 AppAction::CommandMode,
             ),
         );
 
         map.insert(
             &grid_command,
-            KeymapEntry::new(Keystroke::try_from("i").unwrap(), AppAction::InsertMode),
+            KeymapEntry::new(Keystroke::from_str("i").unwrap(), AppAction::InsertMode),
         );
 
         let popup = KeyContextPredicate::parse("focusing_popup").unwrap();
@@ -96,7 +97,7 @@ impl Keymap {
         map.insert(
             &popup,
             KeymapEntry::new(
-                Keystroke::try_from("escape").unwrap(),
+                Keystroke::from_str("escape").unwrap(),
                 AppAction::ClosePopup,
             ),
         );
@@ -104,7 +105,7 @@ impl Keymap {
         map.insert(
             &KeyContextPredicate::None,
             KeymapEntry::new(
-                Keystroke::try_from("ctrl-a").unwrap(),
+                Keystroke::from_str("ctrl-a").unwrap(),
                 AppAction::ToggleAbout,
             ),
         );
@@ -112,7 +113,7 @@ impl Keymap {
         map.insert(
             &KeyContextPredicate::None,
             KeymapEntry::new(
-                Keystroke::try_from("ctrl-p").unwrap(),
+                Keystroke::from_str("ctrl-p").unwrap(),
                 AppAction::ToggleCommandPicker,
             ),
         );
