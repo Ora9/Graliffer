@@ -90,5 +90,97 @@ mod tests {
     use super::*;
 
     #[test]
-    fn display() {}
+    fn from_key() {
+        assert_eq!(
+            Keystroke::from_key(Key::Char('a')),
+            Keystroke {
+                modifiers: Modifiers::NONE,
+                key: Key::Char('a')
+            }
+        );
+        assert!(Keystroke::from_key(Key::Up).modifiers.is_none());
+    }
+
+    #[test]
+    fn display() {
+        assert_eq!(Keystroke::from_key(Key::Escape).to_string(), "escape");
+        assert_eq!(Keystroke::from_key(Key::Char('a')).to_string(), "a");
+    }
+
+    #[test]
+    fn display_modifiers() {
+        assert_eq!(
+            Keystroke {
+                key: Key::Char('a'),
+                modifiers: Modifiers::CONTROL
+            }
+            .to_string(),
+            "ctrl-a"
+        );
+
+        assert_eq!(
+            Keystroke {
+                key: Key::Delete,
+                modifiers: Modifiers::ALL
+            }
+            .to_string(),
+            "ctrl-alt-shift-delete"
+        );
+    }
+
+    #[test]
+    fn parse() -> Result<(), KeystrokeParseError> {
+        assert_eq!(
+            Keystroke::from_str("enter")?,
+            Keystroke::from_key(Key::Enter)
+        );
+
+        assert_eq!(
+            Keystroke::from_str("s")?,
+            Keystroke::from_key(Key::Char('s'))
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_modifiers() -> Result<(), KeystrokeParseError> {
+        assert_eq!(
+            Keystroke::from_str("ctrl-pageup")?,
+            Keystroke::new(Key::PageUp, Modifiers::CONTROL),
+        );
+
+        assert_eq!(
+            Keystroke::from_str("alt-shift-a")?,
+            Keystroke::new(Key::Char('a'), Modifiers::ALT | Modifiers::SHIFT),
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_empty() -> Result<(), KeystrokeParseError> {
+        assert_eq!(Keystroke::from_str(""), Err(KeystrokeParseError::EmptyKey));
+        assert_eq!(
+            Keystroke::from_str("alt-"),
+            Err(KeystrokeParseError::EmptyKey)
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_multi_dashes() -> Result<(), KeystrokeParseError> {
+        assert_eq!(
+            Keystroke::from_str("alt--ctrl-a")?,
+            Keystroke::new(Key::Char('a'), Modifiers::ALT | Modifiers::CONTROL)
+        );
+
+        assert_eq!(
+            Keystroke::from_str("alt-ctrl--a")?,
+            Keystroke::new(Key::Char('a'), Modifiers::ALT | Modifiers::CONTROL)
+        );
+
+        Ok(())
+    }
 }
