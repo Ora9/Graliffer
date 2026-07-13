@@ -194,7 +194,7 @@ impl FromStr for Modifiers {
                 "alt" => modifiers.alt = true,
                 "shift" => modifiers.shift = true,
                 "" if value.len() == 0 => {
-                    /// empty source ""
+                    // empty source ""
                     return Ok(Modifiers::NONE);
                 }
                 "" if i == 0 => {

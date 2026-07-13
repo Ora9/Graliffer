@@ -3,10 +3,6 @@ use std::{
     str::FromStr,
 };
 
-use crossterm::event;
-
-use crate::Modifiers;
-
 /// Keyboard key of a keystroke
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Key {

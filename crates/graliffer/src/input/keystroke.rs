@@ -1,12 +1,9 @@
 use std::{
-    error,
     fmt::{Display, Formatter},
     str::FromStr,
 };
 
-use crate::{
-    Key, KeyFromCrosstermError, KeyParseError, Modifiers, ModifiersParseError, input::modifiers,
-};
+use crate::{Key, KeyFromCrosstermError, KeyParseError, Modifiers, ModifiersParseError};
 
 // A single keystroke, with a key press, and currently pressed modifiers
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -130,7 +127,7 @@ impl Display for Keystroke {
 
 #[cfg(test)]
 mod tests {
-    use crate::{UnexpectedDashPlacement, input::keystroke};
+    use crate::UnexpectedDashPlacement;
 
     use super::*;
 
