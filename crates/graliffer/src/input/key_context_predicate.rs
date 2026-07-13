@@ -12,6 +12,65 @@ pub enum KeyContextPredicate {
     Not(Box<KeyContextPredicate>),
 }
 
+impl KeyContextPredicate {
+    fn operation(&self) -> Option<KeyContextPredicateOperation> {
+        match self {
+            Self::Flag(_) | Self::None => None,
+            Self::And(_, _) => Some(KeyContextPredicateOperation::And),
+            Self::Or(_, _) => Some(KeyContextPredicateOperation::Or),
+            Self::Xor(_, _) => Some(KeyContextPredicateOperation::Xor),
+            KeyContextPredicate::Not(_) => Some(KeyContextPredicateOperation::Not),
+        }
+    }
+
+    // fn lhs(&self) -> KeyContextPredicate {
+    //     // use KeyContextPredicate::*;
+    //     // match self {
+    //     //     Self::Flag(_) =>
+    //     // }
+    // }
+    pub fn from_flag(flag: impl Into<KeyContextFlag>) -> Self {
+        Self::Flag(flag.into())
+    }
+
+    pub fn and(self, other: KeyContextPredicate) -> Self {
+        Self::And(Box::new(self), Box::new(other))
+    }
+
+    pub fn or(self, other: KeyContextPredicate) -> Self {
+        Self::Or(Box::new(self), Box::new(other))
+    }
+
+    pub fn xor(self, other: KeyContextPredicate) -> Self {
+        Self::Xor(Box::new(self), Box::new(other))
+    }
+
+    pub fn not(self) -> Self {
+        Self::Not(Box::new(self))
+    }
+}
+
+impl Display for KeyContextPredicate {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::None => {
+                write!(f, "")
+            }
+            Self::Flag(flag) => {
+                write!(f, "{flag}")
+            }
+            Self::And(lhs, rhs) | Self::Or(lhs, rhs) | Self::Xor(lhs, rhs) => {
+                // SAFETY : these operations have a valid operation representation (`&&`, `||`, `^^`)
+                write!(f, "{lhs} {rhs} {:#}", self.operation().unwrap())
+            }
+            Self::Not(predicate) => {
+                // SAFETY : not have a valid operation representation (`!`)
+                write!(f, "{predicate} {:#}", self.operation().unwrap())
+            }
+        }
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum KeyContextPredicateParseError {
     #[error(
@@ -141,5 +200,20 @@ impl Display for KeyContextPredicateOperation {
         } else {
             f.write_str(&self.name())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn display() {
+        let a = KeyContextPredicate::from_flag("someflag")
+            .not()
+            .and(KeyContextPredicate::from_flag("otherflag"))
+            .and(KeyContextPredicate::from_flag("lastflag").not());
+
+        assert_eq!(a.to_string(), "someflag ! otherflag && lastflag ! &&");
     }
 }
