@@ -61,27 +61,27 @@ impl Context {
         self.insert_flag_with_key(KeyContextFlagKey::Focus, focus_id.to_string());
     }
 
-    pub fn insert_flag(&mut self, flag: KeyContextFlag) {
-        self.0.get_mut().key_context.insert(flag);
+    pub fn insert_flag(&mut self, flag: impl Into<KeyContextFlag>) {
+        self.0.get_mut().key_context.insert(flag.into());
     }
 
-    pub fn remove_flag(&mut self, flag: &KeyContextFlag) {
-        self.0.get_mut().key_context.remove(&flag);
+    pub fn remove_flag(&mut self, flag: impl Into<KeyContextFlag>) {
+        self.0.get_mut().key_context.remove(&flag.into());
     }
 
-    pub fn has_flag(&self, flag: &KeyContextFlag) -> bool {
-        self.0.borrow().key_context.has(flag)
+    pub fn has_flag(&self, flag: impl Into<KeyContextFlag>) -> bool {
+        self.0.borrow().key_context.has(&flag.into())
     }
 
     pub fn insert_flag_with_key(
         &mut self,
         key: impl Into<KeyContextFlagKey>,
-        flag: KeyContextFlag,
+        flag: impl Into<KeyContextFlag>,
     ) {
         self.0
             .get_mut()
             .key_context
-            .insert_with_key(key.into(), flag);
+            .insert_with_key(key.into(), flag.into());
     }
 
     pub fn remove_flag_with_key(&mut self, key: impl Into<KeyContextFlagKey>) {
@@ -91,9 +91,12 @@ impl Context {
     pub fn has_flag_with_key(
         &self,
         key: impl Into<KeyContextFlagKey>,
-        flag: &KeyContextFlag,
+        flag: impl Into<KeyContextFlag>,
     ) -> bool {
-        self.0.borrow().key_context.has_with_key(&key.into(), flag)
+        self.0
+            .borrow()
+            .key_context
+            .has_with_key(&key.into(), &flag.into())
     }
 
     pub fn matches_key_context(&self, predicate: &KeyContextPredicate) -> bool {

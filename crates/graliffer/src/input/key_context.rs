@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    fmt::Display,
     hash::{DefaultHasher, Hash, Hasher},
     num::Wrapping,
 };
@@ -48,7 +49,43 @@ impl Default for KeyContextFlagKey {
     }
 }
 
-pub type KeyContextFlag = String;
+// pub type KeyContextFlag = String;
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct KeyContextFlag(String);
+
+impl From<&str> for KeyContextFlag {
+    /// Get Self from a `&str`
+    ///
+    /// # Validity
+    /// There are some "invalid" inputs, some examples :
+    /// - "&&", "!" .. (predicate operators)
+    /// - "", " " (whitespace or empty)
+    ///
+    /// But it would be annoying to validate it with `TryFrom`, so idk just avoid using these string..
+    fn from(value: &str) -> Self {
+        KeyContextFlag(value.to_string())
+    }
+}
+
+impl From<String> for KeyContextFlag {
+    /// Get Self from a `&str`
+    ///
+    /// # Validity
+    /// There are some "invalid" inputs, some examples :
+    /// - "&&", "!" .. (predicate operators)
+    /// - "", " " (whitespace or empty)
+    ///
+    /// But it would be annoying to validate it with `TryFrom`, so idk just avoid using these string..
+    fn from(value: String) -> Self {
+        KeyContextFlag(value)
+    }
+}
+
+impl Display for KeyContextFlag {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct KeyContext(HashMap<KeyContextFlagKey, KeyContextFlag>);

@@ -140,7 +140,7 @@ impl AppState {
             self.set_focus(last_focus);
         }
 
-        self.context.remove_flag(&"focusing_popup".to_string());
+        self.context.remove_flag("focusing_popup");
     }
 
     pub fn open_popup(&mut self, popup_id: PopupId) {
