@@ -2,8 +2,9 @@ use std::{fmt::Display, ops::Deref, str::FromStr};
 
 use crate::KeyContextFlag;
 
-#[derive(Debug, Clone, Eq, Hash)]
+#[derive(Debug, Default, Clone, Eq, Hash)]
 pub enum KeyContextPredicate {
+    #[default]
     None,
     Flag(KeyContextFlag),
     And(Box<KeyContextPredicate>, Box<KeyContextPredicate>),
