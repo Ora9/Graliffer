@@ -97,7 +97,7 @@ impl PartialEq for KeyContextPredicate {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum KeyContextPredicateParseError {
     #[error(
         "missing operand for `{operation}` ({operation:#}) operation in `{source}`, expected {}", operation.arity()
@@ -174,7 +174,7 @@ impl FromStr for KeyContextPredicate {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KeyContextPredicateOperation {
     And,
     Or,
@@ -260,8 +260,8 @@ mod tests {
     #[test]
     fn parse_flag() -> Result<(), KeyContextPredicateParseError> {
         assert_eq!(
-            KeyContextPredicate::from_str("insert")?,
-            KeyContextPredicate::Flag(KeyContextFlag::from("insert"))
+            KeyContextPredicate::from_str("A")?,
+            KeyContextPredicate::Flag(KeyContextFlag::from("A"))
         );
 
         Ok(())
@@ -320,7 +320,12 @@ mod tests {
     #[test]
     fn parse_ignore_excess_whitespace() -> Result<(), KeyContextPredicateParseError> {
         assert_eq!(
-            KeyContextPredicate::from_str("A  B &&")?,
+            KeyContextPredicate::from_str("A   B &&")?,
+            KeyContextPredicate::from_str("A B &&")?
+        );
+
+        assert_eq!(
+            KeyContextPredicate::from_str("  A  B  &&  ")?,
             KeyContextPredicate::from_str("A B &&")?
         );
 
@@ -328,17 +333,51 @@ mod tests {
     }
 
     #[test]
-    fn eq() -> Result<(), KeyContextPredicateParseError> {
+    fn parse_missing_operand_error() {
         assert_eq!(
-            KeyContextPredicate::from_str("A B &&")?,
-            KeyContextPredicate::from_str("A B &&")?,
+            KeyContextPredicate::from_str("A &&"),
+            Err(KeyContextPredicateParseError::MissingOperand {
+                source: "A &&".to_string(),
+                operation: KeyContextPredicateOperation::And
+            })
         );
 
         assert_eq!(
-            KeyContextPredicate::from_str("A B &&")?,
-            KeyContextPredicate::from_str("B A &&")?,
+            KeyContextPredicate::from_str("!"),
+            Err(KeyContextPredicateParseError::MissingOperand {
+                source: "!".to_string(),
+                operation: KeyContextPredicateOperation::Not
+            })
         );
 
+        assert_eq!(
+            KeyContextPredicate::from_str("A B ^^ ||"),
+            Err(KeyContextPredicateParseError::MissingOperand {
+                source: "A B ^^ ||".to_string(),
+                operation: KeyContextPredicateOperation::Or
+            })
+        );
+    }
+
+    #[test]
+    fn parse_missing_operation_error() {
+        assert_eq!(
+            KeyContextPredicate::from_str("A A"),
+            Err(KeyContextPredicateParseError::MissingOperation {
+                source: "A A".to_string()
+            })
+        );
+
+        assert_eq!(
+            KeyContextPredicate::from_str("A A !"),
+            Err(KeyContextPredicateParseError::MissingOperation {
+                source: "A A !".to_string()
+            })
+        );
+    }
+
+    #[test]
+    fn parse_order() -> Result<(), KeyContextPredicateParseError> {
         assert_eq!(
             KeyContextPredicate::from_str("A B C && &&")?,
             KeyContextPredicate::from_str("B C && A &&")?,
@@ -380,6 +419,24 @@ mod tests {
             a
         );
 
+        Ok(())
+    }
+
+    #[test]
+    fn eq() -> Result<(), KeyContextPredicateParseError> {
+        assert_eq!(
+            KeyContextPredicate::from_str("A B &&")?,
+            KeyContextPredicate::from_str("A B &&")?,
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn eq_symmetry() -> Result<(), KeyContextPredicateParseError> {
+        assert_eq!(
+            KeyContextPredicate::from_str("A B &&")?,
+            KeyContextPredicate::from_str("B A &&")?,
+        );
         Ok(())
     }
 }
