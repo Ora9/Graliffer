@@ -1,8 +1,11 @@
 use std::{fmt::Display, ops::Deref, str::FromStr};
 
+use serde::{Deserialize, Serialize};
+
 use crate::KeyContextFlag;
 
-#[derive(Debug, Default, Clone, Eq, Hash)]
+#[derive(Debug, Default, Clone, Eq, Hash, Serialize, Deserialize)]
+#[serde(try_from = "String")]
 pub enum KeyContextPredicate {
     #[default]
     None,
@@ -172,6 +175,14 @@ impl FromStr for KeyContextPredicate {
                 source: source.to_string(),
             }),
         }
+    }
+}
+
+impl TryFrom<String> for KeyContextPredicate {
+    type Error = KeyContextPredicateParseError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        value.parse()
     }
 }
 

@@ -11,6 +11,7 @@ use ratatui::{
     symbols::merge::MergeStrategy,
     widgets::{Block, Paragraph, StatefulWidget, Widget},
 };
+use serde::{Deserialize, Serialize};
 use tui_input::Input;
 
 use crate::Context;
@@ -281,7 +282,11 @@ fn buffer_merge_areas(
     }
 }
 
-#[derive(Debug, Clone, strum::EnumString)]
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[error("grid action error")]
+pub struct GridActionError;
+
+#[derive(Debug, Clone, strum::EnumString, Serialize, Deserialize)]
 pub enum GridAction {
     CursorUp,
     CursorDown,
@@ -293,7 +298,7 @@ impl Action for GridAction {}
 
 impl State for GridState {
     type Action = GridAction;
-    type Error = eyre::Error;
+    type Error = GridActionError;
 
     fn act(&mut self, action: &Self::Action) -> Result<Revert, Self::Error> {
         use GridAction::*;

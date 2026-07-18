@@ -8,6 +8,7 @@ use ratatui::{
     widgets::{Paragraph, StatefulWidget, Widget},
 };
 
+use serde::{Deserialize, Serialize};
 use tui_scrollbar::{
     GlyphSet, ScrollBar, ScrollBarArrows, ScrollBarInteraction, ScrollCommand, ScrollLengths,
     ScrollMetrics,
@@ -330,7 +331,11 @@ impl StatefulWidget for Console {
     }
 }
 
-#[derive(Debug, Clone, strum::EnumString)]
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[error("console action error")]
+pub struct ConsoleActionError;
+
+#[derive(Debug, Clone, strum::EnumString, Serialize, Deserialize)]
 pub enum ConsoleAction {
     ScrollUp,
     ScrollDown,
@@ -346,7 +351,7 @@ impl Action for ConsoleAction {}
 
 impl State for ConsoleState {
     type Action = ConsoleAction;
-    type Error = eyre::Error;
+    type Error = ConsoleActionError;
 
     fn act(&mut self, action: &Self::Action) -> Result<Revert, Self::Error> {
         use ConsoleAction::*;

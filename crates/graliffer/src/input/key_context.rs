@@ -5,6 +5,8 @@ use std::{
     num::Wrapping,
 };
 
+use serde::{Deserialize, Serialize};
+
 use crate::KeyContextPredicate;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -50,7 +52,7 @@ impl Default for KeyContextFlagKey {
 }
 
 // pub type KeyContextFlag = String;
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct KeyContextFlag(String);
 
 impl From<&str> for KeyContextFlag {

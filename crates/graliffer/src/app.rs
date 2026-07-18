@@ -1,14 +1,17 @@
 use std::{cell::RefCell, rc::Rc, str::FromStr};
 
-use action::{Action, AnyAction, Revert, State};
 use eyre::eyre;
 use rand::seq::SliceRandom;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     ConsoleAction, ConsoleState, Context, FocusId, GridAction, GridState, PaneId, PopupId,
     input::{InputMode, Keymap},
     ui::PickerState,
 };
+
+mod action;
+pub use action::*;
 
 #[derive(Debug)]
 pub struct AppState {
@@ -172,101 +175,5 @@ impl AppState {
     /// Set should_quit to true to quit the application.
     pub fn quit(&mut self) {
         self.should_run = false;
-    }
-}
-
-#[derive(Debug, Clone, strum::EnumString)]
-pub enum AppAction {
-    Quit,
-    ClosePopup,
-    FocusStack,
-    ToggleCommandPicker,
-    ToggleAbout,
-    InsertMode,
-    CommandMode,
-}
-
-impl Action for AppAction {}
-
-#[derive(Debug, Clone)]
-pub enum ConcreteAnyAction {
-    AppAction(AppAction),
-    ConsoleAction(ConsoleAction),
-    GridAction(GridAction),
-}
-
-impl TryFrom<AnyAction> for ConcreteAnyAction {
-    type Error = eyre::Error;
-
-    fn try_from(action: AnyAction) -> Result<Self, Self::Error> {
-        if let Some(app_action) = action.downcast_ref::<AppAction>() {
-            Ok(Self::AppAction(app_action.clone()))
-        } else if let Some(console_action) = action.downcast_ref::<ConsoleAction>() {
-            Ok(Self::ConsoleAction(console_action.clone()))
-        } else if let Some(grid_action) = action.downcast_ref::<GridAction>() {
-            Ok(Self::GridAction(grid_action.clone()))
-        } else {
-            Err(eyre!("unknown action"))
-        }
-    }
-}
-
-impl TryFrom<&str> for ConcreteAnyAction {
-    type Error = eyre::Error;
-
-    fn try_from(action: &str) -> Result<Self, Self::Error> {
-        if let Some((namespace, action)) = action.rsplit_once("::") {
-            match namespace.to_ascii_lowercase().as_str() {
-                "console" => Ok(Self::ConsoleAction(ConsoleAction::from_str(action)?)),
-                "grid" => Ok(Self::GridAction(GridAction::from_str(action)?)),
-                _ => Err(eyre!("unknown action namespace")),
-            }
-        } else {
-            Ok(Self::AppAction(AppAction::from_str(action)?))
-        }
-    }
-}
-
-impl Action for ConcreteAnyAction {}
-
-impl State for AppState {
-    type Action = ConcreteAnyAction;
-    type Error = eyre::Error;
-
-    fn act(&mut self, action: &Self::Action) -> Result<Revert, Self::Error> {
-        use AppAction::*;
-
-        match action {
-            ConcreteAnyAction::ConsoleAction(console_action) => {
-                self.console_state.act(console_action)?;
-            }
-            ConcreteAnyAction::GridAction(grid_action) => {
-                self.grid_state.act(grid_action)?;
-            }
-            ConcreteAnyAction::AppAction(app_action) => match app_action {
-                Quit => {
-                    self.quit();
-                }
-                ToggleAbout => {
-                    self.toggle_popup(PopupId::About);
-                }
-                ToggleCommandPicker => {
-                    self.toggle_popup(PopupId::CommandPicker);
-                }
-                ClosePopup => {
-                    self.close_popup();
-                }
-                FocusStack => {
-                    self.set_focus(PaneId::Stack);
-                }
-                InsertMode => {
-                    self.set_input_mode(InputMode::Insert);
-                }
-                CommandMode => {
-                    self.set_input_mode(InputMode::Command);
-                }
-            },
-        };
-        Ok(Revert::None)
     }
 }

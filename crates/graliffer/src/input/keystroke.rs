@@ -3,10 +3,13 @@ use std::{
     str::FromStr,
 };
 
+use serde::{Deserialize, Serialize};
+
 use crate::{Key, KeyFromCrosstermError, KeyParseError, Modifiers, ModifiersParseError};
 
 // A single keystroke, with a key press, and currently pressed modifiers
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[serde(try_from = "String")]
 pub struct Keystroke {
     pub modifiers: Modifiers,
     pub key: Key,
@@ -87,6 +90,14 @@ impl FromStr for Keystroke {
                 key: parse_key(source)?,
             })
         }
+    }
+}
+
+impl TryFrom<String> for Keystroke {
+    type Error = KeystrokeParseError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        value.parse()
     }
 }
 

@@ -3,8 +3,10 @@ use std::{
     str::FromStr,
 };
 
+use serde::{Deserialize, Serialize};
+
 /// Key modifiers for keystrokes
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub struct Modifiers {
     pub control: bool,
     pub alt: bool,
