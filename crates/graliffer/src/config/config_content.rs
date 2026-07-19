@@ -10,15 +10,7 @@ impl Default for ConsoleConfig {
 }
 
 #[derive(Debug, Default)]
-pub enum LoggingConfig {
-    #[default]
-    On,
-    Off,
-}
-
-#[derive(Debug, Default)]
 pub struct Config {
-    logging: LoggingConfig,
     pub console: ConsoleConfig,
 }
 
