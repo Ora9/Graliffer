@@ -1,0 +1,23 @@
+[
+  {
+    "context": "",
+    "bindings": {
+      "ctrl-a": "ToggleAbout",
+      "ctrl-p": "ToggleCommandPicker"
+    }
+  },
+  {
+    "context": "popup_opened",
+    "bindings": {
+      "escape": "ClosePopup"
+
+    }
+  },
+  {
+    "context": "insert",
+    "bindings": {
+      "q": "Quit",
+      "escape": "CommandMode"
+    }
+  }
+]
