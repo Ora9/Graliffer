@@ -27,13 +27,12 @@ pub struct ConsoleState {
     scroll_offset: usize,
     stick_to_bottom: bool,
 
-    max_line_history: usize,
-
+    // max_line_history: usize,
     scrollbar_interaction: ScrollBarInteraction,
 }
 
 impl ConsoleState {
-    pub fn new(line_history: usize, context: Context) -> Self {
+    pub fn new(context: Context) -> Self {
         Self {
             context,
 
@@ -44,8 +43,7 @@ impl ConsoleState {
             scroll_offset: 0,
             stick_to_bottom: true,
 
-            max_line_history: line_history,
-
+            // max_line_history: line_history,
             scrollbar_interaction: ScrollBarInteraction::default(),
         }
     }
@@ -55,7 +53,7 @@ impl ConsoleState {
     }
 
     pub fn max_line_history(&self) -> usize {
-        self.max_line_history
+        self.context.config(|config| config.console.line_history)
     }
 }
 
@@ -150,7 +148,7 @@ impl ConsoleState {
 
     fn apply_max_history(&mut self) {
         self.content
-            .drain(..(self.content.len().saturating_sub(self.max_line_history)));
+            .drain(..(self.content.len().saturating_sub(self.max_line_history())));
     }
 }
 

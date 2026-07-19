@@ -1,11 +1,14 @@
 use color_eyre::Result;
+use etcetera::AppStrategy;
 use log::debug;
 use ratatui::{Terminal, backend::CrosstermBackend};
 use std::env;
 
-use graliffer::{App, AppState, Event, EventHandler, Tui};
+use graliffer::{App, AppState, Config, Event, EventHandler, Tui};
 
 fn main() -> Result<()> {
+    let config = Config::default();
+
     color_eyre::install()?;
 
     tui_logger::init_logger(log::LevelFilter::Trace)?;
@@ -30,7 +33,7 @@ fn main() -> Result<()> {
     let mut tui = Tui::new(terminal, events);
     tui.enter()?;
 
-    let mut app_state = AppState::new();
+    let mut app_state = AppState::new(config);
 
     while app_state.should_run {
         tui.draw(App::new(), &mut app_state)?;

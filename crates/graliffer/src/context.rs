@@ -1,31 +1,36 @@
-use std::cell::RefCell;
+use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-    FocusId, KeyContextFlag, KeyContextFlagKey, KeyContextPredicate,
+    Config, FocusId, KeyContextFlag, KeyContextFlagKey, KeyContextPredicate,
     input::{InputMode, KeyContext},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ContextInner {
     focus: FocusId,
     input_mode: InputMode,
+
+    config: Config,
 
     key_context: KeyContext,
 }
 
 #[derive(Debug, Clone)]
-pub struct Context(RefCell<ContextInner>);
+pub struct Context(Rc<RefCell<ContextInner>>);
 
 impl Context {
-    pub fn new(focus_id: impl Into<FocusId>, input_mode: InputMode) -> Self {
-        let focus_id = focus_id.into();
+    pub fn new(config: Config) -> Self {
+        let focus_id = FocusId::default();
+        let input_mode = InputMode::default();
 
-        let mut context = Self(RefCell::new(ContextInner {
+        let mut context = Self(Rc::new(RefCell::new(ContextInner {
             focus: focus_id,
             input_mode,
 
+            config,
+
             key_context: KeyContext::default(),
-        }));
+        })));
 
         context.set_focus_flag(focus_id);
         context.set_input_mode_flag(input_mode);
@@ -33,12 +38,16 @@ impl Context {
         context
     }
 
+    pub fn config<O>(&self, reader: impl FnOnce(&Config) -> O) -> O {
+        reader(&self.0.borrow().config)
+    }
+
     pub fn get_input_mode(&self) -> InputMode {
         self.0.borrow().input_mode
     }
 
     pub fn set_input_mode(&mut self, input_mode: InputMode) {
-        self.0.get_mut().input_mode = input_mode;
+        self.0.borrow_mut().input_mode = input_mode;
         self.set_input_mode_flag(input_mode);
     }
 
@@ -53,7 +62,7 @@ impl Context {
     pub fn set_focus(&mut self, focus_id: impl Into<FocusId>) {
         let focus_id = focus_id.into();
 
-        self.0.get_mut().focus = focus_id;
+        self.0.borrow_mut().focus = focus_id;
         self.set_focus_flag(focus_id);
     }
 
@@ -62,11 +71,11 @@ impl Context {
     }
 
     pub fn insert_flag(&mut self, flag: impl Into<KeyContextFlag>) {
-        self.0.get_mut().key_context.insert(flag.into());
+        self.0.borrow_mut().key_context.insert(flag.into());
     }
 
     pub fn remove_flag(&mut self, flag: impl Into<KeyContextFlag>) {
-        self.0.get_mut().key_context.remove(&flag.into());
+        self.0.borrow_mut().key_context.remove(&flag.into());
     }
 
     pub fn has_flag(&self, flag: impl Into<KeyContextFlag>) -> bool {
@@ -79,13 +88,13 @@ impl Context {
         flag: impl Into<KeyContextFlag>,
     ) {
         self.0
-            .get_mut()
+            .borrow_mut()
             .key_context
             .insert_with_key(key.into(), flag.into());
     }
 
     pub fn remove_flag_with_key(&mut self, key: impl Into<KeyContextFlagKey>) {
-        self.0.get_mut().key_context.remove_with_key(&key.into());
+        self.0.borrow_mut().key_context.remove_with_key(&key.into());
     }
 
     pub fn has_flag_with_key(
@@ -101,22 +110,5 @@ impl Context {
 
     pub fn matches_key_context(&self, predicate: &KeyContextPredicate) -> bool {
         self.0.borrow().key_context.matches(predicate)
-
-impl Default for Context {
-    fn default() -> Self {
-        let focus_id = FocusId::default();
-        let input_mode = InputMode::default();
-
-        let mut context = Self(RefCell::new(ContextInner {
-            focus: focus_id,
-            input_mode,
-
-            key_context: KeyContext::default(),
-        }));
-
-        context.set_focus_flag(focus_id);
-        context.set_input_mode_flag(input_mode);
-
-        context
     }
 }

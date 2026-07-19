@@ -3,6 +3,11 @@ use std::collections::HashMap;
 
 use crate::{AnyAppAction, Context, KeyContextPredicate, Keystroke};
 
+static DEFAULT_KEYMAP: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/assets/default_keymap.jsonc"
+));
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Keymap(Vec<KeymapBindingGroup>);
 
@@ -25,11 +30,6 @@ impl Keymap {
             .find_map(|binding_group| binding_group.find_keystroke(keystroke))
     }
 }
-
-static DEFAULT_KEYMAP: &str = include_str!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/assets/default_keymap.jsonc"
-));
 
 impl Default for Keymap {
     fn default() -> Self {

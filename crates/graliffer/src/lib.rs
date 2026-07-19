@@ -24,3 +24,6 @@ pub use grid::*;
 
 mod console;
 pub use console::*;
+
+mod config;
+pub use config::*;

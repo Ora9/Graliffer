@@ -3,7 +3,8 @@
     "context": "",
     "bindings": {
       "ctrl-a": "ToggleAbout",
-      "ctrl-p": "ToggleCommandPicker"
+      "ctrl-p": "ToggleCommandPicker",
+      "ctrl-q": "Quit"
     }
   },
   {
@@ -14,9 +15,14 @@
     }
   },
   {
+    "context": "command",
+    "bindings": {
+      "i": "InsertMode"
+    }
+  },
+  {
     "context": "insert",
     "bindings": {
-      "q": "Quit",
       "escape": "CommandMode"
     }
   }

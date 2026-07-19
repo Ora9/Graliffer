@@ -5,7 +5,7 @@ use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    ConsoleAction, ConsoleState, Context, FocusId, GridAction, GridState, PaneId, PopupId,
+    Config, ConsoleAction, ConsoleState, Context, FocusId, GridAction, GridState, PaneId, PopupId,
     input::{InputMode, Keymap},
     ui::PickerState,
 };
@@ -92,16 +92,16 @@ impl AppState {
     pub fn new(config: Config) -> Self {
         let frame = Rc::new(RefCell::new(default_grai_frame()));
 
-        let context = Context::default();
+        let context = Context::new(config);
 
         let mut app = Self {
+            keymap: Keymap::new(),
+
             context: context.clone(),
 
             should_run: true,
 
-            keymap: Keymap::new(),
-
-            console_state: ConsoleState::new(1000, context.clone()),
+            console_state: ConsoleState::new(context.clone()),
             grid_state: GridState::new(frame, context),
             command_picker_state: PickerState::new(),
 
