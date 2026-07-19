@@ -36,9 +36,61 @@ impl App {
     }
 }
 
+fn default_grai_frame() -> grai::Frame {
+    let mut grid = grai::Grid::new();
+
+    grid.set(
+        grai::Position::from_string("AA").unwrap(),
+        grai::Cell::new_trim("100"),
+    );
+    grid.set(
+        grai::Position::from_string("BA").unwrap(),
+        grai::Cell::new_trim("&BB"),
+    );
+    grid.set(
+        grai::Position::from_string("CA").unwrap(),
+        grai::Cell::new_trim("div"),
+    );
+    grid.set(
+        grai::Position::from_string("BB").unwrap(),
+        grai::Cell::new_trim("@CB"),
+    );
+    grid.set(
+        grai::Position::from_string("CB").unwrap(),
+        grai::Cell::new_trim("3"),
+    );
+
+    grid.set(
+        grai::Position::from_string("EA").unwrap(),
+        grai::Cell::new_trim("20"),
+    );
+    grid.set(
+        grai::Position::from_string("FA").unwrap(),
+        grai::Cell::new_trim("sub"),
+    );
+    grid.set(
+        grai::Position::from_string("HA").unwrap(),
+        grai::Cell::new_trim("@AB"),
+    );
+    grid.set(
+        grai::Position::from_string("IA").unwrap(),
+        grai::Cell::new_trim("set"),
+    );
+    grid.set(
+        grai::Position::from_string("aa").unwrap(),
+        grai::Cell::new_trim("jmp"),
+    );
+
+    grai::Frame {
+        grid,
+        head: grai::Head::default(),
+        stack: grai::Stack::default(),
+    }
+}
+
 impl AppState {
-    pub fn new() -> Self {
-        let mut grid = grai::Grid::new();
+    pub fn new(config: Config) -> Self {
+        let frame = Rc::new(RefCell::new(default_grai_frame()));
 
         grid.set(
             grai::Position::from_string("AA").unwrap(),
