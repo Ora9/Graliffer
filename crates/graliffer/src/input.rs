@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{default, fmt::Display};
 
 use action::State;
 use crossterm::event::{KeyEvent, MouseEvent};
@@ -29,8 +29,9 @@ pub use modifiers::*;
 mod keymap;
 pub use keymap::*;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[derive(Debug, Default, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum InputMode {
+    #[default]
     Insert,
     Command,
 }

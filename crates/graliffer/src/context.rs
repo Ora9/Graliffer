@@ -102,14 +102,21 @@ impl Context {
     pub fn matches_key_context(&self, predicate: &KeyContextPredicate) -> bool {
         self.0.borrow().key_context.matches(predicate)
 
-        // for flag in key_context.iter() {
-        //     if self.has_flag(flag) {
-        //         continue;
-        //     } else {
-        //         return false;
-        //     }
-        // }
+impl Default for Context {
+    fn default() -> Self {
+        let focus_id = FocusId::default();
+        let input_mode = InputMode::default();
 
-        // true
+        let mut context = Self(RefCell::new(ContextInner {
+            focus: focus_id,
+            input_mode,
+
+            key_context: KeyContext::default(),
+        }));
+
+        context.set_focus_flag(focus_id);
+        context.set_input_mode_flag(input_mode);
+
+        context
     }
 }

@@ -6,8 +6,9 @@ pub enum PopupId {
     CommandPicker,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, strum::Display, Hash)]
 pub enum PaneId {
+    #[default]
     Grid,
     Console,
     Stack,
@@ -26,6 +27,12 @@ impl FocusId {
 
     pub fn is_popup(&self) -> bool {
         matches!(self, FocusId::Popup(_))
+    }
+}
+
+impl Default for FocusId {
+    fn default() -> Self {
+        Self::Pane(PaneId::default())
     }
 }
 
