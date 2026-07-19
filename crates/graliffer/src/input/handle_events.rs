@@ -1,59 +1,9 @@
-use std::{default, fmt::Display};
-
 use action::State;
 use crossterm::event::{KeyEvent, MouseEvent};
 use log::debug;
-use ratatui::{
-    layout::Position,
-    style::Stylize,
-    text::{Span, ToSpan},
-};
+use ratatui::layout::Position;
 
-use crate::{Context, app::AppState};
-
-mod key_context;
-pub use key_context::*;
-
-mod key_context_predicate;
-pub use key_context_predicate::*;
-
-mod keystroke;
-pub use keystroke::*;
-
-mod key;
-pub use key::*;
-
-mod modifiers;
-pub use modifiers::*;
-
-mod keymap;
-pub use keymap::*;
-
-#[derive(Debug, Default, PartialEq, Eq, Clone, Copy, Hash)]
-pub enum InputMode {
-    #[default]
-    Insert,
-    Command,
-}
-
-impl Display for InputMode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Insert => f.write_str("insert"),
-            Self::Command => f.write_str("command"),
-        }
-    }
-}
-
-impl InputMode {
-    pub fn formated<'a>(&self) -> Span<'a> {
-        use InputMode::*;
-        match self {
-            Command => "COMMAND".red(),
-            Insert => "INSERT".to_span(),
-        }
-    }
-}
+use crate::{AppState, Context, Keystroke};
 
 impl AppState {
     pub fn handle_key_events(&mut self, key_event: KeyEvent, app_context: Context) {
