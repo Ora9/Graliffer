@@ -43,7 +43,6 @@ impl ConsoleState {
             scroll_offset: 0,
             stick_to_bottom: true,
 
-            // max_line_history: line_history,
             scrollbar_interaction: ScrollBarInteraction::default(),
         }
     }
@@ -67,7 +66,7 @@ impl ConsoleState {
         &self.content
     }
 
-    pub fn set_content(&mut self, mut content: Vec<String>) {
+    pub fn set_content(&mut self, content: Vec<String>) {
         self.content = content;
         self.apply_max_history();
 
@@ -82,7 +81,7 @@ impl ConsoleState {
     }
 
     pub fn append_string(&mut self, string: String) {
-        if let Some(mut last_line) = self.content.last_mut() {
+        if let Some(last_line) = self.content.last_mut() {
             last_line.push_str(&string);
         } else {
             self.append_line(string);
@@ -116,8 +115,7 @@ impl ConsoleState {
         let ScrollCommand::SetOffset(offset) = command;
 
         self.stick_to_bottom = false;
-
-        self.scroll_offset = offset
+        self.scroll_offset = offset;
     }
 }
 
@@ -161,7 +159,7 @@ impl ConsoleState {
         }
     }
 
-    /// Is `0` when self.need_scroll() is `false` (when content does not exceed the container)
+    /// Is `0` when `self.need_scroll()` is `false` (when content does not exceed the container)
     pub fn max_scroll(&self) -> usize {
         self.lines()
             .saturating_sub(self.content_area_height().unwrap_or(0))
@@ -208,7 +206,7 @@ impl ConsoleState {
 
     pub fn scroll_up_by(&mut self, lines: usize) {
         if self.need_scroll() {
-            self.scroll_offset = self.scroll_offset.saturating_sub(lines).max(0);
+            self.scroll_offset = self.scroll_offset.saturating_sub(lines);
         }
     }
 
@@ -220,7 +218,7 @@ impl ConsoleState {
             -1 => {
                 self.scroll_down_by(lines.unsigned_abs());
             }
-            0 | _ => {}
+            _ => {}
         }
     }
 
@@ -311,7 +309,7 @@ impl StatefulWidget for Console {
         let paragraph = Paragraph::new(Text::from(
             rendered_lines
                 .reduce(|acc, item| format!("{acc}\n{item}"))
-                .unwrap_or("".to_string()),
+                .unwrap_or(String::new()),
         ));
 
         paragraph.render(viewport_area, buf);
