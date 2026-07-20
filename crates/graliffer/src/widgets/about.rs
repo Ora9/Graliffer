@@ -8,7 +8,7 @@ use ratatui::{
     widgets::Widget,
 };
 
-use crate::ui::Popup;
+use crate::widgets::Popup;
 
 pub struct About;
 

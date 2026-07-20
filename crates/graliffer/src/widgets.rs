@@ -17,10 +17,7 @@ pub use popup::*;
 mod about;
 pub use about::*;
 
-mod picker;
-pub use picker::*;
-
-use crate::{App, AppState, Console, GridWidget, PaneId, PopupId};
+use crate::{App, AppState, Console, GridWidget, PaneId, Picker, PopupId};
 
 impl StatefulWidget for App {
     type State = AppState;

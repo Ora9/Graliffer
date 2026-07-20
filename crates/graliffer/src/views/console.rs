@@ -315,10 +315,10 @@ impl StatefulWidget for Console {
         paragraph.render(viewport_area, buf);
 
         if state.need_scroll() {
-            let lengths = ScrollLengths {
-                content_len: metrics.content_len(),
-                viewport_len: metrics.viewport_len(),
-            };
+            // let lengths = ScrollLengths {
+            //     content_len: metrics.content_len(),
+            //     viewport_len: metrics.viewport_len(),
+            // };
 
             let scrollbar = Self::build_vertical_scrollbar(metrics);
 

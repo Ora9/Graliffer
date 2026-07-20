@@ -4,8 +4,8 @@ pub use app::*;
 mod event;
 pub use event::*;
 
-mod ui;
-pub use ui::*;
+mod widgets;
+pub use widgets::*;
 
 mod tui;
 pub use tui::*;
@@ -19,11 +19,8 @@ pub use focus::*;
 mod context;
 pub use context::*;
 
-mod grid;
-pub use grid::*;
-
-mod console;
-pub use console::*;
+mod views;
+pub use views::*;
 
 mod config;
 pub use config::*;

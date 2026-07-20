@@ -1,5 +1,4 @@
 use color_eyre::Result;
-use etcetera::AppStrategy;
 use log::debug;
 use ratatui::{Terminal, backend::CrosstermBackend};
 use std::env;

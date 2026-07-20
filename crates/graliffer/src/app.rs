@@ -1,13 +1,10 @@
-use std::{cell::RefCell, rc::Rc, str::FromStr};
+use std::{cell::RefCell, rc::Rc};
 
-use eyre::eyre;
 use rand::seq::SliceRandom;
-use serde::{Deserialize, Serialize};
 
 use crate::{
-    Config, ConsoleAction, ConsoleState, Context, FocusId, GridAction, GridState, PaneId, PopupId,
+    Config, ConsoleState, Context, FocusId, GridState, PaneId, PickerState, PopupId,
     input::{InputMode, Keymap},
-    ui::PickerState,
 };
 
 mod action;

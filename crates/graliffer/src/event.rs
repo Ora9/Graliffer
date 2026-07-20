@@ -16,6 +16,7 @@ pub enum Event {
     Resize(u16, u16),
 }
 
+#[allow(unused)]
 #[derive(Debug)]
 pub struct EventHandler {
     sender: mpsc::Sender<Event>,

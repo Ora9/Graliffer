@@ -5,7 +5,7 @@ use ratatui::{
     widgets::{Block, BorderType, Widget},
 };
 
-use crate::ui::{MenuLine, MenuLinePosition};
+use crate::widgets::{MenuLine, MenuLinePosition};
 
 #[derive(Debug)]
 pub struct PaneBorder<'a> {

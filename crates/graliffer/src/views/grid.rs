@@ -14,7 +14,10 @@ use ratatui::{
 use serde::{Deserialize, Serialize};
 use tui_input::Input;
 
-use crate::Context;
+use crate::{
+    AnyAppAction, Context, Focusable, GridAction::Insert, InsertBinding, InsertBindingList, Key,
+    KeyContextPredicate,
+};
 
 #[derive(Debug, Default)]
 pub struct Cursor(grai::Position);
@@ -259,7 +262,7 @@ fn buffer_merge_areas(
     from_buf: &Buffer,
     from_area: Rect,
 ) {
-    let size = from_area.area();
+    // let size = from_area.area();
     for y in from_area.y..(from_area.y + from_area.height) {
         for x in from_area.x..(from_area.x + from_area.width) {
             let from_pos = Position::new(x, y);
@@ -270,9 +273,9 @@ fn buffer_merge_areas(
                 y.saturating_sub(from_area.top()) as i32,
             ));
 
-            let mut dest_cell = dest_buf.cell_mut(dest_pos);
+            let dest_cell = dest_buf.cell_mut(dest_pos);
 
-            if let Some(mut dest_cell) = dest_cell
+            if let Some(dest_cell) = dest_cell
                 && let Some(from_cell) = from_cell
             {
                 dest_cell.set_symbol(from_cell.symbol());
@@ -292,6 +295,7 @@ pub enum GridAction {
     CursorDown,
     CursorRight,
     CursorLeft,
+    Insert(String),
 }
 
 impl Action for GridAction {}
@@ -315,3 +319,20 @@ impl State for GridState {
         Ok(Revert::None)
     }
 }
+
+impl Focusable for GridState {
+    fn insert_sink_binding(input: String) -> InsertBindingList {
+        InsertBinding {
+            context: KeyContextPredicate::And(
+                Box::new(KeyContextPredicate::from_flag("Grid")),
+                Box::new(KeyContextPredicate::from_flag("insert")),
+            ),
+            action: AnyAppAction::GridAction(Insert(input)),
+        }
+        .into()
+    }
+}
+
+// impl InsertSink for GridState {
+//     fn insert_action(input: String) -> InsertBindingList {
+// }
