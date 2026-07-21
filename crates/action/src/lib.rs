@@ -56,7 +56,7 @@ impl AnyAction {
     }
 
     pub fn downcast<T: Any>(self) -> Result<Box<T>, Box<dyn Any>> {
-        (self.0 as Box<dyn Any>).downcast::<T>()
+        (self.0 as Box<dyn Any>).downcast()
     }
 }
 
@@ -73,11 +73,11 @@ impl Revert {
 }
 
 #[derive(Debug)]
-pub struct Apply(Box<dyn Action>);
+pub struct Apply(AnyAction);
 
 impl Apply {
     pub fn new(action: impl Action) -> Self {
-        Self(Box::new(action))
+        Self(AnyAction::new(action))
     }
 }
 
@@ -111,13 +111,13 @@ impl<S: State> Timeline<S> {
         }
     }
 
-    pub fn act(&mut self, action: S::Action) -> Result<(), TimelineError<S::Error>> {
-        let res = {
+    pub fn act(&mut self, action: impl Into<S::Action>) -> Result<(), TimelineError<S::Error>> {
+        let action = action.into();
+
+        match {
             let mut state = self.state.try_borrow_mut().unwrap();
             state.act(&action)
-        };
-
-        match res {
+        } {
             Ok(revert) => {
                 self.append(Undoable {
                     apply: Apply::new(action),
