@@ -28,15 +28,5 @@ fn main() -> Result<(), PositionError> {
         println!("{frame_json}");
     });
 
-    // {
-    //     let frame = frame.try_borrow_mut().unwrap();
-
-    //     let frame_json = serde_json::to_string_pretty::<Frame>(&frame).unwrap();
-    //     println!("{}", frame_json);
-
-    //     let frame_from = serde_json::from_str::<Frame>(&frame_json);
-    //     dbg!(frame_from);
-    // }
-
     Ok(())
 }
