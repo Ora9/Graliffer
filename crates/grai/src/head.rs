@@ -80,7 +80,7 @@ impl State for Head {
         match action {
             HeadAction::Step => {
                 let last_pos = self.position;
-                self.step();
+                let _ = self.step();
 
                 Ok(Revert::new(HeadAction::MoveTo(last_pos)))
             }
