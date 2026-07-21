@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use crate::{
     AboutView, AppState, ConsoleAction, ConsoleActionError, GridAction, GridActionError, InputMode,
-    PaneId, PickerView, PopupId, StackView, View,
+    PickerAction, PickerActionError, PickerView, PopupId, StackView, View,
 };
 use serde::{Deserialize, Serialize};
 
@@ -27,6 +27,9 @@ pub enum AnyAppActionError {
 
     #[error("console action error")]
     Console(#[from] ConsoleActionError),
+
+    #[error("picker action error")]
+    Picker(#[from] PickerActionError),
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -52,6 +55,7 @@ pub enum AnyAppAction {
     AppAction(AppAction),
     ConsoleAction(ConsoleAction),
     GridAction(GridAction),
+    PickerAction(PickerAction),
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -70,6 +74,8 @@ impl TryFrom<AnyAction> for AnyAppAction {
             Ok(Self::ConsoleAction(console_action.clone()))
         } else if let Some(grid_action) = action.downcast_ref::<GridAction>() {
             Ok(Self::GridAction(grid_action.clone()))
+        } else if let Some(picker_action) = action.downcast_ref::<PickerAction>() {
+            Ok(Self::PickerAction(picker_action.clone()))
         } else {
             Err(IntoActionError::UnknownAction)
         }
@@ -99,6 +105,14 @@ impl TryFrom<String> for AnyAppAction {
                         source: source.to_owned(),
                     },
                 )?)),
+                "picker" => Ok(Self::PickerAction(
+                    PickerAction::from_str(&action).map_err(|_| {
+                        ActionParseError::UnknownAction {
+                            action: action.to_string(),
+                            source: source.to_owned(),
+                        }
+                    })?,
+                )),
                 _ => Err(ActionParseError::UnknownNamespace { source }),
             }
         } else {
@@ -128,6 +142,9 @@ impl State for AppState {
             }
             AnyAppAction::GridAction(grid_action) => {
                 self.grid_state.act(grid_action)?;
+            }
+            AnyAppAction::PickerAction(picker_action) => {
+                self.command_picker_state.act(picker_action)?;
             }
             AnyAppAction::AppAction(app_action) => match app_action {
                 Quit => {

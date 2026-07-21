@@ -3,7 +3,7 @@ use crossterm::event::{KeyEvent, MouseEvent};
 use log::debug;
 use ratatui::layout::Position;
 
-use crate::{AppState, Context, GridView, Key, Keystroke, View};
+use crate::{AppState, Context, GridView, Key, Keystroke, PaneId, PickerView, View, ViewId};
 
 impl AppState {
     pub fn handle_key_events(&mut self, key_event: KeyEvent, app_context: Context) {
@@ -13,10 +13,13 @@ impl AppState {
                 let _ = self.act(&action.try_into().unwrap());
             }
 
-            if self.is_focused(GridView::view_id())
-                && let Key::Char(char) = keystroke.key
-            {
-                let action = GridView::input_sink_action(char.to_string());
+            if let Key::Char(char) = keystroke.key {
+                let action = match self.focused().to_string().as_str() {
+                    "Grid" => GridView::input_sink_action(char.to_string()),
+                    "Picker" => PickerView::input_sink_action(char.to_string()),
+                    _ => None,
+                };
+
                 let _ = self.act(&action.unwrap().try_into().unwrap());
             }
         }

@@ -1,3 +1,4 @@
+use action::{Action, Revert, State};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect, Size, Spacing},
@@ -9,8 +10,9 @@ use ratatui::{
     text::{Line, Text},
     widgets::{Block, Borders, StatefulWidget, Widget},
 };
+use serde::{Deserialize, Serialize};
 
-use crate::{View, ViewType, widgets::Popup};
+use crate::{AnyAppAction, View, ViewType, widgets::Popup};
 
 #[derive(Debug, Clone)]
 pub struct PickerItem {
@@ -118,6 +120,34 @@ impl StatefulWidget for Picker {
     }
 }
 
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum PickerActionError {}
+
+#[derive(Debug, Clone, strum::EnumString, Serialize, Deserialize)]
+pub enum PickerAction {
+    CursorUp,
+    CursorDown,
+    Select,
+    Insert(String),
+}
+
+impl Action for PickerAction {}
+
+impl State for PickerView {
+    type Action = PickerAction;
+    type Error = PickerActionError;
+
+    fn act(&mut self, action: &Self::Action) -> Result<Revert, Self::Error> {
+        match action {
+            PickerAction::CursorUp => self.cursor = self.cursor.saturating_add(1),
+            PickerAction::CursorDown => self.cursor = self.cursor.saturating_sub(1),
+            _ => {}
+        };
+
+        Ok(Revert::None)
+    }
+}
+
 impl View for PickerView {
     fn title() -> String {
         String::from("Picker")
@@ -125,5 +155,9 @@ impl View for PickerView {
 
     fn view_type() -> ViewType {
         ViewType::Popup
+    }
+
+    fn input_sink_action(input: String) -> Option<AnyAppAction> {
+        Some(AnyAppAction::PickerAction(PickerAction::Insert(input)))
     }
 }
