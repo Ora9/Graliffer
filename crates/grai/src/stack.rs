@@ -51,8 +51,6 @@ impl State for Stack {
                 Ok(Revert::new(StackAction::Pop))
             }
             StackAction::Pop => {
-                let popped = self.pop();
-
                 if let Some(popped) = self.pop() {
                     Ok(Revert::new(StackAction::Push(popped)))
                 } else {
