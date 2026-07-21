@@ -91,8 +91,12 @@ pub trait View {
         }
     }
 
+    // fn input_sink_binding_list(input: String) -> InputSinkBindingList {
+    //     InputSinkBindingList::none()
+    // }
+
     #[allow(unused)]
-    fn input_sink_binding_list(input: String) -> InputSinkBindingList {
-        InputSinkBindingList::none()
+    fn input_sink_action(input: String) -> Option<AnyAppAction> {
+        None
     }
 }

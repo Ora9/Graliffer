@@ -3,14 +3,21 @@ use crossterm::event::{KeyEvent, MouseEvent};
 use log::debug;
 use ratatui::layout::Position;
 
-use crate::{AppState, Context, Keystroke};
+use crate::{AppState, Context, GridView, Key, Keystroke, View};
 
 impl AppState {
     pub fn handle_key_events(&mut self, key_event: KeyEvent, app_context: Context) {
         if let Result::Ok(keystroke) = Keystroke::try_from(key_event) {
             if let Some(action) = self.keymap.find(app_context, keystroke) {
-                debug!("{:?}", action);
+                // debug!("{:?}", action);
                 let _ = self.act(&action.try_into().unwrap());
+            }
+
+            if self.is_focused(GridView::view_id())
+                && let Key::Char(char) = keystroke.key
+            {
+                let action = GridView::input_sink_action(char.to_string());
+                let _ = self.act(&action.unwrap().try_into().unwrap());
             }
         }
     }

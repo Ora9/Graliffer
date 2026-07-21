@@ -20,7 +20,19 @@ use crate::{
 };
 
 #[derive(Debug, Default)]
-pub struct Cursor(grai::Position);
+pub struct Cursor {
+    grid_position: grai::Position,
+}
+
+impl Cursor {
+    pub fn move_to(&mut self, position: grai::Position) {
+        self.grid_position = position;
+    }
+
+    pub fn step_towards(&mut self, direction: grai::Direction, steps: u32) {
+        let _ = self.grid_position.checked_step(direction, steps);
+    }
+}
 
 #[derive(Debug)]
 enum DragState {
@@ -309,10 +321,16 @@ impl State for GridView {
 
         match action {
             CursorUp => {
-                debug!("curosor up!");
+                self.cursor.step_towards(grai::Direction::Up, 1);
             }
             CursorDown => {
-                debug!("curosor down!");
+                self.cursor.step_towards(grai::Direction::Down, 1);
+            }
+            CursorRight => {
+                self.cursor.step_towards(grai::Direction::Right, 1);
+            }
+            CursorLeft => {
+                self.cursor.step_towards(grai::Direction::Left, 1);
             }
             Insert(input) => {
                 debug!("grid insert : {input}");
@@ -332,14 +350,18 @@ impl View for GridView {
         ViewType::Pane
     }
 
-    fn input_sink_binding_list(input: String) -> InputSinkBindingList {
-        InputSinkBinding {
-            context: KeyContextPredicate::And(
-                Box::new(KeyContextPredicate::from_flag("Grid")),
-                Box::new(KeyContextPredicate::from_flag("insert")),
-            ),
-            action: AnyAppAction::GridAction(Insert(input)),
-        }
-        .into()
+    fn input_sink_action(input: String) -> Option<AnyAppAction> {
+        Some(AnyAppAction::GridAction(Insert(input)))
     }
+
+    // fn input_sink_binding_list(input: String) -> InputSinkBindingList {
+    //     InputSinkBinding {
+    //         context: KeyContextPredicate::And(
+    //             Box::new(KeyContextPredicate::from_flag("Grid")),
+    //             Box::new(KeyContextPredicate::from_flag("insert")),
+    //         ),
+    //         action: AnyAppAction::GridAction(Insert(input)),
+    //     }
+    //     .into()
+    // }
 }

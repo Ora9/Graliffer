@@ -50,7 +50,7 @@ impl Display for Key {
     /// ```
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let string = match self {
-            Key::Char(char) => &char.to_string().to_lowercase(),
+            Key::Char(char) => &char.to_string(),
             Key::Backspace => "backspace",
             Key::Enter => "enter",
             Key::Left => "left",
@@ -164,7 +164,7 @@ impl TryFrom<crossterm::event::KeyCode> for Key {
     fn try_from(value: crossterm::event::KeyCode) -> Result<Key, Self::Error> {
         use crossterm::event::KeyCode;
         match value {
-            KeyCode::Char(char) => Ok(Key::Char(char.to_ascii_lowercase())),
+            KeyCode::Char(char) => Ok(Key::Char(char)),
             KeyCode::Backspace => Ok(Key::Backspace),
             KeyCode::Enter => Ok(Key::Enter),
             KeyCode::Left => Ok(Key::Left),
@@ -213,7 +213,7 @@ mod tests {
     #[test]
     fn display_char() {
         assert_display(Key::Char('a'), "a");
-        assert_display(Key::Char('Ä'), "ä");
+        assert_display(Key::Char('Ä'), "Ä");
     }
 
     #[test]
@@ -261,6 +261,7 @@ mod tests {
     #[test]
     fn parse_char() {
         assert_parse("a", Key::Char('a'));
+        assert_parse("A", Key::Char('A'));
         assert_parse("æ", Key::Char('æ'));
 
         assert_parse("-", Key::Char('-'));
