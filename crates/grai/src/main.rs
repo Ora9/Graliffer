@@ -1,10 +1,7 @@
 use std::{any::Any, cell::RefCell, rc::Rc};
 
 use action::{AnyAction, Timeline};
-use grai::{
-    Cell, Frame, FrameGuard, Grid, GridAction, Head, HeadAction, Position, PositionError, Stack,
-};
-use serde::Serialize;
+use grai::{Cell, Frame, FrameGuard, Grid, GridAction, Head, Position, PositionError, Stack};
 
 fn main() -> Result<(), PositionError> {
     let mut frame = FrameGuard::new(Frame {

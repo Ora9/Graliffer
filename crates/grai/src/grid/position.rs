@@ -1,11 +1,9 @@
-use std::fmt::{Debug, Display};
+use std::fmt::Debug;
 
-use serde::{Deserialize, Serialize, Serializer};
-use unicode_segmentation::{Graphemes, UnicodeSegmentation};
+use serde::{Deserialize, Serialize};
 
 use crate::{
-    Axis::{self, Vertical},
-    Direction,
+    Axis, Direction,
     granary::{GranaryDigit, GranaryError},
 };
 

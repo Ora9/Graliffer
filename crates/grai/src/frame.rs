@@ -1,4 +1,4 @@
-use std::{any::type_name_of_val, cell::RefCell, ops::Deref, rc::Rc};
+use std::{any::type_name_of_val, cell::RefCell, rc::Rc};
 
 use action::{AnyAction, Revert, State};
 use serde::{Deserialize, Serialize};

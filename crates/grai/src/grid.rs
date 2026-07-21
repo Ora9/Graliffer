@@ -1,4 +1,4 @@
-use std::{any::Any, collections::HashMap};
+use std::collections::HashMap;
 
 mod cell;
 use action::{Action, Revert, State};
