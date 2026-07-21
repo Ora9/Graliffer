@@ -5,10 +5,10 @@ use crate::Cell;
 #[derive(Debug, strum_macros::EnumString)]
 #[strum(serialize_all = "lowercase")]
 pub enum Opcode {
-    Gou,
-    Gor,
-    God,
-    Gol,
+    Gup,
+    Gri,
+    Gdo,
+    Gle,
 }
 
 #[derive(Debug, thiserror::Error)]
