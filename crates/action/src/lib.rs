@@ -97,13 +97,13 @@ pub struct Timeline<S>
 where
     S: State,
 {
-    state: Rc<RefCell<S>>,
+    state: S,
     timeline: Vec<Undoable>,
     cursor: usize,
 }
 
 impl<S: State> Timeline<S> {
-    pub fn new(state: Rc<RefCell<S>>) -> Self {
+    pub fn new(state: S) -> Self {
         Self {
             state,
             timeline: Vec::new(),
@@ -114,10 +114,7 @@ impl<S: State> Timeline<S> {
     pub fn act(&mut self, action: impl Into<S::Action>) -> Result<(), TimelineError<S::Error>> {
         let action = action.into();
 
-        match {
-            let mut state = self.state.try_borrow_mut().unwrap();
-            state.act(&action)
-        } {
+        match self.state.act(&action) {
             Ok(revert) => {
                 self.append(Undoable {
                     apply: Apply::new(action),

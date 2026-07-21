@@ -1,15 +1,17 @@
 use std::{any::Any, cell::RefCell, rc::Rc};
 
 use action::{AnyAction, Timeline};
-use grai::{Cell, Frame, Grid, GridAction, Head, HeadAction, Position, PositionError, Stack};
+use grai::{
+    Cell, Frame, FrameGuard, Grid, GridAction, Head, HeadAction, Position, PositionError, Stack,
+};
 use serde::Serialize;
 
 fn main() -> Result<(), PositionError> {
-    let mut frame = Rc::new(RefCell::new(Frame {
+    let mut frame = FrameGuard::new(Frame {
         grid: Grid::new(),
         head: Head::default(),
         stack: Stack::default(),
-    }));
+    });
 
     let mut timeline = Timeline::new(frame.clone());
 
@@ -18,15 +20,26 @@ fn main() -> Result<(), PositionError> {
         Cell::new_trim("yey"),
     )));
 
-    {
-        let frame = frame.try_borrow_mut().unwrap();
+    timeline.act(AnyAction::new(GridAction::Set(
+        Position::from_numeric(0, 0).unwrap(),
+        Cell::new_trim("gri"),
+    )));
 
-        let frame_json = serde_json::to_string_pretty::<Frame>(&frame).unwrap();
-        println!("{}", frame_json);
+    frame.read(|frame| {
+        let frame_json = serde_json::to_string_pretty(&frame).unwrap();
 
-        let frame_from = serde_json::from_str::<Frame>(&frame_json);
-        dbg!(frame_from);
-    }
+        println!("{frame_json}");
+    });
+
+    // {
+    //     let frame = frame.try_borrow_mut().unwrap();
+
+    //     let frame_json = serde_json::to_string_pretty::<Frame>(&frame).unwrap();
+    //     println!("{}", frame_json);
+
+    //     let frame_from = serde_json::from_str::<Frame>(&frame_json);
+    //     dbg!(frame_from);
+    // }
 
     Ok(())
 }

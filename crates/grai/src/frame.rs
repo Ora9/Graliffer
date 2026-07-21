@@ -1,4 +1,4 @@
-use std::any::type_name_of_val;
+use std::{any::type_name_of_val, cell::RefCell, ops::Deref, rc::Rc};
 
 use action::{AnyAction, Revert, State};
 use serde::{Deserialize, Serialize};
@@ -16,6 +16,32 @@ pub enum FrameError {
 
     #[error("unknown action, found {0}")]
     UnknownAction(String),
+}
+
+#[derive(Debug, Clone)]
+pub struct FrameGuard(Rc<RefCell<Frame>>);
+
+impl FrameGuard {
+    pub fn new(frame: Frame) -> Self {
+        Self(Rc::new(RefCell::new(frame)))
+    }
+
+    pub fn read<T>(&self, reader: impl FnOnce(&Frame) -> T) -> T {
+        reader(&self.0.borrow())
+    }
+
+    pub fn write<T>(&mut self, writer: impl FnOnce(&mut Frame) -> T) -> T {
+        writer(&mut *self.0.borrow_mut())
+    }
+}
+
+impl State for FrameGuard {
+    type Action = AnyAction;
+    type Error = FrameError;
+
+    fn act(&mut self, action: &Self::Action) -> Result<Revert, Self::Error> {
+        self.write(|frame| frame.act(action))
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
