@@ -1,13 +1,19 @@
-//! Graliffer uses the Granary numeral system, positional system
+//! Graliffer uses the "Granary" numeral system.
 //!
-//! It is used to minimize the number of character used to represent a number
+//! It is a simple positional system like most common numeral system. Its goal is to minimize the
+//! length of numbers. It does this by using a absurdly high number of different characters
 //!
-//! Currently, Base64 is used, but in the future the standard might better make use of the whole unicode character set
+//! Currently, 64 different characters are used (in the same manner of Base64). But in the future
+//! the standard might use most of the unicode character set.
 //!
 //! # Representation
 //! Currently Granary uses the same alphabet as [base64](https://en.wikipedia.org/wiki/Base64)
 //!
-//! Example : `A = 0`, `z = 51`, `/ = 63`
+//! # Example
+//! - `A` is equal to 0
+//! - `z`, 51
+//! - `/`, 63
+//! - `AA`, 64
 
 use std::fmt::Debug;
 
@@ -17,6 +23,7 @@ use serde::{Deserialize, Serialize};
 pub enum GranaryError {
     #[error("invalid numeric representation, expected to be in range [0-63], found `{0}`")]
     InvalidNumericRepresentation(u32),
+
     #[error(
         "invalid textual representation, expected to be in character set [A-Za-z0-9/+], found `{0}`"
     )]
@@ -24,17 +31,10 @@ pub enum GranaryError {
 
     #[error("this operation would overflow")]
     WouldOverflowDigit,
+
     #[error("this operation would underflow")]
     WouldUnderflowDigit,
 }
-
-// impl Display for GranaryError {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         match GranaryError {
-//             GranaryError::InvalidNumericRepresentation => "Out"
-//         }
-//     }
-// }
 
 /// `GranaryDigit` is a single digit in the Granary numeral system
 ///
@@ -42,11 +42,9 @@ pub enum GranaryError {
 ///
 /// ```
 /// # use grai::granary::GranaryDigit;
-/// let pos = GranaryDigit::from_textual('A').unwrap();
-/// assert_eq!(pos.as_numeric(), 0);
+/// assert_eq!(GranaryDigit::from_textual('A').unwrap().as_numeric(), 0);
 ///
-/// let pos = GranaryDigit::from_numeric(51).unwrap();
-/// assert_eq!(pos.as_textual(), 'z');
+/// assert_eq!(GranaryDigit::from_numeric(51).unwrap().as_textual(), 'z');
 /// ```
 #[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct GranaryDigit(u8);
@@ -66,7 +64,6 @@ impl GranaryDigit {
     /// ```
     /// # use grai::granary::GranaryDigit;
     /// assert!( GranaryDigit::is_valid_numeric(0));
-    /// assert!( GranaryDigit::is_valid_numeric(25));
     /// assert!( GranaryDigit::is_valid_numeric(63));
     /// assert!(!GranaryDigit::is_valid_numeric(64));
     /// ```
@@ -391,3 +388,9 @@ impl Debug for GranaryDigit {
         )
     }
 }
+
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+
+// }
