@@ -1,8 +1,8 @@
 use std::str::FromStr;
 
 use crate::{
-    AppState, ConsoleAction, ConsoleActionError, GridAction, GridActionError, InputMode, PaneId,
-    PopupId,
+    AboutView, AppState, ConsoleAction, ConsoleActionError, GridAction, GridActionError, InputMode,
+    PaneId, PickerView, PopupId, StackView, View,
 };
 use serde::{Deserialize, Serialize};
 
@@ -134,16 +134,16 @@ impl State for AppState {
                     self.quit();
                 }
                 ToggleAbout => {
-                    self.toggle_popup(PopupId::About);
+                    self.toggle_popup(PopupId::from(AboutView::title().as_str()));
                 }
                 ToggleCommandPicker => {
-                    self.toggle_popup(PopupId::CommandPicker);
+                    self.toggle_popup(PopupId::from(PickerView::title().as_str()));
                 }
                 ClosePopup => {
                     self.close_popup();
                 }
                 FocusStack => {
-                    self.set_focus(PaneId::Stack);
+                    self.set_focus(StackView::view_id());
                 }
                 InsertMode => {
                     self.set_input_mode(InputMode::Insert);

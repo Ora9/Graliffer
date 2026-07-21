@@ -15,8 +15,8 @@ use serde::{Deserialize, Serialize};
 use tui_input::Input;
 
 use crate::{
-    AnyAppAction, Context, Focusable, GridAction::Insert, InsertBinding, InsertBindingList, Key,
-    KeyContextPredicate,
+    AnyAppAction, Context, GridAction::Insert, InputSinkBinding, InputSinkBindingList,
+    KeyContextPredicate, View, ViewType,
 };
 
 #[derive(Debug, Default)]
@@ -62,7 +62,7 @@ impl DragState {
 }
 
 #[derive(Debug)]
-pub struct GridState {
+pub struct GridView {
     context: Context,
 
     frame: Rc<RefCell<grai::Frame>>,
@@ -78,9 +78,9 @@ pub struct GridState {
     offset_y: usize,
 }
 
-impl GridState {
+impl GridView {
     pub fn new(frame: Rc<RefCell<grai::Frame>>, context: Context) -> Self {
-        GridState {
+        GridView {
             context,
             frame,
 
@@ -171,7 +171,7 @@ impl GridWidget {
 }
 
 impl StatefulWidget for GridWidget {
-    type State = GridState;
+    type State = GridView;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         state.layout = Some(area);
@@ -300,7 +300,7 @@ pub enum GridAction {
 
 impl Action for GridAction {}
 
-impl State for GridState {
+impl State for GridView {
     type Action = GridAction;
     type Error = GridActionError;
 
@@ -314,15 +314,26 @@ impl State for GridState {
             CursorDown => {
                 debug!("curosor down!");
             }
+            Insert(input) => {
+                debug!("grid insert : {input}");
+            }
             _ => {}
         }
         Ok(Revert::None)
     }
 }
 
-impl Focusable for GridState {
-    fn insert_sink_binding(input: String) -> InsertBindingList {
-        InsertBinding {
+impl View for GridView {
+    fn title() -> String {
+        String::from("Grid")
+    }
+
+    fn view_type() -> ViewType {
+        ViewType::Pane
+    }
+
+    fn input_sink_binding_list(input: String) -> InputSinkBindingList {
+        InputSinkBinding {
             context: KeyContextPredicate::And(
                 Box::new(KeyContextPredicate::from_flag("Grid")),
                 Box::new(KeyContextPredicate::from_flag("insert")),
@@ -332,7 +343,3 @@ impl Focusable for GridState {
         .into()
     }
 }
-
-// impl InsertSink for GridState {
-//     fn insert_action(input: String) -> InsertBindingList {
-// }

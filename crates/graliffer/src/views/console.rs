@@ -14,10 +14,10 @@ use tui_scrollbar::{
     ScrollMetrics,
 };
 
-use crate::Context;
+use crate::{AnyAppAction, Context, InputSinkBinding, InputSinkBindingList, View, ViewType};
 
 #[derive(Debug)]
-pub struct ConsoleState {
+pub struct ConsoleView {
     context: Context,
 
     layouts: Option<ConsoleLayout>,
@@ -31,7 +31,7 @@ pub struct ConsoleState {
     scrollbar_interaction: ScrollBarInteraction,
 }
 
-impl ConsoleState {
+impl ConsoleView {
     pub fn new(context: Context) -> Self {
         Self {
             context,
@@ -57,7 +57,7 @@ impl ConsoleState {
 }
 
 /// # Content
-impl ConsoleState {
+impl ConsoleView {
     pub fn lines(&self) -> usize {
         self.content.len()
     }
@@ -94,7 +94,7 @@ impl ConsoleState {
 }
 
 /// # Inputs
-impl ConsoleState {
+impl ConsoleView {
     pub fn handle_mouse_event(&mut self, event: MouseEvent) {
         let Some(layouts) = self.layouts else {
             return;
@@ -102,7 +102,7 @@ impl ConsoleState {
 
         let metrics = self.metrics_for_layouts(layouts);
 
-        if let Some(command) = Console::build_vertical_scrollbar(metrics).handle_mouse_event(
+        if let Some(command) = ConsoleWidget::build_vertical_scrollbar(metrics).handle_mouse_event(
             layouts.vertical_scrollbar_area,
             event,
             &mut self.scrollbar_interaction,
@@ -120,7 +120,7 @@ impl ConsoleState {
 }
 
 /// # Layout
-impl ConsoleState {
+impl ConsoleView {
     fn update_layouts(&mut self, layouts: ConsoleLayout) {
         self.layouts = Some(layouts);
     }
@@ -151,7 +151,7 @@ impl ConsoleState {
 }
 
 /// # Scrolling
-impl ConsoleState {
+impl ConsoleView {
     pub fn need_scroll(&self) -> bool {
         match self.content_area_height() {
             Some(content_area_height) => self.lines() > content_area_height,
@@ -252,11 +252,11 @@ impl ConsoleLayout {
 }
 
 #[derive(Debug)]
-pub struct Console;
+pub struct ConsoleWidget;
 
-impl Console {
+impl ConsoleWidget {
     pub fn new() -> Self {
-        Console
+        ConsoleWidget
     }
 
     fn build_vertical_scrollbar(metrics: ScrollMetrics) -> ScrollBar {
@@ -281,8 +281,8 @@ impl Console {
     }
 }
 
-impl StatefulWidget for Console {
-    type State = ConsoleState;
+impl StatefulWidget for ConsoleWidget {
+    type State = ConsoleView;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let [viewport_area, vertical_scrollbar_area] = area.layout(&Layout::horizontal([
@@ -345,7 +345,7 @@ pub enum ConsoleAction {
 
 impl Action for ConsoleAction {}
 
-impl State for ConsoleState {
+impl State for ConsoleView {
     type Action = ConsoleAction;
     type Error = ConsoleActionError;
 
@@ -379,5 +379,15 @@ impl State for ConsoleState {
             }
         }
         Ok(Revert::None)
+    }
+}
+
+impl View for ConsoleView {
+    fn title() -> String {
+        String::from("Console")
+    }
+
+    fn view_type() -> ViewType {
+        ViewType::Pane
     }
 }

@@ -10,7 +10,7 @@ use ratatui::{
     widgets::{Block, Borders, StatefulWidget, Widget},
 };
 
-use crate::widgets::Popup;
+use crate::{View, ViewType, widgets::Popup};
 
 #[derive(Debug, Clone)]
 pub struct PickerItem {
@@ -38,12 +38,12 @@ impl From<&str> for PickerItem {
 }
 
 #[derive(Debug, Default)]
-pub struct PickerState {
+pub struct PickerView {
     items: Vec<PickerItem>,
     cursor: usize,
 }
 
-impl PickerState {
+impl PickerView {
     pub fn new() -> Self {
         Self {
             items: vec![
@@ -72,7 +72,7 @@ impl PickerState {
 pub struct Picker;
 
 impl StatefulWidget for Picker {
-    type State = PickerState;
+    type State = PickerView;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let width = 70;
@@ -115,5 +115,15 @@ impl StatefulWidget for Picker {
         border_block.clone().render(item_area, buf);
 
         Text::from(item_list).render(border_block.inner(item_area), buf);
+    }
+}
+
+impl View for PickerView {
+    fn title() -> String {
+        String::from("Picker")
+    }
+
+    fn view_type() -> ViewType {
+        ViewType::Popup
     }
 }

@@ -8,7 +8,9 @@ use ratatui::{
     widgets::Widget,
 };
 
-use crate::widgets::Popup;
+use crate::{View, ViewType, widgets::Popup};
+
+pub struct AboutView;
 
 pub struct About;
 
@@ -65,5 +67,15 @@ impl Widget for About {
         ])
         .centered()
         .render(misc_area, buf);
+    }
+}
+
+impl View for AboutView {
+    fn title() -> String {
+        String::from("About")
+    }
+
+    fn view_type() -> ViewType {
+        ViewType::Popup
     }
 }

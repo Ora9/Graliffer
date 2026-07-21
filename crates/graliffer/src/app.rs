@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use rand::seq::SliceRandom;
 
 use crate::{
-    Config, ConsoleState, Context, FocusId, GridState, PaneId, PickerState, PopupId,
+    Config, ConsoleView, Context, GridView, PaneId, PickerView, PopupId, View, ViewId,
     input::{InputMode, Keymap},
 };
 
@@ -12,16 +12,16 @@ pub use action::*;
 
 #[derive(Debug)]
 pub struct AppState {
-    pub should_run: bool,
-
-    pub console_state: ConsoleState,
-    pub grid_state: GridState,
-    pub command_picker_state: PickerState,
+    pub context: Context,
 
     pub keymap: Keymap,
 
+    pub console_state: ConsoleView,
+    pub grid_state: GridView,
+    pub command_picker_state: PickerView,
+
+    pub should_run: bool,
     pub last_focused_pane: Option<PaneId>,
-    pub context: Context,
 }
 
 #[derive(Debug)]
@@ -89,7 +89,9 @@ impl AppState {
     pub fn new(config: Config) -> Self {
         let frame = Rc::new(RefCell::new(default_grai_frame()));
 
-        let context = Context::new(config);
+        let default_focus = GridView::view_id();
+
+        let context = Context::new(config, default_focus);
 
         let mut app = Self {
             keymap: Keymap::new(),
@@ -98,9 +100,10 @@ impl AppState {
 
             should_run: true,
 
-            console_state: ConsoleState::new(context.clone()),
-            grid_state: GridState::new(frame, context),
-            command_picker_state: PickerState::new(),
+            console_state: ConsoleView::new(context.clone()),
+            grid_state: GridView::new(frame, context),
+
+            command_picker_state: PickerView::new(),
 
             last_focused_pane: None,
         };
@@ -124,42 +127,42 @@ impl AppState {
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {}
 
-    pub fn is_focused(&self, focus_id: impl Into<FocusId>) -> bool {
+    pub fn is_focused(&self, focus_id: impl Into<ViewId>) -> bool {
         self.focused() == focus_id.into()
     }
 
-    pub fn focused(&self) -> FocusId {
+    pub fn focused(&self) -> ViewId {
         self.context.get_focus()
     }
 
-    pub fn set_focus(&mut self, focus_id: impl Into<FocusId>) {
+    pub fn set_focus(&mut self, focus_id: impl Into<ViewId>) {
         self.context.set_focus(focus_id.into());
     }
 
     pub fn popup_opened(&self) -> bool {
-        matches!(self.focused(), FocusId::Popup(_))
+        matches!(self.focused(), ViewId::Popup(_))
     }
 
     pub fn close_popup(&mut self) {
-        if let Some(last_focus) = self.last_focused_pane {
+        if let Some(last_focus) = self.last_focused_pane.clone() {
             self.set_focus(last_focus);
         }
 
-        self.context.remove_flag("focusing_popup");
+        self.context.remove_flag("popuped");
     }
 
     pub fn open_popup(&mut self, popup_id: PopupId) {
-        if let FocusId::Pane(pane_id) = self.focused() {
+        if let ViewId::Pane(pane_id) = self.focused() {
             self.last_focused_pane = Some(pane_id);
         }
 
-        self.context.insert_flag("focusing_popup".to_string());
+        self.context.insert_flag("popuped".to_string());
 
         self.set_focus(popup_id);
     }
 
     pub fn toggle_popup(&mut self, popup_id: PopupId) {
-        if self.is_focused(popup_id) {
+        if self.is_focused(popup_id.clone()) {
             self.close_popup();
         } else {
             self.open_popup(popup_id);
