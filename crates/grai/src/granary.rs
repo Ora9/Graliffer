@@ -19,13 +19,13 @@ use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum GranaryError {
     #[error("invalid numeric representation, expected to be in range [0-63], found `{0}`")]
     InvalidNumericRepresentation(u32),
 
     #[error(
-        "invalid textual representation, expected to be in character set [A-Za-z0-9/+], found `{0}`"
+        "invalid textual representation, expected to be a single char in set [A-Za-z0-9/+], found `{0}`"
     )]
     InvalidTextualRepresentation(String),
 
@@ -43,7 +43,6 @@ pub enum GranaryError {
 /// ```
 /// # use grai::granary::GranaryDigit;
 /// assert_eq!(GranaryDigit::from_textual('A').unwrap().as_numeric(), 0);
-///
 /// assert_eq!(GranaryDigit::from_numeric(51).unwrap().as_textual(), 'z');
 /// ```
 #[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -93,8 +92,8 @@ impl GranaryDigit {
     /// ```
     /// # use grai::granary::GranaryDigit;
     /// assert!( GranaryDigit::is_valid_textual('A'));
-    /// assert!( GranaryDigit::is_valid_textual('/'));
     /// assert!( GranaryDigit::is_valid_textual('q'));
+    /// assert!( GranaryDigit::is_valid_textual('/'));
     /// assert!(!GranaryDigit::is_valid_textual('-'));
     /// ```
     pub fn is_valid_textual(value: char) -> bool {
@@ -389,8 +388,124 @@ impl Debug for GranaryDigit {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+#[cfg(test)]
+mod tests {
+    use std::ops::RangeInclusive;
 
-// }
+    use super::*;
+
+    fn valid_numeric_range() -> RangeInclusive<u32> {
+        0..=63
+    }
+
+    fn valid_textual_range() -> Vec<char> {
+        let mut ranges: Vec<char> = ('A'..='Z').chain('a'..='z').chain('0'..='9').collect();
+
+        ranges.push('+');
+        ranges.push('/');
+
+        ranges
+    }
+
+    #[test]
+    fn meta_range_len() {
+        assert!(valid_numeric_range().count() == valid_textual_range().len())
+    }
+
+    #[test]
+    fn valid_numeric() {
+        for i in 0..65 {
+            let is_valid = GranaryDigit::is_valid_numeric(i);
+
+            if valid_numeric_range().contains(&i) {
+                assert!(is_valid, "`{i}` should be valid");
+            } else {
+                assert!(!is_valid, "`{i}` shouldn't be valid");
+            }
+        }
+    }
+
+    #[test]
+    fn clamp_numeric() {
+        for i in 0..65 {
+            let clamped = GranaryDigit::clamp_numeric(i);
+
+            assert!(
+                GranaryDigit::is_valid_numeric(clamped),
+                "`{i}` clamped `{clamped}` should be valid"
+            );
+
+            if valid_numeric_range().contains(&i) {
+                assert_eq!(
+                    i, clamped,
+                    "input `{i}` should equal clamped `{clamped}` when in [0-63]"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn valid_textual() {
+        for c in valid_textual_range() {
+            assert!(
+                GranaryDigit::is_valid_textual(c),
+                "`{c}` should be valid textual"
+            );
+        }
+
+        assert!(!GranaryDigit::is_valid_textual('-'));
+        assert!(!GranaryDigit::is_valid_textual('@'));
+        assert!(!GranaryDigit::is_valid_textual('&'));
+        assert!(!GranaryDigit::is_valid_textual('.'));
+    }
+
+    #[test]
+    fn numeric_to_textual() -> Result<(), GranaryError> {
+        let zipped = valid_numeric_range().zip(valid_textual_range());
+
+        for (i, c) in zipped {
+            assert_eq!(
+                GranaryDigit::numeric_to_textual(i)?,
+                c,
+                "{i} should equal {c}"
+            );
+        }
+
+        assert_eq!(
+            GranaryDigit::numeric_to_textual(64),
+            Err(GranaryError::InvalidNumericRepresentation(64))
+        );
+
+        assert_eq!(
+            GranaryDigit::numeric_to_textual(100),
+            Err(GranaryError::InvalidNumericRepresentation(100))
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn textual_to_numeric() -> Result<(), GranaryError> {
+        let zipped = valid_numeric_range().zip(valid_textual_range());
+
+        for (i, c) in zipped {
+            assert_eq!(
+                GranaryDigit::textual_to_numeric(c)?,
+                i,
+                "{c} should equal {i}"
+            );
+        }
+
+        assert_eq!(
+            GranaryDigit::textual_to_numeric('@'),
+            Err(GranaryError::InvalidTextualRepresentation("@".to_string()))
+        );
+
+        assert_eq!(
+            GranaryDigit::textual_to_numeric('&'),
+            Err(GranaryError::InvalidTextualRepresentation("&".to_string()))
+        );
+
+        Ok(())
+    }
+}

@@ -1,4 +1,4 @@
-use std::{error, path::PathBuf};
+use std::path::PathBuf;
 
 use crate::Frame;
 

@@ -3,8 +3,6 @@ use std::{any::type_name_of_val, cell::RefCell, rc::Rc};
 use action::{AnyAction, Revert, State};
 use serde::{Deserialize, Serialize};
 
-// use crate::{Grid, GridAction, Head, HeadAction, Stack, StackAction};
-
 pub mod examples;
 
 mod grid;
