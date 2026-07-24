@@ -1,0 +1,13 @@
+{
+  "head": {
+    "position": "AA",
+    "direction": "Right"
+  },
+  "grid": {
+    "AA": "gri",
+    "BA": "gdo",
+    "BB": "gle",
+    "AB": "gup"
+  },
+  "stack": []
+}
