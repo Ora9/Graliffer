@@ -3,7 +3,18 @@ use std::{any::type_name_of_val, cell::RefCell, rc::Rc};
 use action::{AnyAction, Revert, State};
 use serde::{Deserialize, Serialize};
 
-use crate::{Grid, GridAction, Head, HeadAction, Stack, StackAction};
+// use crate::{Grid, GridAction, Head, HeadAction, Stack, StackAction};
+
+pub mod examples;
+
+mod grid;
+pub use grid::*;
+
+mod stack;
+pub use stack::*;
+
+mod head;
+pub use head::*;
 
 #[derive(Debug, thiserror::Error)]
 pub enum FrameError {
