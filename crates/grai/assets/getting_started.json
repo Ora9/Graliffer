@@ -5,8 +5,15 @@
   },
   "grid": {
     "AA": "100",
-    "BA": "3",
-    "CA": "div"
+    "BA": "&BB",
+    "CA": "div",
+    "BB": "@CB",
+    "CB": "3",
+
+    "EA": "20",
+    "FA": "sub",
+    "HA": "@AB",
+    "IA": "set"
   },
   "stack": []
 }
