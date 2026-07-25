@@ -12,19 +12,50 @@ impl Revert {
     pub fn new(action: impl Action) -> Self {
         Self::Apply(Apply::new(action))
     }
-}
 
-#[derive(Debug)]
-pub struct Apply(AnyAction);
+    pub fn is_none(&self) -> bool {
+        matches!(self, Revert::None)
+    }
 
-impl Apply {
-    pub fn new(action: impl Action) -> Self {
-        Self(AnyAction::new(action))
+    pub fn is_apply(&self) -> bool {
+        matches!(self, Revert::Apply(_))
+    }
+
+    pub fn extend(&mut self, other: Self) {
+        match other {
+            Self::None => {} // nothing to extend
+            Self::Apply(rhs) => match self {
+                Self::None => *self = Self::Apply(rhs),
+                Self::Apply(lhs) => lhs.extend(rhs),
+            },
+        }
     }
 }
 
-impl From<AnyAction> for Apply {
-    fn from(value: AnyAction) -> Self {
+impl From<Vec<Revert>> for Revert {
+    fn from(reverts: Vec<Revert>) -> Self {
+        reverts.into_iter().fold(Revert::None, |mut acc, revert| {
+            acc.extend(revert);
+            acc
+        })
+    }
+}
+
+#[derive(Debug)]
+pub struct Apply(Vec<AnyAction>);
+
+impl Apply {
+    pub fn new(action: impl Action) -> Self {
+        Self(vec![AnyAction::new(action)])
+    }
+
+    pub fn extend(&mut self, other: Self) {
+        self.0.extend(other.0);
+    }
+}
+
+impl From<Vec<AnyAction>> for Apply {
+    fn from(value: Vec<AnyAction>) -> Self {
         Self(value)
     }
 }
