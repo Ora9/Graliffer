@@ -48,11 +48,13 @@ impl Address {
         Self(position)
     }
 
-    pub fn from_cell(cell: Cell) -> Result<Self, OperandError> {
-        let cell_content = cell.content();
-        let pos = cell_content
-            .strip_prefix(Self::PREFIX)
-            .ok_or(OperandError::InvalidAddressFormat(cell.content()))?;
+    pub fn from_ref_cell(cell: &Cell) -> Result<Self, OperandError> {
+        let pos =
+            cell.content()
+                .strip_prefix(Self::PREFIX)
+                .ok_or(OperandError::InvalidAddressFormat(String::from(
+                    cell.content(),
+                )))?;
 
         let pos = Position::from_string(pos).map_err(OperandError::InvalidAddress)?;
 
@@ -75,11 +77,13 @@ impl Pointer {
         Self(position)
     }
 
-    pub fn from_cell(cell: Cell) -> Result<Self, OperandError> {
-        let cell_content = cell.content();
-        let pos = cell_content
-            .strip_prefix(Self::PREFIX)
-            .ok_or(OperandError::InvalidPointerFormat(cell.content()))?;
+    pub fn from_ref_cell(cell: &Cell) -> Result<Self, OperandError> {
+        let pos =
+            cell.content()
+                .strip_prefix(Self::PREFIX)
+                .ok_or(OperandError::InvalidPointerFormat(String::from(
+                    cell.content(),
+                )))?;
 
         let pos = Position::from_string(pos).map_err(OperandError::InvalidPointer)?;
 
@@ -101,24 +105,12 @@ pub enum Operand {
 
 impl Operand {
     pub fn from_cell(cell: Cell) -> Self {
-        let cell_content = cell.content();
-
-        match cell_content.chars().next() {
-            Some('@') => {
-                if let Ok(address) = Address::from_cell(cell.clone()) {
-                    Self::Address(address)
-                } else {
-                    Self::Literal(Literal::from_cell(cell))
-                }
-            }
-            Some('&') => {
-                if let Ok(pointer) = Pointer::from_cell(cell.clone()) {
-                    Self::Pointer(pointer)
-                } else {
-                    Self::Literal(Literal::from_cell(cell))
-                }
-            }
-            _ => Self::Literal(Literal::from_cell(cell)),
+        if let Ok(address) = Address::from_ref_cell(&cell) {
+            Self::Address(address)
+        } else if let Ok(pointer) = Pointer::from_ref_cell(&cell) {
+            Self::Pointer(pointer)
+        } else {
+            Self::Literal(Literal::from_cell(cell))
         }
     }
 

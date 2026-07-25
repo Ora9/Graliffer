@@ -39,13 +39,17 @@ impl Cell {
         self.0.is_empty()
     }
 
-    pub fn content(&self) -> String {
-        self.0.clone()
+    // pub fn content(&self) -> String {
+    //     self.0.clone()
+    // }
+
+    pub fn content(&self) -> &str {
+        &self.0
     }
 }
 
 impl From<Cell> for String {
     fn from(value: Cell) -> Self {
-        value.content()
+        String::from(value.content())
     }
 }
