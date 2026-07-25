@@ -81,26 +81,26 @@ pub enum FrameAction {
 
     // SetBreakpoint(Position),
     // ToggleBreakpoint(Position),
-    GridAction(GridAction),
-    StackAction(StackAction),
-    HeadAction(HeadAction),
+    Grid(GridAction),
+    Stack(StackAction),
+    Head(HeadAction),
 }
 
 impl From<GridAction> for FrameAction {
     fn from(value: GridAction) -> Self {
-        Self::GridAction(value)
+        Self::Grid(value)
     }
 }
 
 impl From<StackAction> for FrameAction {
     fn from(value: StackAction) -> Self {
-        Self::StackAction(value)
+        Self::Stack(value)
     }
 }
 
 impl From<HeadAction> for FrameAction {
     fn from(value: HeadAction) -> Self {
-        Self::HeadAction(value)
+        Self::Head(value)
     }
 }
 
@@ -112,9 +112,9 @@ impl State for Frame {
 
     fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
         match action.into() {
-            FrameAction::GridAction(grid_action) => self.grid.act(grid_action),
-            FrameAction::HeadAction(head_action) => self.head.act(head_action),
-            FrameAction::StackAction(stack_action) => self.stack.act(stack_action),
+            FrameAction::Grid(grid_action) => self.grid.act(grid_action),
+            FrameAction::Head(head_action) => self.head.act(head_action),
+            FrameAction::Stack(stack_action) => self.stack.act(stack_action),
 
             FrameAction::Step => self.step(),
         }
