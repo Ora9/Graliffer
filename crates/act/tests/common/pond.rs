@@ -25,13 +25,13 @@ impl State for Camp {
     fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
         match action.into() {
             CampAction::LitFire(state) => {
-                let revert = Revert::new_apply(CampAction::LitFire(self.fire));
+                let revert = Revert::new(CampAction::LitFire(self.fire));
                 self.fire = state;
 
                 Ok(revert)
             }
             CampAction::SetupHamoc(state) => {
-                let revert = Revert::new_apply(CampAction::SetupHamoc(self.hamoc));
+                let revert = Revert::new(CampAction::SetupHamoc(self.hamoc));
                 self.hamoc = state;
 
                 Ok(revert)
@@ -92,16 +92,16 @@ impl State for Pond {
             }
             PondAction::IntroduceFrog(frog_name) => {
                 self.frogs.insert(frog_name.clone(), Frog::default());
-                Ok(Revert::new_apply(PondAction::SendFrogToATrip(frog_name)))
+                Ok(Revert::new(PondAction::SendFrogToATrip(frog_name)))
             }
             PondAction::SendFrogToATrip(frog_name) => {
                 self.frogs.remove(&frog_name);
-                Ok(Revert::new_apply(PondAction::IntroduceFrog(frog_name)))
+                Ok(Revert::new(PondAction::IntroduceFrog(frog_name)))
             }
             PondAction::BeginPatPatingFrog(frog_name) => {
                 if let Some(frog) = self.frogs.get_mut(&frog_name) {
                     frog.happy = true;
-                    Ok(Revert::new_apply(PondAction::StopPatPatingFrog(frog_name)))
+                    Ok(Revert::new(PondAction::StopPatPatingFrog(frog_name)))
                 } else {
                     return Err(PondError::NoFrogThisName(frog_name));
                 }
@@ -109,7 +109,7 @@ impl State for Pond {
             PondAction::StopPatPatingFrog(frog_name) => {
                 if let Some(frog) = self.frogs.get_mut(&frog_name) {
                     frog.happy = false;
-                    Ok(Revert::new_apply(BeginPatPatingFrog(frog_name)))
+                    Ok(Revert::new(BeginPatPatingFrog(frog_name)))
                 } else {
                     Err(PondError::NoFrogThisName(frog_name))
                 }

@@ -9,7 +9,7 @@ pub enum Revert {
 }
 
 impl Revert {
-    pub fn new_apply(action: impl Action) -> Self {
+    pub fn new(action: impl Action) -> Self {
         Self::Apply(Apply::new(action))
     }
 }

@@ -1,7 +1,7 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, convert::Infallible};
 
 mod cell;
-use action::{Action, Revert, State};
+use act::{Action, Revert, State};
 pub use cell::*;
 
 mod position;
@@ -54,7 +54,7 @@ impl Action for GridAction {}
 
 impl State for Grid {
     type Action = GridAction;
-    type Error = ();
+    type Error = Infallible;
 
     fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
         match action.into() {

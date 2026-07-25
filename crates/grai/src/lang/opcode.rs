@@ -1,8 +1,8 @@
 use std::str::FromStr;
 
-use action::{AnyAction, Revert, State};
+use act::{Revert, State};
 
-use crate::{Cell, Direction, Frame, FrameError, HeadAction};
+use crate::{Cell, Direction, Frame, Head, HeadAction};
 
 #[derive(Debug, strum_macros::EnumString)]
 #[strum(serialize_all = "lowercase")]
@@ -26,16 +26,16 @@ impl Opcode {
         Opcode::from_str(&cell.content()).map_err(|_| OpcodeError::NotAnOpcode(cell.content()))
     }
 
-    pub fn evaluate(self, frame: &mut Frame) -> Result<Revert, FrameError> {
+    pub fn evaluate(self, frame: &mut Frame) -> Result<Revert, <Frame as State>::Error> {
         use Opcode::*;
 
         match self {
             Nop => Ok(Revert::None),
 
-            Gup => frame.act(AnyAction::new(HeadAction::DirectTo(Direction::Up))),
-            Gri => frame.act(AnyAction::new(HeadAction::DirectTo(Direction::Right))),
-            Gdo => frame.act(AnyAction::new(HeadAction::DirectTo(Direction::Down))),
-            Gle => frame.act(AnyAction::new(HeadAction::DirectTo(Direction::Left))),
+            Gup => frame.act(HeadAction::DirectTo(Direction::Up)),
+            Gri => frame.act(HeadAction::DirectTo(Direction::Right)),
+            Gdo => frame.act(HeadAction::DirectTo(Direction::Down)),
+            Gle => frame.act(HeadAction::DirectTo(Direction::Left)),
         }
     }
 }

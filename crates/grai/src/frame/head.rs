@@ -1,4 +1,6 @@
-use action::{Action, Revert, State};
+use std::convert::Infallible;
+
+use act::{Action, Revert, State};
 use serde::{Deserialize, Serialize};
 
 use crate::{Direction, Position, PositionError};
@@ -74,7 +76,7 @@ impl Action for HeadAction {}
 
 impl State for Head {
     type Action = HeadAction;
-    type Error = ();
+    type Error = Infallible;
 
     fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
         match action.into() {

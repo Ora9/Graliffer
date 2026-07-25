@@ -1,6 +1,6 @@
-use std::{any::type_name_of_val, cell::RefCell, rc::Rc};
+use std::{cell::RefCell, convert::Infallible, rc::Rc};
 
-use action::{Action, AnyAction, Revert, State};
+use act::{Action, Revert, State};
 use serde::{Deserialize, Serialize};
 
 pub mod examples;
@@ -15,19 +15,6 @@ mod head;
 pub use head::*;
 
 use crate::Word;
-
-#[derive(Debug, thiserror::Error)]
-pub enum FrameError {
-    #[error("head error")]
-    HeadError,
-    #[error("grid error")]
-    GridError,
-    #[error("stack error")]
-    StackError,
-
-    #[error("unknown action, found {0}")]
-    UnknownAction(String),
-}
 
 #[derive(Debug, Clone)]
 pub struct FrameGuard(Rc<RefCell<Frame>>);
@@ -47,8 +34,8 @@ impl FrameGuard {
 }
 
 impl State for FrameGuard {
-    type Action = AnyAction;
-    type Error = FrameError;
+    type Action = FrameAction;
+    type Error = Infallible;
 
     fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
         self.write(|frame| frame.act(action))
@@ -67,7 +54,7 @@ impl Frame {
         let cell = self.grid.get(self.head.position);
 
         if cell.is_empty() {
-            self.act(AnyAction::new(HeadAction::Step));
+            self.act(HeadAction::Step);
         } else {
             let word = Word::from_cell(cell);
 
@@ -85,46 +72,49 @@ impl Frame {
 #[derive(Debug, Clone)]
 pub enum FrameAction {
     Step,
-    Run,
+    // Run,
 
-    SetBreakpoint(Position),
-    ToggleBreakpoint(Position),
+    // SetBreakpoint(Position),
+    // ToggleBreakpoint(Position),
+    GridAction(GridAction),
+    StackAction(StackAction),
+    HeadAction(HeadAction),
+}
+
+impl From<GridAction> for FrameAction {
+    fn from(value: GridAction) -> Self {
+        Self::GridAction(value)
+    }
+}
+
+impl From<StackAction> for FrameAction {
+    fn from(value: StackAction) -> Self {
+        Self::StackAction(value)
+    }
+}
+
+impl From<HeadAction> for FrameAction {
+    fn from(value: HeadAction) -> Self {
+        Self::HeadAction(value)
+    }
 }
 
 impl Action for FrameAction {}
 
 impl State for Frame {
-    type Error = FrameError;
-    type Action = AnyAction;
+    type Error = Infallible;
+    type Action = FrameAction;
 
     fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
-        Ok(Revert::None)
+        match action.into() {
+            FrameAction::GridAction(grid_action) => self.grid.act(grid_action),
+            FrameAction::HeadAction(head_action) => self.head.act(head_action),
+            FrameAction::StackAction(stack_action) => self.stack.act(stack_action),
 
-        // let action = action.into();
-
-        // if let Ok(frame_action) = action.downcast::<FrameAction>() {
-        //     dbg!(frame_action);
-        //     Ok(Revert::None)
-        // } else if let Ok(head_action) = action.downcast::<HeadAction>() {
-        //     self.head
-        //         .act(*head_action)
-        //         .map_err(|_| FrameError::HeadError)
-        // } else if let Ok(stack_action) = action.downcast::<StackAction>() {
-        //     self.stack
-        //         .act(*stack_action)
-        //         .map_err(|_| FrameError::StackError)
-        // } else if let Ok(grid_action) = action.downcast::<GridAction>() {
-        //     self.grid
-        //         .act(*grid_action)
-        //         .map_err(|_| FrameError::HeadError)
-        // } else {
-        //     Err(FrameError::UnknownAction(
-        //         type_name_of_val(&action)
-        //             .split("::")
-        //             .last()
-        //             .unwrap_or("unknown action")
-        //             .to_string(),
-        //     ))
-        // }
+            FrameAction::Step => {
+                dbg!("step!");
+                Ok(Revert::None)
+            }
+        }
     }
 }

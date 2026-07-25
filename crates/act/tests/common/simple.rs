@@ -31,22 +31,22 @@ impl State for Simple {
             SimpleAction::IncrementFoo => {
                 self.foo = self.foo.wrapping_add(1);
 
-                Ok(Revert::new_apply(SimpleAction::DecrementFoo))
+                Ok(Revert::new(SimpleAction::DecrementFoo))
             }
             SimpleAction::DecrementFoo => {
                 self.foo = self.foo.wrapping_sub(1);
 
-                Ok(Revert::new_apply(SimpleAction::IncrementFoo))
+                Ok(Revert::new(SimpleAction::IncrementFoo))
             }
             SimpleAction::SetBar(new_bar) => {
                 let old_bar = mem::replace(&mut self.bar, new_bar);
 
-                Ok(Revert::new_apply(SimpleAction::SetBar(old_bar)))
+                Ok(Revert::new(SimpleAction::SetBar(old_bar)))
             }
             SimpleAction::ToggleBaz => {
                 self.baz = !self.baz;
 
-                Ok(Revert::new_apply(SimpleAction::ToggleBaz))
+                Ok(Revert::new(SimpleAction::ToggleBaz))
             }
         }
     }

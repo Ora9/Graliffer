@@ -1,4 +1,4 @@
-use action::Timeline;
+use act::Timeline;
 use grai::{FrameGuard, PositionError};
 
 fn main() -> Result<(), PositionError> {
