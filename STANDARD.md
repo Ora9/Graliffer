@@ -118,10 +118,10 @@ There exists a large range of opcodes
 ### Head movements
 
 Change executing head *direction* :
-- `gou` : go *up*
-- `gor` : go *right*
-- `god` : go *down*
-- `gol` : go *left*
+- `gup` : go *up*
+- `gri` : go *right*
+- `gdo` : go *down*
+- `gle` : go *left*
 
 Pop as address from the stack and move executing head to that address :
 - `jmp` ("jump")
