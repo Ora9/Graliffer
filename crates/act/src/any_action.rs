@@ -20,8 +20,9 @@ impl AnyAction {
         Self(Box::new(action))
     }
 
+    #[must_use]
     pub fn downcast_ref<T: Any>(&self) -> Option<&T> {
-        (self.0.deref() as &dyn Any).downcast_ref()
+        (&*self.0 as &dyn Any).downcast_ref()
     }
 
     pub fn downcast<T: Any>(self) -> Result<Box<T>, Box<dyn Any>> {
