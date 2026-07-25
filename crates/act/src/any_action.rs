@@ -5,7 +5,7 @@ use crate::Action;
 #[derive(Debug, Clone)]
 pub struct AnyAction(Box<dyn Action>);
 
-impl Action for AnyAction {}
+// impl Action for AnyAction {}
 
 impl Deref for AnyAction {
     type Target = Box<dyn Action>;
