@@ -113,7 +113,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "action"
+name = "act"
 version = "0.1.0"
 
 [[package]]
@@ -1914,7 +1914,7 @@ dependencies = [
 name = "grai"
 version = "0.1.0"
 dependencies = [
- "action",
+ "act",
  "iftree",
  "serde",
  "serde_json",
@@ -1928,7 +1928,7 @@ dependencies = [
 name = "graliffer"
 version = "0.1.0"
 dependencies = [
- "action",
+ "act",
  "ahash",
  "color-eyre",
  "crossterm",

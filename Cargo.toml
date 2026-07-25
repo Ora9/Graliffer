@@ -10,7 +10,7 @@ resolver = "2"
 members = [
     "crates/graliffer",         # Graliffer tui
     "crates/grai",              # Graliffer interpreter
-    "crates/action",            # The action system of graliffer, used for grai internal execution, and for editor actions
+    "crates/act",            # The action system of graliffer, used for grai internal execution, and for editor actions
     "crates/graliffer_archive", # An archive of the first graliffer impl
 ]
 default-members = ["crates/grai"]
@@ -22,7 +22,7 @@ unused = "allow"
 [workspace.dependencies]
 grai = { path = "crates/grai" }
 graliffer = { path = "crates/graliffer" }
-action = { path = "crates/action"}
+act = { path = "crates/act"}
 
 # External
 unicode-segmentation = "1.12"
