@@ -1922,6 +1922,7 @@ dependencies = [
  "strum_macros 0.28.0",
  "thiserror 2.0.19",
  "unicode-segmentation",
+ "unwrap-infallible",
 ]
 
 [[package]]
@@ -4661,6 +4662,12 @@ name = "unicode-xid"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
+
+[[package]]
+name = "unwrap-infallible"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e497bb1f828cc9fb236722c2eaa100dcf201563f38f4da6252357a59037adf31"
 
 [[package]]
 name = "url"
