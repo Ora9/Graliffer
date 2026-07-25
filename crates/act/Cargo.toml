@@ -1,5 +1,5 @@
 [package]
-name = "action"
+name = "act"
 publish = false
 description.workspace = true
 repository.workspace = true
