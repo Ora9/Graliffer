@@ -56,13 +56,13 @@ impl State for Grid {
     type Action = GridAction;
     type Error = ();
 
-    fn act(&mut self, action: &GridAction) -> Result<Revert, Self::Error> {
-        match action {
+    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
+        match action.into() {
             GridAction::Set(position, cell) => {
-                let last_cell = self.get(*position);
-                self.set(*position, cell.clone());
+                let last_cell = self.get(position);
+                self.set(position, cell.clone());
 
-                Ok(Revert::new(GridAction::Set(*position, last_cell)))
+                Ok(Revert::new(GridAction::Set(position, last_cell)))
             }
         }
     }

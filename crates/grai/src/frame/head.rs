@@ -76,8 +76,8 @@ impl State for Head {
     type Action = HeadAction;
     type Error = ();
 
-    fn act(&mut self, action: &HeadAction) -> Result<Revert, Self::Error> {
-        match action {
+    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
+        match action.into() {
             HeadAction::Step => {
                 let last_pos = self.position;
                 let _ = self.step();
@@ -86,13 +86,13 @@ impl State for Head {
             }
             HeadAction::MoveTo(position) => {
                 let last_pos = self.position;
-                self.move_to(*position);
+                self.move_to(position);
 
                 Ok(Revert::new(HeadAction::MoveTo(last_pos)))
             }
             HeadAction::DirectTo(direction) => {
                 let last_dir = self.direction;
-                self.direct_to(*direction);
+                self.direct_to(direction);
 
                 Ok(Revert::new(HeadAction::DirectTo(last_dir)))
             }

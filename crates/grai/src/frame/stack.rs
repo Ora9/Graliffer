@@ -44,8 +44,8 @@ impl State for Stack {
     type Action = StackAction;
     type Error = ();
 
-    fn act(&mut self, action: &StackAction) -> Result<Revert, Self::Error> {
-        match action {
+    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
+        match action.into() {
             StackAction::Push(operand) => {
                 self.push(operand.clone());
                 Ok(Revert::new(StackAction::Pop))
