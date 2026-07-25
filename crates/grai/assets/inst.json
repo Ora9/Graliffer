@@ -4,9 +4,8 @@
     "direction": "Right"
   },
   "grid": {
-    "AA": "100",
-    "BA": "3",
-    "CA": "div"
+    "AA": "@EE",
+    "BA": "jmp"
   },
   "stack": []
 }

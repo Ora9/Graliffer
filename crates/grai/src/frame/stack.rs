@@ -15,17 +15,21 @@ impl Stack {
     }
 
     /// Add an operand at the top of the stack
-    pub fn push(&mut self, operand: Operand) {
+    ///
+    /// # Panic
+    /// Panic if we can't push to the stack,
+    /// see [`Vec::push()`](https://doc.rust-lang.org/std/vec/struct.Vec.html#method.push)
+    fn push(&mut self, operand: Operand) {
         self.0.push(operand);
     }
 
     /// Remove the operand on top of the stack
-    pub fn pop(&mut self) -> Option<Operand> {
+    fn pop(&mut self) -> Option<Operand> {
         self.0.pop()
     }
 
     /// Get the operand on top of the stack
-    pub fn get_last(&self) -> Option<&Operand> {
+    pub fn last(&self) -> Option<&Operand> {
         self.0.last()
     }
 
@@ -40,11 +44,20 @@ pub enum StackAction {
     Pop,
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum StackError {
+    #[error("could not pop the stack, as it is empty")]
+    EmptyStack,
+    // StackOverflow is unlikely
+    // #[error("could not push to the stack, as it would overflow")]
+    // StackOverflow,
+}
+
 impl Action for StackAction {}
 
 impl State for Stack {
     type Action = StackAction;
-    type Error = Infallible;
+    type Error = StackError;
 
     fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
         match action.into() {
@@ -56,7 +69,7 @@ impl State for Stack {
                 if let Some(popped) = self.pop() {
                     Ok(Revert::new(StackAction::Push(popped)))
                 } else {
-                    Ok(Revert::None)
+                    Err(StackError::EmptyStack)
                 }
             }
         }

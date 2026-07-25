@@ -1,4 +1,4 @@
-use std::{cell::RefCell, convert::Infallible, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 use act::{Action, Revert, State};
 use serde::{Deserialize, Serialize};
@@ -13,6 +13,7 @@ pub use stack::*;
 
 mod head;
 pub use head::*;
+use unwrap_infallible::UnwrapInfallible;
 
 use crate::Word;
 
@@ -35,7 +36,7 @@ impl FrameGuard {
 
 impl State for FrameGuard {
     type Action = FrameAction;
-    type Error = Infallible;
+    type Error = FrameError;
 
     fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
         self.write(|frame| frame.act(action))
@@ -104,17 +105,25 @@ impl From<HeadAction> for FrameAction {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum FrameError {
+    #[error("stack error : {0}")]
+    Stack(#[from] StackError),
+}
+
 impl Action for FrameAction {}
 
 impl State for Frame {
-    type Error = Infallible;
     type Action = FrameAction;
+    type Error = FrameError;
 
     fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
         match action.into() {
-            FrameAction::Grid(grid_action) => self.grid.act(grid_action),
-            FrameAction::Head(head_action) => self.head.act(head_action),
-            FrameAction::Stack(stack_action) => self.stack.act(stack_action),
+            FrameAction::Grid(grid_action) => Ok(self.grid.act(grid_action).unwrap_infallible()),
+            FrameAction::Head(head_action) => Ok(self.head.act(head_action).unwrap_infallible()),
+            FrameAction::Stack(stack_action) => {
+                self.stack.act(stack_action).map_err(|err| err.into())
+            }
 
             FrameAction::Step => self.step(),
         }
