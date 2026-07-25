@@ -1,3 +1,5 @@
+use std::{mem, ops::Deref};
+
 use act::{Action, Revert, State};
 
 #[derive(Debug, Clone)]
@@ -37,8 +39,7 @@ impl State for Simple {
                 Ok(Revert::new_apply(SimpleAction::IncrementFoo))
             }
             SimpleAction::SetBar(new_bar) => {
-                let old_bar = self.bar.clone();
-                self.bar = new_bar;
+                let old_bar = mem::replace(&mut self.bar, new_bar);
 
                 Ok(Revert::new_apply(SimpleAction::SetBar(old_bar)))
             }
