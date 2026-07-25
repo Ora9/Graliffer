@@ -8,13 +8,6 @@ use std::{
 
 use crate::Revert;
 
-pub trait State: Debug {
-    type Action: Action + Clone;
-    type Error;
-
-    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error>;
-}
-
 pub trait Action: Any + ActionClone + Debug {}
 
 pub trait ActionClone {

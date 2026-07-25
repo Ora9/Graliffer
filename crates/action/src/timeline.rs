@@ -4,13 +4,13 @@ use crate::{Action, AnyAction, State};
 
 #[derive(Debug)]
 pub enum Revert {
-    Action(Apply),
+    Apply(Apply),
     None,
 }
 
 impl Revert {
-    pub fn new(action: impl Action) -> Self {
-        Self::Action(Apply::new(action))
+    pub fn new_apply(action: impl Action) -> Self {
+        Self::Apply(Apply::new(action))
     }
 }
 
