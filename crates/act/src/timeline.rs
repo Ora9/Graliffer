@@ -46,7 +46,7 @@ where
     S: State,
 {
     state: S,
-    timeline: Vec<Undoable>,
+    undoes: Vec<Undoable>,
     cursor: usize,
 }
 
@@ -54,7 +54,7 @@ impl<S: State> Timeline<S> {
     pub fn new(state: S) -> Self {
         Self {
             state,
-            timeline: Vec::new(),
+            undoes: Vec::new(),
             cursor: 0,
         }
     }
@@ -74,8 +74,8 @@ impl<S: State> Timeline<S> {
     }
 
     fn append(&mut self, undoable: Undoable) {
-        self.timeline.truncate(self.cursor);
-        self.timeline.push(undoable);
+        self.undoes.truncate(self.cursor);
+        self.undoes.push(undoable);
         self.cursor = self.cursor.checked_add(1).unwrap();
 
         dbg!(self);
