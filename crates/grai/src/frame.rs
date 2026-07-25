@@ -50,20 +50,25 @@ pub struct Frame {
 }
 
 impl Frame {
-    pub fn step(&mut self) {
+    pub fn step(&mut self) -> Result<Revert, <Frame as State>::Error> {
         let cell = self.grid.get(self.head.position);
 
         if cell.is_empty() {
-            self.act(HeadAction::Step);
+            self.act(HeadAction::Step)
         } else {
-            let word = Word::from_cell(cell);
-
-            match word {
+            match Word::from_cell(cell) {
                 Word::Opcode(opcode) => {
-                    println!("opcode: {:?}", opcode);
-                    opcode.evaluate(self);
+                    let eval = opcode.evaluate(self)?;
+                    let step = self.act(HeadAction::Step)?;
+
+                    Ok(vec![eval, step].into())
                 }
-                Word::Operand(operand) => {}
+                Word::Operand(operand) => {
+                    let push = self.act(StackAction::Push(operand))?;
+                    let step = self.act(HeadAction::Step)?;
+
+                    Ok(vec![push, step].into())
+                }
             }
         }
     }
@@ -111,10 +116,7 @@ impl State for Frame {
             FrameAction::HeadAction(head_action) => self.head.act(head_action),
             FrameAction::StackAction(stack_action) => self.stack.act(stack_action),
 
-            FrameAction::Step => {
-                dbg!("step!");
-                Ok(Revert::None)
-            }
+            FrameAction::Step => self.step(),
         }
     }
 }

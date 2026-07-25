@@ -2,10 +2,10 @@ use std::str::FromStr;
 
 use act::{Revert, State};
 
-use crate::{Cell, Direction, Frame, Head, HeadAction};
+use crate::{Cell, Direction, Frame, HeadAction};
 
 #[derive(Debug, strum_macros::EnumString)]
-#[strum(serialize_all = "lowercase")]
+#[strum(ascii_case_insensitive)]
 pub enum Opcode {
     Nop,
 

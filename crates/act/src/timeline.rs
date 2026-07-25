@@ -66,6 +66,7 @@ pub struct Undoable {
     revert: Revert,
 }
 
+#[derive(Debug)]
 pub enum TimelineError<E> {
     ActionError(E),
     NothingToUndo,
@@ -109,6 +110,6 @@ impl<S: State> Timeline<S> {
         self.undoes.push(undoable);
         self.cursor = self.cursor.checked_add(1).unwrap();
 
-        dbg!(self);
+        // dbg!(self);
     }
 }

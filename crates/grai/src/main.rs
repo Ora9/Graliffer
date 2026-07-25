@@ -1,16 +1,23 @@
 use act::Timeline;
-use grai::{FrameGuard, PositionError};
+use grai::{Frame, FrameAction, FrameGuard, PositionError};
 
-fn main() -> Result<(), PositionError> {
-    let frame_file = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/gri.json"));
-
-    let frame = FrameGuard::new(serde_json::from_str(frame_file).expect("frame file invalid"));
-
-    let mut timeline = Timeline::new(frame.clone());
-
+fn dbg_frame(frame: &FrameGuard) {
     frame.read(|frame| {
         println!("{}", serde_json::to_string_pretty(&frame).unwrap());
     });
+}
+
+fn main() -> Result<(), PositionError> {
+    let frame = FrameGuard::new(Frame::from_example("loop").unwrap());
+
+    let mut timeline = Timeline::new(frame.clone());
+
+    dbg_frame(&frame);
+
+    for _ in 0..5 {
+        timeline.act(FrameAction::Step).unwrap();
+        dbg_frame(&frame);
+    }
 
     Ok(())
 }
