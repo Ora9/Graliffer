@@ -44,6 +44,10 @@ impl Literal {
         self.as_cell().as_str()
     }
 
+    pub fn to_string(&self) -> String {
+        self.as_str().to_string()
+    }
+
     /// Return a boolean evaluation of `Self`, defaulting to `true`
     ///
     /// - `0` returns `false`
@@ -62,7 +66,7 @@ impl Literal {
             "0" => Ok(false),
             "1" => Ok(true),
             _ => Err(OperandError::LiteralCouldNotBeParsedAsBool(
-                self.as_str().to_string(),
+                self.to_string(),
             )),
         }
     }
@@ -108,7 +112,7 @@ impl Address {
         Ok(Self::from_position(pos))
     }
 
-    pub fn as_cell(&self) -> &Cell {
+    pub fn to_cell(&self) -> Cell {
         let (x, y) = self.0.as_textual();
         Cell::new_trim(&format!("{}{}{}", Self::PREFIX, x, y))
     }
@@ -137,7 +141,7 @@ impl Pointer {
         Ok(Self::from_position(pos))
     }
 
-    pub fn as_cell(&self) -> Cell {
+    pub fn to_cell(&self) -> Cell {
         let (x, y) = self.0.as_textual();
         Cell::new_trim(&format!("{}{}{}", Self::PREFIX, x, y))
     }
@@ -161,11 +165,11 @@ impl Operand {
         }
     }
 
-    pub fn as_cell(&self) -> Cell {
+    pub fn to_cell(&self) -> Cell {
         match self {
-            Self::Literal(literal) => literal.as_cell(),
-            Self::Address(address) => address.as_cell(),
-            Self::Pointer(pointer) => pointer.as_cell(),
+            Self::Literal(literal) => literal.as_cell().clone(),
+            Self::Address(address) => address.to_cell(),
+            Self::Pointer(pointer) => pointer.to_cell(),
         }
     }
 }

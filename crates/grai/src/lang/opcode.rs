@@ -33,7 +33,7 @@ fn pop(frame: &mut Frame) -> Result<(Operand, Revert), StackError> {
 
 impl Opcode {
     pub fn from_cell(cell: Cell) -> Result<Opcode, OpcodeError> {
-        Opcode::from_str(&cell.as_str()).map_err(|_| OpcodeError::NotAnOpcode(cell.as_str()))
+        Opcode::from_str(&cell.as_str()).map_err(|_| OpcodeError::NotAnOpcode(cell.to_string()))
     }
 
     pub fn evaluate(self, frame: &mut Frame) -> Result<Revert, <Frame as State>::Error> {
