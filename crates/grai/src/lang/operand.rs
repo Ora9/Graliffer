@@ -168,16 +168,41 @@ impl Display for Address {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// A `Pointer` contains a [`Position`] and can be used in operations to reference another
+/// [`Cell`]'s operand, that will then be interpreted.
+/// Mutltiples pointers can be chained to allow for more level of indirectio, and complex data
+/// references.
+///
+/// # Format
+/// A pointer must be in format : `&XY`, with :
+/// - `&` being a prefix (wich denote a pointer, e.g. a `@` would denote an [`Address`]).
+/// - `X` and `Y` being respectively the horizontal and vertical axis of a [`Position`] in textual
+/// form, see [position representation](Position#representation) for more informations
+///
+/// Example : `&AB`, `&Q+` or `&8a`
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Pointer(Position);
 
 impl Pointer {
     const PREFIX: char = '&';
 
+    /// Get `Self` from a [`Position`]
     pub fn from_position(position: Position) -> Self {
         Self(position)
     }
 
+    /// Return the designated [`Position`]
+    pub fn position(&self) -> &Position {
+        &self.0
+    }
+
+    /// Get `Self` from a [`Cell`] using the `&XY` format (see [pointer format](Pointer#Format) for
+    /// more infos)
+    ///
+    /// # Error
+    /// Returns an error if the `Cell` could not be parsed as a pointer, either because it does not
+    /// start with the right prefix (`&`) or because the following position is invalid,
+    /// see [position representation](Position#representation) for more info
     pub fn from_ref_cell(cell: &Cell) -> Result<Self, OperandError> {
         let pos =
             cell.as_str()
@@ -191,9 +216,17 @@ impl Pointer {
         Ok(Self::from_position(pos))
     }
 
+    /// Return a [`Cell`], using the `&XY` format, see [pointer format](Pointer#format) for more
+    /// information
     pub fn to_cell(&self) -> Cell {
         let (x, y) = self.0.as_textual();
         Cell::new_trim(&format!("{}{}{}", Self::PREFIX, x, y))
+    }
+}
+
+impl Display for Pointer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.to_cell().as_str())
     }
 }
 
@@ -312,6 +345,11 @@ mod tests {
         );
 
         assert_eq!(
+            Address::from_ref_cell(&Cell::new_trim("&AA")),
+            Err(OperandError::InvalidAddressFormat("&AA".to_string()))
+        );
+
+        assert_eq!(
             Address::from_ref_cell(&Cell::new_trim("AA")),
             Err(OperandError::InvalidAddressFormat("AA".to_string()))
         );
@@ -335,5 +373,53 @@ mod tests {
 
         let address = Address::from_position(Position::from_string("oO").unwrap());
         assert_eq!(address.to_cell().to_string(), address.to_string());
+    }
+
+    #[test]
+    fn parse_pointer() -> Result<(), OperandError> {
+        assert_eq!(
+            Pointer::from_ref_cell(&Cell::new_trim("&yA"))?.position(),
+            &Position::from_string("yA").unwrap()
+        );
+
+        assert_eq!(
+            Pointer::from_ref_cell(&Cell::new_trim("&/+"))?.position(),
+            &Position::from_string("/+").unwrap()
+        );
+
+        assert_eq!(
+            Pointer::from_ref_cell(&Cell::new_trim(" &A")),
+            Err(OperandError::InvalidPointerFormat(" &A".to_string()))
+        );
+
+        assert_eq!(
+            Pointer::from_ref_cell(&Cell::new_trim("@AA")),
+            Err(OperandError::InvalidPointerFormat("@AA".to_string()))
+        );
+
+        assert_eq!(
+            Pointer::from_ref_cell(&Cell::new_trim("AA")),
+            Err(OperandError::InvalidPointerFormat("AA".to_string()))
+        );
+
+        assert_eq!(
+            Pointer::from_ref_cell(&Cell::new_trim("&p")),
+            Err(OperandError::InvalidPointer(PositionError::WrongFormat(
+                "p".to_string()
+            )))
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn pointer_to_cell() {
+        assert_eq!(
+            Pointer::from_position(Position::from_string("a5").unwrap()).to_string(),
+            String::from("&a5")
+        );
+
+        let pointer = Pointer::from_position(Position::from_string("oO").unwrap());
+        assert_eq!(pointer.to_cell().to_string(), pointer.to_string());
     }
 }
