@@ -17,6 +17,7 @@ default-members = ["crates/grai"]
 
 [workspace.lints.rust]
 unused = "allow"
+broken_intra_doc_links = "warn"
 # unsafe_code = "forbid"
 
 [workspace.dependencies]

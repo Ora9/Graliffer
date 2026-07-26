@@ -57,7 +57,7 @@ Each cell contains a graliffer *word*
 
 ### Literal
 
-A *literal*
+A *literal* is a cell that represent data, it is the default operand
 
 Operations can choose to interpret literals with specific conventions
 

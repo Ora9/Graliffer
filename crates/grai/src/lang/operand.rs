@@ -20,6 +20,12 @@ pub enum OperandError {
     InvalidPointer(#[source] PositionError),
 }
 
+/// A `Literal` is a string of character that represents data
+///
+/// It is the default operand (as in : when parsing a cell, a literal is the unfallible fallback)
+///
+/// Differents operations can interpret a literal in differents ways :
+/// - As bool (see [`from_bool()`], [`as_bool_with_defaults()`] or [`try_as_bool()`])
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Literal(Cell);
 
