@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use serde::{Deserialize, Serialize};
 
 use crate::{Cell, Position, PositionError};
@@ -50,10 +52,6 @@ impl Literal {
         self.as_cell().as_str()
     }
 
-    pub fn to_string(&self) -> String {
-        self.as_str().to_string()
-    }
-
     /// Return a boolean evaluation of `Self`, defaulting to `true`
     ///
     /// - `0` returns `false`
@@ -92,6 +90,12 @@ impl Literal {
 impl From<Cell> for Literal {
     fn from(value: Cell) -> Self {
         Literal::new(value)
+    }
+}
+
+impl Display for Literal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
     }
 }
 
@@ -209,6 +213,15 @@ mod tests {
         assert_eq!(
             Literal::from_cell(Cell::new_trim("excess")),
             Literal::from_str_trim("excess"),
+        );
+    }
+
+    #[test]
+    fn string_conversion() {
+        assert_eq!(Literal::from_str_trim("a").as_str(), "a");
+        assert_eq!(
+            String::from(Literal::from_str_trim("a").as_str()),
+            Literal::from_str_trim("a").to_string()
         );
     }
 

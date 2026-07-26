@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use serde::{Deserialize, Serialize};
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -39,21 +41,19 @@ impl Cell {
         self.0.is_empty()
     }
 
-    // pub fn content(&self) -> String {
-    //     self.0.clone()
-    // }
-
     pub fn as_str(&self) -> &str {
         &self.0
-    }
-
-    pub fn to_string(&self) -> String {
-        self.as_str().to_string()
     }
 }
 
 impl From<Cell> for String {
     fn from(value: Cell) -> Self {
         String::from(value.as_str())
+    }
+}
+
+impl Display for Cell {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
     }
 }
