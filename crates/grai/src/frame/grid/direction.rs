@@ -10,7 +10,7 @@ pub enum Direction {
     Left,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Axis {
     Horizontal,
     Vertical,

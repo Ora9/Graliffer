@@ -7,7 +7,7 @@ use crate::{
     granary::{GranaryDigit, GranaryError},
 };
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum PositionError {
     #[error("invalid granary for the {axis} axis")]
     GranaryError {

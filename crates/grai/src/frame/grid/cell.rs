@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use unicode_segmentation::UnicodeSegmentation;
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Cell(String);
 
 pub struct TooBig;
@@ -43,13 +43,13 @@ impl Cell {
     //     self.0.clone()
     // }
 
-    pub fn content(&self) -> &str {
+    pub fn as_str(&self) -> &str {
         &self.0
     }
 }
 
 impl From<Cell> for String {
     fn from(value: Cell) -> Self {
-        String::from(value.content())
+        String::from(value.as_str())
     }
 }
