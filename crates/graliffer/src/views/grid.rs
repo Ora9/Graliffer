@@ -254,7 +254,7 @@ impl StatefulWidget for GridWidget {
                 let grid_pos = grai::Position::from_numeric(cell_x as u32, cell_y as u32)
                     .expect("should be able to construct a valid position");
 
-                Paragraph::new(frame.grid.get(grid_pos).content())
+                Paragraph::new(frame.grid.get(grid_pos).as_str())
                     .block(block)
                     .reset()
                     .render(cell_area, &mut overdraw_buf);
