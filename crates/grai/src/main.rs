@@ -8,7 +8,7 @@ fn dbg_frame(frame: &FrameGuard) {
 }
 
 fn main() -> Result<(), PositionError> {
-    let frame = FrameGuard::new(Frame::from_example("loop").unwrap());
+    let frame = FrameGuard::new(Frame::from_example("inst").unwrap());
 
     let mut timeline = Timeline::new(frame.clone());
 
