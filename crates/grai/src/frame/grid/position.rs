@@ -1,4 +1,7 @@
-use std::fmt::{Debug, Display};
+use std::{
+    fmt::{Debug, Display},
+    str::FromStr,
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -436,6 +439,14 @@ impl Position {
             Direction::Down => self.checked_increment_y_by(value),
             Direction::Left => self.checked_decrement_x_by(value),
         }
+    }
+}
+
+impl FromStr for Position {
+    type Err = PositionError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Position::from_string(s)
     }
 }
 
