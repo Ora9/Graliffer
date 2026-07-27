@@ -368,37 +368,29 @@ mod tests {
     #[test]
     fn new_literal() {
         assert_eq!(
-            Literal::new(Cell::new_trim("hlt")).as_cell(),
-            &Cell::new_trim("hlt")
-        );
-
-        assert_eq!(
-            Literal::new(Cell::new_trim("gri")),
+            Literal::from_str_trim("gri"),
             Literal::from_cell(Cell::new_trim("gri"))
         );
 
         assert_eq!(
-            Literal::new(Cell::new_trim("@AA")),
-            Cell::new_trim("@AA").into(),
-        );
-
-        assert_eq!(
-            Literal::new(Cell::new_trim("&PB")),
-            Literal::from_str_trim("&PB"),
-        );
-
-        assert_eq!(
-            Literal::from_cell(Cell::new_trim("excess")),
             Literal::from_str_trim("excess"),
+            Literal::from_cell(Cell::new_trim("excess")),
         );
+
+        assert_eq!(
+            Literal::from_str_trim("hlt").as_cell(),
+            &Cell::new_trim("hlt")
+        );
+
+        assert_eq!(Literal::from_str_trim("@AA"), Cell::new_trim("@AA").into(),);
     }
 
     #[test]
-    fn string_conversion() {
+    fn literal_string() {
         assert_eq!(Literal::from_str_trim("a").as_str(), "a");
         assert_eq!(
-            String::from(Literal::from_str_trim("a").as_str()),
-            Literal::from_str_trim("a").to_string()
+            String::from(Literal::from_str_trim("b").as_str()),
+            Literal::from_str_trim("b").to_string()
         );
     }
 
