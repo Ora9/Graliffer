@@ -75,30 +75,30 @@ impl Pointer {
 
     pub fn resolve_to_operand(&self, grid: &Grid) -> Result<Operand, OperandError> {
         fn get(
-            current_pos: Position,
+            current_pointer: Pointer,
             grid: &Grid,
             visited_cells: &mut Vec<Position>,
         ) -> Result<Operand, OperandError> {
-            visited_cells.push(current_pos);
-            let current_cell = grid.get(current_pos);
+            let next_position = current_pointer.position();
+            visited_cells.push(*next_position);
 
-            if let Ok(next_pointer) = Pointer::from_ref_cell(&current_cell) {
+            let next_cell = grid.get(*next_position);
+            if let Ok(next_pointer) = Pointer::from_ref_cell(&next_cell) {
                 if visited_cells.contains(next_pointer.position()) {
                     // pointer chain loop
                     Err(OperandError::PointerChainLoop {
-                        last_operand: Operand::from_cell(current_cell),
-                        looping_position: current_pos,
+                        last_pointer: next_pointer,
+                        looping_position: *next_position,
                     })
                 } else {
-                    get(*next_pointer.position(), grid, visited_cells)
+                    get(next_pointer, grid, visited_cells)
                 }
             } else {
-                Ok(Operand::from_cell(current_cell))
+                Ok(Operand::from_cell(next_cell))
             }
         }
 
-        let mut visited_cells = Vec::default();
-        get(*self.position(), grid, &mut visited_cells)
+        get(*self, grid, &mut Vec::new())
     }
 
     pub fn resolve_to_literal(&self, grid: &Grid) -> Result<Literal, OperandError> {
@@ -119,7 +119,11 @@ impl Display for Pointer {
 
 #[cfg(test)]
 mod tests {
-    use crate::PositionError;
+    use std::str::FromStr;
+
+    use serde_json::json;
+
+    use crate::{OperandKind, PositionError};
 
     use super::*;
 
@@ -199,6 +203,131 @@ mod tests {
 
         let pointer = Pointer::from_str("&oO")?;
         assert_eq!(pointer.to_cell().to_string(), pointer.to_string());
+
+        Ok(())
+    }
+
+    #[test]
+    fn resolve_to_literal() -> Result<(), OperandError> {
+        let (grid, pointer) = create_grid_with_pointer(json!({
+            "AA": "&AB",
+            "AB": "pwt",
+        }));
+        assert_eq!(
+            pointer.resolve_to_literal(&grid)?,
+            Literal::from_str_trim("pwt").into(),
+        );
+
+        let (grid, pointer) = create_grid_with_pointer(json!({
+            "AA": "&AB",
+            "AB": "@AC",
+            "AC": "0"
+        }));
+        assert_eq!(
+            pointer.resolve_to_literal(&grid)?,
+            Literal::from_str("0")?.into(),
+        );
+
+        let (grid, pointer) = create_grid_with_pointer(json!({
+            "AA": "&AB",
+            "AB": "@AC",
+            "AC": "@di"
+        }));
+        assert_eq!(
+            pointer.resolve_to_literal(&grid)?,
+            Literal::from_str("@di")?.into(),
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn resolve_to_operand() -> Result<(), OperandError> {
+        let (grid, pointer) = create_grid_with_pointer(json!({
+            "AA": "&AB",
+            "AB": "pwt",
+        }));
+        assert_eq!(
+            pointer.resolve_to_operand(&grid)?,
+            Literal::from_str_trim("pwt").into(),
+        );
+
+        let (grid, pointer) = create_grid_with_pointer(json!({
+            "AA": "&AB",
+            "AB": "@AC",
+        }));
+        assert_eq!(
+            pointer.resolve_to_operand(&grid)?,
+            Address::from_str("@AC")?.into(),
+        );
+
+        let (grid, pointer) = create_grid_with_pointer(json!({
+            "AA": "&AB",
+            "AB": "&AC",
+            "AC": "&AD",
+            "AD": "@pr",
+        }));
+        assert_eq!(
+            pointer.resolve_to_operand(&grid)?,
+            Address::from_str("@pr")?.into(),
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn resolve_to_address() -> Result<(), OperandError> {
+        let (grid, pointer) = create_grid_with_pointer(json!({
+            "AA": "&AB",
+            "AB": "@d5",
+        }));
+        assert_eq!(
+            pointer.resolve_to_address(&grid)?,
+            Address::from_str("@d5")?
+        );
+
+        let (grid, pointer) = create_grid_with_pointer(json!({
+            "AA": "&AB",
+            "AB": "&AC",
+            "AC": "@pa",
+        }));
+        assert_eq!(
+            pointer.resolve_to_address(&grid)?,
+            Address::from_str("@pa")?
+        );
+
+        let (grid, pointer) = create_grid_with_pointer(json!({
+            "AA": "&AB",
+            "AB": "&AC",
+            "AC": "prt",
+        }));
+        assert_eq!(
+            pointer.resolve_to_address(&grid),
+            Err(OperandError::CouldNotResolveAsAddress {
+                operand_kind: OperandKind::Literal,
+                got: String::from("prt")
+            })
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn resolve_loop() -> Result<(), OperandError> {
+        let (grid, pointer) = create_grid_with_pointer(json!({
+            "AA": "&AB",
+            "AB": "&AC",
+            "AC": "&AD",
+            "AD": "&AE",
+            "AE": "&AA",
+        }));
+        assert_eq!(
+            pointer.resolve_to_operand(&grid),
+            Err(OperandError::PointerChainLoop {
+                last_pointer: Pointer::from_str("&AB")?.into(),
+                looping_position: Position::from_str("AA").unwrap()
+            }),
+        );
 
         Ok(())
     }

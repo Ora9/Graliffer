@@ -6,7 +6,11 @@ use unicode_segmentation::UnicodeSegmentation;
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Cell(String);
 
-pub struct TooBig;
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum CellError {
+    #[error("invalid cell, expected maximum 3 char, found `{0}`")]
+    InvalidCellFormat(String),
+}
 
 impl Cell {
     /// Obtain a `Cell` given a string
@@ -14,11 +18,11 @@ impl Cell {
     /// # Errors
     /// Return `TooBig` if the string is more than 3 graphems long
     /// To trim automatically the string to always fit, use [`Cell::new_trim`]
-    pub fn new(string: &str) -> Result<Self, TooBig> {
+    pub fn new(string: &str) -> Result<Self, CellError> {
         if string.graphemes(true).count() <= 3 {
             Ok(Self(string.to_string()))
         } else {
-            Err(TooBig)
+            Err(CellError::InvalidCellFormat(string.into()))
         }
     }
 

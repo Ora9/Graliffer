@@ -22,6 +22,12 @@ impl Literal {
         Self::new(cell)
     }
 
+    pub fn from_str(string: &str) -> Result<Self, OperandError> {
+        Ok(Self::new(
+            Cell::new(string).map_err(|err| OperandError::InvalidLiteralFormat(err))?,
+        ))
+    }
+
     pub fn from_str_trim(string: &str) -> Self {
         Self::new(Cell::new_trim(string))
     }
