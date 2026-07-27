@@ -194,13 +194,12 @@ mod tests {
     }
 
     #[test]
-    fn pointer_to_cell() {
-        assert_eq!(
-            Pointer::from_position(Position::from_string("a5").unwrap()).to_string(),
-            String::from("&a5")
-        );
+    fn pointer_to_cell() -> Result<(), OperandError> {
+        assert_eq!(Pointer::from_str("&a5")?.to_string(), String::from("&a5"));
 
-        let pointer = Pointer::from_position(Position::from_string("oO").unwrap());
+        let pointer = Pointer::from_str("&oO")?;
         assert_eq!(pointer.to_cell().to_string(), pointer.to_string());
+
+        Ok(())
     }
 }
