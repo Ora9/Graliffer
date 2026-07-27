@@ -137,6 +137,26 @@ mod tests {
     }
 
     #[test]
+    fn new_pointer() -> Result<(), OperandError> {
+        assert_eq!(
+            Pointer::from_str("&b8")?.position(),
+            &Position::from_string("b8").unwrap()
+        );
+
+        assert_eq!(
+            Pointer::from_ref_cell(&Cell::new_trim("&x+"))?,
+            Pointer::from_str("&x+")?
+        );
+
+        assert_eq!(
+            Pointer::from_position(Position::from_string("uu").unwrap()),
+            Pointer::from_str("&uu")?
+        );
+
+        Ok(())
+    }
+
+    #[test]
     fn parse_pointer() -> Result<(), OperandError> {
         assert_eq!(
             Pointer::from_ref_cell(&Cell::new_trim("&yA"))?.position(),

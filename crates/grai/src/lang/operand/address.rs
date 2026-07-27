@@ -121,17 +121,18 @@ mod tests {
     #[test]
     fn new_address() -> Result<(), OperandError> {
         assert_eq!(
-            Address::from_str("&PO")?.position(),
+            Address::from_str("@PO")?.position(),
             &Position::from_string("PO").unwrap()
         );
+
         assert_eq!(
-            Address::from_ref_cell(&Cell::new_trim("&a9"))?,
-            Address::from_str("&a9")?,
+            Address::from_ref_cell(&Cell::new_trim("@a9"))?,
+            Address::from_str("@a9")?,
         );
 
         assert_eq!(
             Address::from_position(Position::from_string("/j").unwrap()),
-            Address::from_str("&/j")?,
+            Address::from_str("@/j")?,
         );
 
         Ok(())
@@ -178,7 +179,7 @@ mod tests {
     fn address_to_cell() -> Result<(), OperandError> {
         assert_eq!(Address::from_str("@a5")?.to_string(), String::from("@a5"));
 
-        let address = Address::from_str("oO")?;
+        let address = Address::from_str("@oO")?;
         assert_eq!(address.to_cell().to_string(), address.to_string());
 
         Ok(())
@@ -221,7 +222,7 @@ mod tests {
         }));
         assert_eq!(
             addr.fetch_operand(&grid),
-            Address::from_str("&pm").unwrap().into()
+            Address::from_str("@pm").unwrap().into()
         );
     }
 }
