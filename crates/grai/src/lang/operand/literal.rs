@@ -86,7 +86,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn new_literal() {
+    fn new() {
         assert_eq!(
             Literal::from_str_trim("gri"),
             Literal::from_cell(Cell::new_trim("gri"))
@@ -106,7 +106,7 @@ mod tests {
     }
 
     #[test]
-    fn literal_string() {
+    fn to_cell() {
         assert_eq!(Literal::from_str_trim("a").as_str(), "a");
         assert_eq!(
             String::from(Literal::from_str_trim("b").as_str()),
@@ -115,7 +115,7 @@ mod tests {
     }
 
     #[test]
-    fn literal_as_bool() {
+    fn as_bool() {
         assert_eq!(Literal::from_str_trim("0").as_bool_with_defaults(), false);
         assert_eq!(Literal::from_str_trim("1").as_bool_with_defaults(), true);
         assert_eq!(Literal::from_str_trim("nop").as_bool_with_defaults(), true);
@@ -138,7 +138,7 @@ mod tests {
     }
 
     #[test]
-    fn literal_from_bool() {
+    fn from_bool() {
         assert_eq!(Literal::from_bool(false).as_str(), "0");
         assert_eq!(Literal::from_bool(true).as_str(), "1");
     }

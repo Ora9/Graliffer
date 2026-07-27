@@ -119,7 +119,7 @@ mod tests {
     }
 
     #[test]
-    fn new_address() -> Result<(), OperandError> {
+    fn new() -> Result<(), OperandError> {
         assert_eq!(
             Address::from_str("@PO")?.position(),
             &Position::from_string("PO").unwrap()
@@ -139,7 +139,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_address() -> Result<(), OperandError> {
+    fn parse() -> Result<(), OperandError> {
         assert_eq!(
             Address::from_ref_cell(&Cell::new_trim("@yA"))?.position(),
             &Position::from_string("yA").unwrap()
@@ -176,7 +176,7 @@ mod tests {
     }
 
     #[test]
-    fn address_to_cell() -> Result<(), OperandError> {
+    fn to_cell() -> Result<(), OperandError> {
         assert_eq!(Address::from_str("@a5")?.to_string(), String::from("@a5"));
 
         let address = Address::from_str("@oO")?;
@@ -186,7 +186,7 @@ mod tests {
     }
 
     #[test]
-    fn address_fetch_literal() {
+    fn fetch_literal() {
         let (grid, addr) = create_grid_with_address(json!({
             "AA": "@AB",
             "AB": "abc"
@@ -206,7 +206,7 @@ mod tests {
     }
 
     #[test]
-    fn address_fetch_operand() {
+    fn fetch_operand() {
         let (grid, addr) = create_grid_with_address(json!({
             "AA": "@Bl",
             "Bl": "abc"

@@ -137,7 +137,7 @@ mod tests {
     }
 
     #[test]
-    fn new_pointer() -> Result<(), OperandError> {
+    fn new() -> Result<(), OperandError> {
         assert_eq!(
             Pointer::from_str("&b8")?.position(),
             &Position::from_string("b8").unwrap()
@@ -157,7 +157,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_pointer() -> Result<(), OperandError> {
+    fn parse() -> Result<(), OperandError> {
         assert_eq!(
             Pointer::from_ref_cell(&Cell::new_trim("&yA"))?.position(),
             &Position::from_string("yA").unwrap()
@@ -194,7 +194,7 @@ mod tests {
     }
 
     #[test]
-    fn pointer_to_cell() -> Result<(), OperandError> {
+    fn to_cell() -> Result<(), OperandError> {
         assert_eq!(Pointer::from_str("&a5")?.to_string(), String::from("&a5"));
 
         let pointer = Pointer::from_str("&oO")?;
