@@ -160,24 +160,32 @@ impl Address {
         &self.0
     }
 
-    /// Get `Self` from a [`Cell`] using the `@XY` format (see [address format](Address#Format) for
+    /// Get `Self` from a `&str` using the `@XY` format (see [address format](Address#Format) for
     /// more infos)
     ///
     /// # Error
-    /// Returns an error if the `Cell` could not be parsed as an address, either because it does not
+    /// Returns an error if the string could not be parsed as an address, either because it does not
     /// start with the right prefix (`@`) or because the following position is invalid,
     /// see [position representation](Position#representation) for more info
-    pub fn from_ref_cell(cell: &Cell) -> Result<Self, OperandError> {
-        let pos =
-            cell.as_str()
-                .strip_prefix(Self::PREFIX)
-                .ok_or(OperandError::InvalidAddressFormat(String::from(
-                    cell.as_str(),
-                )))?;
+    pub fn from_str(string: &str) -> Result<Self, OperandError> {
+        let pos = string
+            .strip_prefix(Self::PREFIX)
+            .ok_or(OperandError::InvalidAddressFormat(String::from(string)))?;
 
         let pos = Position::from_string(pos).map_err(OperandError::InvalidAddress)?;
 
         Ok(Self::from_position(pos))
+    }
+
+    /// Get `Self` from a [`Cell`] using the `@XY` format (see [address format](Address#Format) for
+    /// more infos)
+    ///
+    /// # Error
+    /// Returns an error if the `Cell` could not be parsed as an address, either because its
+    /// content does not start with the right prefix (`@`) or because the following position is
+    /// invalid, see [position representation](Position#representation) for more info
+    pub fn from_ref_cell(cell: &Cell) -> Result<Self, OperandError> {
+        Self::from_str(cell.as_str())
     }
 
     /// Return a [`Cell`] from `Self`, using the `@XY` format,
@@ -238,6 +246,23 @@ impl Pointer {
         &self.0
     }
 
+    /// Get `Self` from a `&str` using the `&XY` format (see [pointer format](Pointer#Format) for
+    /// more infos)
+    ///
+    /// # Error
+    /// Returns an error if string could not be parsed as a pointer, either because it does not
+    /// start with the right prefix (`&`) or because the following position is invalid,
+    /// see [position representation](Position#representation) for more info
+    pub fn from_str(string: &str) -> Result<Self, OperandError> {
+        let pos = string
+            .strip_prefix(Self::PREFIX)
+            .ok_or(OperandError::InvalidPointerFormat(String::from(string)))?;
+
+        let pos = Position::from_string(pos).map_err(OperandError::InvalidPointer)?;
+
+        Ok(Self::from_position(pos))
+    }
+
     /// Get `Self` from a [`Cell`] using the `&XY` format (see [pointer format](Pointer#Format) for
     /// more infos)
     ///
@@ -246,16 +271,7 @@ impl Pointer {
     /// start with the right prefix (`&`) or because the following position is invalid,
     /// see [position representation](Position#representation) for more info
     pub fn from_ref_cell(cell: &Cell) -> Result<Self, OperandError> {
-        let pos =
-            cell.as_str()
-                .strip_prefix(Self::PREFIX)
-                .ok_or(OperandError::InvalidPointerFormat(String::from(
-                    cell.as_str(),
-                )))?;
-
-        let pos = Position::from_string(pos).map_err(OperandError::InvalidPointer)?;
-
-        Ok(Self::from_position(pos))
+        Self::from_str(cell.as_str())
     }
 
     /// Return a [`Cell`], using the `&XY` format, see [pointer format](Pointer#format) for more
@@ -385,6 +401,24 @@ impl Operand {
     }
 }
 
+impl From<Literal> for Operand {
+    fn from(value: Literal) -> Self {
+        Self::Literal(value)
+    }
+}
+
+impl From<Address> for Operand {
+    fn from(value: Address) -> Self {
+        Self::Address(value)
+    }
+}
+
+impl From<Pointer> for Operand {
+    fn from(value: Pointer) -> Self {
+        Self::Pointer(value)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use serde_json::json;
@@ -447,6 +481,25 @@ mod tests {
     fn literal_from_bool() {
         assert_eq!(Literal::from_bool(false).as_str(), "0");
         assert_eq!(Literal::from_bool(true).as_str(), "1");
+    }
+
+    #[test]
+    fn new_address() -> Result<(), OperandError> {
+        assert_eq!(
+            Address::from_str("&PO")?.position(),
+            &Position::from_string("PO").unwrap()
+        );
+        assert_eq!(
+            Address::from_ref_cell(&Cell::new_trim("&a9"))?,
+            Address::from_str("&a9")?,
+        );
+
+        assert_eq!(
+            Address::from_position(Position::from_string("/j").unwrap()),
+            Address::from_str("&/j")?,
+        );
+
+        Ok(())
     }
 
     #[test]
