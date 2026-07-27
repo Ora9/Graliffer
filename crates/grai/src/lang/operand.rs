@@ -36,7 +36,7 @@ pub enum OperandError {
     InvalidLiteralFormat(#[source] CellError),
 
     #[error("literal could not be parsed as bool, expected either `0` or `1` found `{0}`")]
-    LiteralCouldNotBeParsedAsBool(String),
+    CouldNotParseLiteralAsBool(String),
 
     #[error("invalid address: expected to find format `@XY`, found `{0}`")]
     InvalidAddressFormat(String),

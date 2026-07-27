@@ -57,9 +57,7 @@ impl Literal {
         match self.as_str() {
             "0" => Ok(false),
             "1" => Ok(true),
-            _ => Err(OperandError::LiteralCouldNotBeParsedAsBool(
-                self.to_string(),
-            )),
+            _ => Err(OperandError::CouldNotParseLiteralAsBool(self.to_string())),
         }
     }
 
@@ -131,15 +129,15 @@ mod tests {
         assert_eq!(Literal::from_str_trim("1").try_as_bool(), Ok(true));
         assert_eq!(
             Literal::from_str_trim("gle").try_as_bool(),
-            Err(OperandError::LiteralCouldNotBeParsedAsBool("gle".into()))
+            Err(OperandError::CouldNotParseLiteralAsBool("gle".into()))
         );
         assert_eq!(
             Literal::from_str_trim("05").try_as_bool(),
-            Err(OperandError::LiteralCouldNotBeParsedAsBool("05".into()))
+            Err(OperandError::CouldNotParseLiteralAsBool("05".into()))
         );
         assert_eq!(
             Literal::from_str_trim("0 ").try_as_bool(),
-            Err(OperandError::LiteralCouldNotBeParsedAsBool("0 ".into()))
+            Err(OperandError::CouldNotParseLiteralAsBool("0 ".into()))
         );
     }
 
