@@ -83,22 +83,7 @@ impl Display for Literal {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Grid, Operand};
-
     use super::*;
-
-    pub fn create_grid_with_operand(json: serde_json::Value) -> (Grid, Operand) {
-        let grid: Grid = serde_json::from_value(json).expect("must be a valid grid");
-        let operand = Operand::from_cell(grid.get("AA".parse().unwrap()));
-
-        (grid, operand)
-    }
-
-    pub fn create_grid_with_literal(json: serde_json::Value) -> (Grid, Literal) {
-        let (grid, operand) = create_grid_with_operand(json);
-
-        (grid, operand.as_literal().expect("AA must be a literal"))
-    }
 
     #[test]
     fn new_literal() {
