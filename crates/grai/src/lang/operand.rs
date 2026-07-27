@@ -2,7 +2,24 @@ use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Cell, Position, PositionError};
+use crate::{Cell, Grid, Position, PositionError};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OperandKind {
+    Literal,
+    Address,
+    Pointer,
+}
+
+impl Display for OperandKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Literal => f.write_str("literal"),
+            Self::Address => f.write_str("address"),
+            Self::Pointer => f.write_str("pointer"),
+        }
+    }
+}
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum OperandError {
@@ -20,6 +37,15 @@ pub enum OperandError {
 
     #[error("invalid pointer, `{0}`")]
     InvalidPointer(#[source] PositionError),
+
+    #[error("could not resolve pointer chain, loop at `{looping_position}`")]
+    PointerChainLoop {
+        last_operand: Operand,
+        looping_position: Position,
+    },
+
+    #[error("could not resolve to address, got {operand} : `{got}`")]
+    CouldNotResolveAsAddress { operand: OperandKind, got: String },
 }
 
 /// A `Literal` is a string of character that represents data
@@ -118,7 +144,7 @@ impl Display for Literal {
 /// form, see [position representation](Position#representation) for more informations
 ///
 /// Example : `@AB`, `@Q+` or `@8a`
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Address(Position);
 
 impl Address {
@@ -154,11 +180,27 @@ impl Address {
         Ok(Self::from_position(pos))
     }
 
-    /// Return a [`Cell`], using the `@XY` format, see [address format](Address#format) for more
-    /// information
+    /// Return a [`Cell`] from `Self`, using the `@XY` format,
+    /// see [address format](Address#format) for more information
     pub fn to_cell(&self) -> Cell {
         let (x, y) = self.position().as_textual();
         Cell::new_trim(&format!("{}{}{}", Self::PREFIX, x, y))
+    }
+
+    /// Return a [`Literal`] from `Self`, using the `@XY` format, see [address format](Address#format) for more
+    /// information
+    pub fn as_literal(&self) -> Literal {
+        Literal::from_cell(self.to_cell())
+    }
+
+    /// Fetch the designated [`Operand`] in a [`Grid`]
+    pub fn fetch_operand(&self, grid: &Grid) -> Operand {
+        Operand::from_cell(grid.get(*self.position()))
+    }
+
+    /// Fetch the designated [`Literal`] in a [`Grid`]
+    pub fn fetch_literal(&self, grid: &Grid) -> Literal {
+        Literal::from_cell(grid.get(*self.position()))
     }
 }
 
@@ -180,7 +222,7 @@ impl Display for Address {
 /// form, see [position representation](Position#representation) for more informations
 ///
 /// Example : `&AB`, `&Q+` or `&8a`
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Pointer(Position);
 
 impl Pointer {
@@ -222,6 +264,49 @@ impl Pointer {
         let (x, y) = self.0.as_textual();
         Cell::new_trim(&format!("{}{}{}", Self::PREFIX, x, y))
     }
+
+    /// Return a [`Literal`] from `Self`, using the `&XY` format,
+    /// see [address format](Address#format) for more information
+    pub fn to_literal(&self) -> Literal {
+        Literal::from_cell(self.to_cell())
+    }
+
+    pub fn resolve_to_operand(&self, grid: &Grid) -> Result<Operand, OperandError> {
+        fn get(
+            current_pos: Position,
+            grid: &Grid,
+            visited_cells: &mut Vec<Position>,
+        ) -> Result<Operand, OperandError> {
+            visited_cells.push(current_pos);
+            let current_cell = grid.get(current_pos);
+
+            if let Ok(next_pointer) = Pointer::from_ref_cell(&current_cell) {
+                if visited_cells.contains(next_pointer.position()) {
+                    // pointer chain loop
+                    Err(OperandError::PointerChainLoop {
+                        last_operand: Operand::from_cell(current_cell),
+                        looping_position: current_pos,
+                    })
+                } else {
+                    get(*next_pointer.position(), grid, visited_cells)
+                }
+            } else {
+                Ok(Operand::from_cell(current_cell))
+            }
+        }
+
+        let mut visited_cells = Vec::default();
+        get(*self.position(), grid, &mut visited_cells)
+    }
+
+    pub fn resolve_to_literal(&self, grid: &Grid) -> Result<Literal, OperandError> {
+        // TODO: Might induce unchecked recusrsion
+        self.resolve_to_operand(grid)?.resolve_to_literal(grid)
+    }
+
+    pub fn resolve_to_address(&self, grid: &Grid) -> Result<Address, OperandError> {
+        self.resolve_to_operand(grid)?.resolve_to_address(grid)
+    }
 }
 
 impl Display for Pointer {
@@ -230,7 +315,7 @@ impl Display for Pointer {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Operand {
     Literal(Literal),
     Address(Address),
@@ -253,6 +338,25 @@ impl Operand {
             Self::Literal(literal) => literal.as_cell().clone(),
             Self::Address(address) => address.to_cell(),
             Self::Pointer(pointer) => pointer.to_cell(),
+        }
+    }
+
+    pub fn resolve_to_literal(&self, grid: &Grid) -> Result<Literal, OperandError> {
+        match self {
+            Self::Literal(literal) => Ok(literal.clone()),
+            Self::Address(address) => Ok(address.fetch_literal(grid)),
+            Self::Pointer(pointer) => pointer.resolve_to_literal(grid),
+        }
+    }
+
+    pub fn resolve_to_address(&self, grid: &Grid) -> Result<Address, OperandError> {
+        match self {
+            Self::Literal(literal) => Err(OperandError::CouldNotResolveAsAddress {
+                operand: OperandKind::Literal,
+                got: literal.to_string(),
+            }),
+            Self::Address(address) => Ok(*address),
+            Self::Pointer(pointer) => pointer.resolve_to_address(grid),
         }
     }
 }

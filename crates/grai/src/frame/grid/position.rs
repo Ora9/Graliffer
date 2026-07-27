@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 
 use serde::{Deserialize, Serialize};
 
@@ -476,5 +476,11 @@ impl Debug for Position {
 impl Default for Position {
     fn default() -> Self {
         Self::ORIGIN
+    }
+}
+
+impl Display for Position {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.as_textual_string())
     }
 }
