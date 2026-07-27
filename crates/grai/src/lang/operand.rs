@@ -341,6 +341,30 @@ impl Operand {
         }
     }
 
+    /// Get a [`Literal`] without any conversion
+    pub fn as_literal(self) -> Option<Literal> {
+        match self {
+            Self::Literal(literal) => Some(literal),
+            _ => None,
+        }
+    }
+
+    /// Get an [`Address`] without any conversion
+    pub fn as_address(self) -> Option<Address> {
+        match self {
+            Self::Address(address) => Some(address),
+            _ => None,
+        }
+    }
+
+    /// Get [`Pointer`] without any conversion
+    pub fn as_pointer(self) -> Option<Pointer> {
+        match self {
+            Self::Pointer(pointer) => Some(pointer),
+            _ => None,
+        }
+    }
+
     pub fn resolve_to_literal(&self, grid: &Grid) -> Result<Literal, OperandError> {
         match self {
             Self::Literal(literal) => Ok(literal.clone()),
@@ -363,6 +387,8 @@ impl Operand {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
+
     use super::*;
 
     #[test]
@@ -517,5 +543,50 @@ mod tests {
 
         let pointer = Pointer::from_position(Position::from_string("oO").unwrap());
         assert_eq!(pointer.to_cell().to_string(), pointer.to_string());
+    }
+
+    fn create_grid_with_operand(json: serde_json::Value) -> (Grid, Operand) {
+        let grid: Grid = serde_json::from_value(json).expect("must be a valid grid");
+        let operand = Operand::from_cell(grid.get("AA".parse().unwrap()));
+
+        (grid, operand)
+    }
+
+    fn create_grid_with_literal(json: serde_json::Value) -> (Grid, Literal) {
+        let (grid, operand) = create_grid_with_operand(json);
+
+        (grid, operand.as_literal().expect("AA must be a literal"))
+    }
+
+    fn create_grid_with_address(json: serde_json::Value) -> (Grid, Address) {
+        let (grid, operand) = create_grid_with_operand(json);
+
+        (grid, operand.as_address().expect("AA must be an address"))
+    }
+
+    fn create_grid_with_pointer(json: serde_json::Value) -> (Grid, Pointer) {
+        let (grid, operand) = create_grid_with_operand(json);
+
+        (grid, operand.as_pointer().expect("AA must be an pointer"))
+    }
+
+    #[test]
+    fn address_fetch_literal() {
+        let (grid, addr) = create_grid_with_address(json!({
+            "AA": "@AB",
+            "AB": "abc"
+        }));
+        assert_eq!(addr.fetch_literal(&grid), Literal::from_str_trim("abc"));
+
+        let (grid, addr) = create_grid_with_address(json!({
+            "AA": "@aa",
+            "aa": "@AA"
+        }));
+        assert_eq!(addr.fetch_literal(&grid), Literal::from_str_trim("@AA"));
+
+        let (grid, addr) = create_grid_with_address(json!({
+            "AA": "@AB",
+        }));
+        assert_eq!(addr.fetch_literal(&grid), Literal::from_str_trim(""));
     }
 }
