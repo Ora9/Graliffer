@@ -15,7 +15,7 @@ mod head;
 pub use head::*;
 use unwrap_infallible::UnwrapInfallible;
 
-use crate::Word;
+use crate::{OpcodeError, Word};
 
 #[derive(Debug, Clone)]
 pub struct FrameGuard(Rc<RefCell<Frame>>);
@@ -58,12 +58,7 @@ impl Frame {
             self.act(HeadAction::Step)
         } else {
             match Word::from_cell(cell) {
-                Word::Opcode(opcode) => {
-                    let eval = opcode.evaluate(self)?;
-                    let step = self.act(HeadAction::Step)?;
-
-                    Ok(vec![eval, step].into())
-                }
+                Word::Opcode(opcode) => Ok(opcode.evaluate(self)?),
                 Word::Operand(operand) => {
                     let push = self.act(StackAction::Push(operand))?;
                     let step = self.act(HeadAction::Step)?;
@@ -109,6 +104,9 @@ impl From<HeadAction> for FrameAction {
 pub enum FrameError {
     #[error("stack error : {0}")]
     Stack(#[from] StackError),
+
+    #[error("opcode error : {0}")]
+    Opcode(#[from] OpcodeError),
 }
 
 impl Action for FrameAction {}

@@ -137,7 +137,7 @@ mod tests {
     pub fn create_grid_with_pointer(json: serde_json::Value) -> (Grid, Pointer) {
         let (grid, operand) = create_grid_with_operand(json);
 
-        (grid, operand.as_pointer().expect("AA must be an pointer"))
+        (grid, *operand.as_pointer().expect("AA must be an pointer"))
     }
 
     #[test]

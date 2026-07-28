@@ -115,7 +115,7 @@ mod tests {
     pub fn create_grid_with_address(json: serde_json::Value) -> (Grid, Address) {
         let (grid, operand) = create_grid_with_operand(json);
 
-        (grid, operand.as_address().expect("AA must be an address"))
+        (grid, *operand.as_address().expect("AA must be an address"))
     }
 
     #[test]
@@ -212,7 +212,7 @@ mod tests {
             "Bl": "abc"
         }));
         assert_eq!(
-            addr.fetch_operand(&grid).as_literal().unwrap(),
+            *addr.fetch_operand(&grid).as_literal().unwrap(),
             addr.fetch_literal(&grid)
         );
 

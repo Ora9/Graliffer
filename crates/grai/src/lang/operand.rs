@@ -90,7 +90,7 @@ impl Operand {
     }
 
     /// Get a [`Literal`] without any conversion
-    pub fn as_literal(self) -> Option<Literal> {
+    pub fn as_literal(&self) -> Option<&Literal> {
         match self {
             Self::Literal(literal) => Some(literal),
             _ => None,
@@ -98,7 +98,7 @@ impl Operand {
     }
 
     /// Get an [`Address`] without any conversion
-    pub fn as_address(self) -> Option<Address> {
+    pub fn as_address(&self) -> Option<&Address> {
         match self {
             Self::Address(address) => Some(address),
             _ => None,
@@ -106,7 +106,7 @@ impl Operand {
     }
 
     /// Get [`Pointer`] without any conversion
-    pub fn as_pointer(self) -> Option<Pointer> {
+    pub fn as_pointer(&self) -> Option<&Pointer> {
         match self {
             Self::Pointer(pointer) => Some(pointer),
             _ => None,
@@ -148,6 +148,16 @@ impl From<Address> for Operand {
 impl From<Pointer> for Operand {
     fn from(value: Pointer) -> Self {
         Self::Pointer(value)
+    }
+}
+
+impl Display for Operand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Literal(literal) => write!(f, "{literal}"),
+            Self::Address(address) => write!(f, "{address}"),
+            Self::Pointer(pointer) => write!(f, "{pointer}"),
+        }
     }
 }
 
