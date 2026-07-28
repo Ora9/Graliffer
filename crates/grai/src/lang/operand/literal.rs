@@ -66,10 +66,22 @@ impl Literal {
     /// - `false` returns `0`
     /// - `true` returns `1`
     pub fn from_bool(value: bool) -> Self {
-        Self::from_cell(Cell::new_trim(match value {
+        Self::from_str_trim(match value {
             true => "1",
             false => "0",
-        }))
+        })
+    }
+
+    /// Return a number evaluation of `Self`
+    pub fn try_as_number(&self) -> Result<u32, OperandError> {
+        self.as_str()
+            .parse()
+            .map_err(|_| OperandError::CouldNotParseLiteralAsNumber(self.to_string()))
+    }
+
+    /// Get `Self` from an `u32`, trimming any excess
+    pub fn from_number(value: u32) -> Self {
+        Self::from_str_trim(&value.to_string())
     }
 }
 
