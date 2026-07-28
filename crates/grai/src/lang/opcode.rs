@@ -68,11 +68,10 @@ impl Opcode {
             Gle => frame.act(HeadAction::DirectTo(Direction::Left)),
 
             Jmp => {
-                let (address, pop_revert) = pop_address(frame)?;
+                let (address, mut revert) = pop_address(frame)?;
+                revert.extend(frame.act(HeadAction::MoveTo(*address.position()))?);
 
-                let jmp_revert = frame.act(HeadAction::MoveTo(*address.position()))?;
-
-                Ok(vec![pop_revert, jmp_revert].into())
+                Ok(revert)
             }
         }?;
 

@@ -21,6 +21,14 @@ impl Revert {
         matches!(self, Revert::Apply(_))
     }
 
+    /// Push a `Revert` to `self`
+    ///
+    /// Same as [`Self::extend()`]
+    pub fn push(&mut self, other: Self) {
+        self.extend(other);
+    }
+
+    /// Extend `self` with another `Revert`
     pub fn extend(&mut self, other: Self) {
         match other {
             Self::None => {} // nothing to extend
