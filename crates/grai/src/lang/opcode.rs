@@ -3,14 +3,16 @@ use std::str::FromStr;
 use act::{Revert, State};
 
 use crate::{
-    Address, Cell, Direction, Frame, HeadAction, Literal, NotAnAddress, Operand, PointerLoopError,
-    ResolveToAddressError, StackAction, StackError,
+    Address, Cell, Direction, Frame, GridAction, HeadAction, Literal, NotAnAddress, Operand,
+    PointerLoopError, ResolveToAddressError, StackAction, StackError,
 };
 
 #[derive(Debug, strum_macros::EnumString)]
 #[strum(ascii_case_insensitive)]
 pub enum Opcode {
     Nop,
+
+    Set,
 
     Gup,
     Gri,
@@ -87,6 +89,15 @@ impl Opcode {
             Gri => frame.act(HeadAction::DirectTo(Direction::Right)),
             Gdo => frame.act(HeadAction::DirectTo(Direction::Down)),
             Gle => frame.act(HeadAction::DirectTo(Direction::Left)),
+
+            Set => {
+                let (at, at_pop) = pop_address(frame)?;
+                let (lit, lit_pop) = pop_literal(frame)?;
+
+                let set = frame.act(GridAction::Set(*at.position(), lit.as_cell().clone()))?;
+
+                Ok(vec![at_pop, lit_pop, set].into())
+            }
 
             Add | Sub | Mul | Div => {
                 // let (lhs, lhs_pop_revert) = pop(frame)
