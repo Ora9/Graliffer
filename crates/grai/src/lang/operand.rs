@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Cell, Grid};
+use crate::{Cell, CellError, Grid};
 
 mod address;
 pub use address::*;
@@ -45,7 +45,13 @@ pub enum ResolveToAddressError {
     NotAnAddress(#[from] NotAnAddress),
 }
 
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[error("invalid operand: {0}")]
+pub struct OperandFormatError(#[from] CellError);
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(try_from = "String")]
+#[serde(into = "String")]
 pub enum Operand {
     Literal(Literal),
     Address(Address),
@@ -61,6 +67,14 @@ impl Operand {
         } else {
             Self::Literal(Literal::from_cell(cell))
         }
+    }
+
+    pub fn from_str(string: &str) -> Result<Self, OperandFormatError> {
+        Ok(Self::from_cell(Cell::new(string)?))
+    }
+
+    pub fn from_str_trim(string: &str) -> Self {
+        Self::from_cell(Cell::new_trim(string))
     }
 
     pub fn to_cell(&self) -> Cell {
@@ -112,6 +126,18 @@ impl Operand {
             Self::Address(address) => Ok(*address),
             Self::Pointer(pointer) => pointer.resolve_to_address(grid),
         }
+    }
+}
+
+impl From<String> for Operand {
+    fn from(value: String) -> Self {
+        Self::from_cell(Cell::new_trim(&value))
+    }
+}
+
+impl From<Operand> for String {
+    fn from(value: Operand) -> Self {
+        value.to_string()
     }
 }
 
