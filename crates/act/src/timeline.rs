@@ -3,6 +3,7 @@ use std::ops::Add;
 use crate::{Action, AnyAction, State};
 
 #[derive(Debug)]
+#[must_use = "this `Revert` may be an `Apply` variant, which should be handled"]
 pub enum Revert {
     Apply(Apply),
     None,

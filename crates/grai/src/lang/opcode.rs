@@ -4,7 +4,8 @@ use act::{Revert, State};
 
 use crate::{
     Address, Cell, Direction, Frame, GridAction, HeadAction, Literal, NotAnAddress, Operand,
-    PointerLoopError, ResolveToAddressError, StackAction, StackError,
+    ParseLiteralAsBoolError, ParseLiteralAsNumberError, PointerLoopError, ResolveToAddressError,
+    StackAction, StackError,
 };
 
 #[derive(Debug, strum_macros::EnumString)]
@@ -43,6 +44,12 @@ pub enum EvaluationError {
 
     #[error("stack error: {0}")]
     StackError(#[from] StackError),
+
+    #[error(transparent)]
+    ParseAsNumber(#[from] ParseLiteralAsNumberError),
+
+    #[error(transparent)]
+    ParseAsBool(#[from] ParseLiteralAsBoolError),
 }
 
 fn pop_operand(frame: &mut Frame) -> Result<(Operand, Revert), EvaluationError> {
@@ -51,11 +58,6 @@ fn pop_operand(frame: &mut Frame) -> Result<(Operand, Revert), EvaluationError> 
     } else {
         unreachable!("stack.pop() must only return None when StackAction::Pop return an Err");
     }
-}
-
-fn pop_literal(frame: &mut Frame) -> Result<(Literal, Revert), EvaluationError> {
-    pop_operand(frame)
-        .and_then(|(operand, revert)| Ok((operand.resolve_to_literal(&frame.grid)?, revert)))
 }
 
 fn pop_address(frame: &mut Frame) -> Result<(Address, Revert), EvaluationError> {
@@ -70,6 +72,19 @@ fn pop_address(frame: &mut Frame) -> Result<(Address, Revert), EvaluationError> 
             revert,
         ))
     })
+}
+
+fn pop_literal(frame: &mut Frame) -> Result<(Literal, Revert), EvaluationError> {
+    pop_operand(frame)
+        .and_then(|(operand, revert)| Ok((operand.resolve_to_literal(&frame.grid)?, revert)))
+}
+
+fn pop_as_number(frame: &mut Frame) -> Result<(u32, Revert), EvaluationError> {
+    pop_literal(frame).and_then(|(literal, revert)| Ok((literal.try_as_number()?, revert)))
+}
+
+fn pop_as_bool(frame: &mut Frame) -> Result<(bool, Revert), EvaluationError> {
+    pop_literal(frame).and_then(|(literal, revert)| Ok((literal.try_as_bool()?, revert)))
 }
 
 impl Opcode {
@@ -100,9 +115,21 @@ impl Opcode {
             }
 
             Add | Sub | Mul | Div => {
-                // let (lhs, lhs_pop_revert) = pop(frame)
+                let (rhs, rhs_pop_revert) = pop_as_number(frame)?;
+                let (lhs, lhs_pop_revert) = pop_as_number(frame)?;
 
-                Ok(Revert::None)
+                let result = match self {
+                    Add => lhs.saturating_add(rhs),
+                    Sub => lhs.saturating_sub(rhs),
+                    Mul => lhs.saturating_mul(rhs),
+                    Div => lhs.checked_div(rhs).unwrap_or(0),
+                    _ => unreachable!(),
+                };
+
+                let push_revert =
+                    frame.act(StackAction::Push(Literal::from_number_trim(result).into()))?;
+
+                Ok(vec![lhs_pop_revert, rhs_pop_revert, push_revert].into())
             }
 
             Jmp => {
