@@ -11,21 +11,34 @@ use crate::{
 #[derive(Debug, strum_macros::EnumString)]
 #[strum(ascii_case_insensitive)]
 pub enum Opcode {
+    // Program
     Nop,
 
+    // Grid manipulation
     Set,
 
+    // Basic head movements
     Gup,
     Gri,
     Gdo,
     Gle,
 
+    Jmp,
+
+    // Arithmetic operations
     Add,
     Sub,
     Mul,
     Div,
 
-    Jmp,
+    // Comparaison operations
+    Equ,
+    Neq,
+
+    Grt,
+    Lst,
+    Grq,
+    Lsq,
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -100,10 +113,17 @@ impl Opcode {
         let mut revert = match self {
             Nop => Ok(Revert::None),
 
-            Gup => frame.act(HeadAction::DirectTo(Direction::Up)),
-            Gri => frame.act(HeadAction::DirectTo(Direction::Right)),
-            Gdo => frame.act(HeadAction::DirectTo(Direction::Down)),
-            Gle => frame.act(HeadAction::DirectTo(Direction::Left)),
+            Gup | Gri | Gdo | Gle => {
+                let direction = match self {
+                    Gup => Direction::Up,
+                    Gri => Direction::Left,
+                    Gdo => Direction::Down,
+                    Gle => Direction::Left,
+                    _ => unreachable!(),
+                };
+
+                frame.act(HeadAction::DirectTo(direction))
+            }
 
             Set => {
                 let (at, at_pop) = pop_address(frame)?;
@@ -129,7 +149,41 @@ impl Opcode {
                 let push_revert =
                     frame.act(StackAction::Push(Literal::from_number_trim(result).into()))?;
 
-                Ok(vec![lhs_pop_revert, rhs_pop_revert, push_revert].into())
+                Ok(vec![rhs_pop_revert, lhs_pop_revert, push_revert].into())
+            }
+
+            Equ | Neq => {
+                let (rhs, rhs_pop_revert) = pop_literal(frame)?;
+                let (lhs, lhs_pop_revert) = pop_literal(frame)?;
+
+                let result = match self {
+                    Equ => lhs.eq(&rhs),
+                    Neq => lhs.ne(&rhs),
+                    _ => unreachable!(),
+                };
+
+                let push_revert =
+                    frame.act(StackAction::Push(Literal::from_bool(result).into()))?;
+
+                Ok(vec![rhs_pop_revert, lhs_pop_revert, push_revert].into())
+            }
+
+            Grt | Lst | Grq | Lsq => {
+                let (rhs, rhs_pop_revert) = pop_as_number(frame)?;
+                let (lhs, lhs_pop_revert) = pop_as_number(frame)?;
+
+                let result = match self {
+                    Grt => lhs.gt(&rhs),
+                    Lst => lhs.lt(&rhs),
+                    Grq => lhs.ge(&rhs),
+                    Lsq => lhs.le(&rhs),
+                    _ => unreachable!(),
+                };
+
+                let push_revert =
+                    frame.act(StackAction::Push(Literal::from_bool(result).into()))?;
+
+                Ok(vec![rhs_pop_revert, lhs_pop_revert, push_revert].into())
             }
 
             Jmp => {

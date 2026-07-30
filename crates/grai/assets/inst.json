@@ -4,9 +4,9 @@
     "direction": "Right"
   },
   "grid": {
-    "AA": "r",
-    "BA": "9",
-    "CA": "div"
+    "AA": "8",
+    "BA": "10",
+    "CA": "grt"
   },
   "stack": []
 }
