@@ -2,16 +2,16 @@ use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Cell, CellError, Grid, Position, PositionError};
+use crate::{Cell, Grid};
 
 mod address;
-pub use address::Address;
+pub use address::*;
 
 mod literal;
-pub use literal::Literal;
+pub use literal::*;
 
 mod pointer;
-pub use pointer::Pointer;
+pub use pointer::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OperandKind {
@@ -31,39 +31,18 @@ impl Display for OperandKind {
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
-pub enum OperandError {
-    #[error("invalid literal: `{0}`")]
-    InvalidLiteralFormat(#[source] CellError),
+#[error("expected an address, got a literal `{got}`")]
+pub struct NotAnAddress {
+    got: Literal,
+}
 
-    #[error("literal could not be parsed as bool, expected either `0` or `1` found `{0}`")]
-    CouldNotParseLiteralAsBool(String),
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum ResolveToAddressError {
+    #[error(transparent)]
+    PointerLoop(#[from] PointerLoopError),
 
-    #[error("literal could not be parsed as number, expected valid number, found `{0}`")]
-    CouldNotParseLiteralAsNumber(String),
-
-    #[error("invalid address: expected to find format `@XY`, found `{0}`")]
-    InvalidAddressFormat(String),
-
-    #[error("invalid address: `{0}`")]
-    InvalidAddress(#[source] PositionError),
-
-    #[error("invalid pointer: expected to find format `&XY`, found `{0}`")]
-    InvalidPointerFormat(String),
-
-    #[error("invalid pointer: `{0}`")]
-    InvalidPointer(#[source] PositionError),
-
-    #[error("could not resolve pointer chain, loop at `{looping_position}`")]
-    PointerChainLoop {
-        last_pointer: Pointer,
-        looping_position: Position,
-    },
-
-    #[error("could not resolve to address, got {operand_kind} : `{got}`")]
-    CouldNotResolveAsAddress {
-        operand_kind: OperandKind,
-        got: String,
-    },
+    #[error(transparent)]
+    NotAnAddress(#[from] NotAnAddress),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -116,7 +95,7 @@ impl Operand {
         }
     }
 
-    pub fn resolve_to_literal(&self, grid: &Grid) -> Result<Literal, OperandError> {
+    pub fn resolve_to_literal(&self, grid: &Grid) -> Result<Literal, PointerLoopError> {
         match self {
             Self::Literal(literal) => Ok(literal.clone()),
             Self::Address(address) => Ok(address.fetch_literal(grid)),
@@ -124,12 +103,12 @@ impl Operand {
         }
     }
 
-    pub fn resolve_to_address(&self, grid: &Grid) -> Result<Address, OperandError> {
+    pub fn resolve_to_address(&self, grid: &Grid) -> Result<Address, ResolveToAddressError> {
         match self {
-            Self::Literal(literal) => Err(OperandError::CouldNotResolveAsAddress {
-                operand_kind: OperandKind::Literal,
-                got: literal.to_string(),
-            }),
+            Self::Literal(literal) => Err(NotAnAddress {
+                got: literal.clone(),
+            }
+            .into()),
             Self::Address(address) => Ok(*address),
             Self::Pointer(pointer) => pointer.resolve_to_address(grid),
         }

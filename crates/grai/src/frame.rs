@@ -15,33 +15,7 @@ mod head;
 pub use head::*;
 use unwrap_infallible::UnwrapInfallible;
 
-use crate::{OpcodeError, Word};
-
-#[derive(Debug, Clone)]
-pub struct FrameGuard(Rc<RefCell<Frame>>);
-
-impl FrameGuard {
-    pub fn new(frame: Frame) -> Self {
-        Self(Rc::new(RefCell::new(frame)))
-    }
-
-    pub fn read<T>(&self, reader: impl FnOnce(&Frame) -> T) -> T {
-        reader(&self.0.borrow())
-    }
-
-    pub fn write<T>(&mut self, writer: impl FnOnce(&mut Frame) -> T) -> T {
-        writer(&mut *self.0.borrow_mut())
-    }
-}
-
-impl State for FrameGuard {
-    type Action = FrameAction;
-    type Error = FrameError;
-
-    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
-        self.write(|frame| frame.act(action))
-    }
-}
+use crate::{EvaluationError, Word};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Frame {
@@ -68,6 +42,15 @@ impl Frame {
             }
         }
     }
+}
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum FrameError {
+    #[error("stack error : {0}")]
+    Stack(#[from] StackError),
+
+    #[error("opcode error : {0}")]
+    Evaluation(#[from] EvaluationError),
 }
 
 #[derive(Debug, Clone)]
@@ -100,15 +83,6 @@ impl From<HeadAction> for FrameAction {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum FrameError {
-    #[error("stack error : {0}")]
-    Stack(#[from] StackError),
-
-    #[error("opcode error : {0}")]
-    Opcode(#[from] OpcodeError),
-}
-
 impl Action for FrameAction {}
 
 impl State for Frame {
@@ -125,5 +99,31 @@ impl State for Frame {
 
             FrameAction::Step => self.step(),
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct FrameGuard(Rc<RefCell<Frame>>);
+
+impl FrameGuard {
+    pub fn new(frame: Frame) -> Self {
+        Self(Rc::new(RefCell::new(frame)))
+    }
+
+    pub fn read<T>(&self, reader: impl FnOnce(&Frame) -> T) -> T {
+        reader(&self.0.borrow())
+    }
+
+    pub fn write<T>(&mut self, writer: impl FnOnce(&mut Frame) -> T) -> T {
+        writer(&mut *self.0.borrow_mut())
+    }
+}
+
+impl State for FrameGuard {
+    type Action = FrameAction;
+    type Error = FrameError;
+
+    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
+        self.write(|frame| frame.act(action))
     }
 }

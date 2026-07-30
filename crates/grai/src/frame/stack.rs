@@ -44,7 +44,7 @@ pub enum StackAction {
     Pop,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum StackError {
     #[error("could not pop the stack, as it is empty")]
     EmptyStack,

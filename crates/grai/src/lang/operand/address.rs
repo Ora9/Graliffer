@@ -2,7 +2,16 @@ use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Cell, Grid, Literal, Operand, OperandError, Position};
+use crate::{Cell, Grid, Literal, Operand, Position, PositionError};
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum AddressParseError {
+    #[error("invalid address format: expected to find format `@XY`, found `{got}`")]
+    InvalidFormat { got: String },
+
+    #[error(transparent)]
+    Position(#[from] PositionError),
+}
 
 /// An `Address` contains a [`Position`] and can be used by operations in two ways :
 /// - To designate a certain [`Cell`] in the grid, on wich the operation can act
@@ -46,12 +55,14 @@ impl Address {
     /// Returns an error if the string could not be parsed as an address, either because it does not
     /// start with the right prefix (`@`) or because the following position is invalid,
     /// see [position representation](Position#representation) for more info
-    pub fn from_str(string: &str) -> Result<Self, OperandError> {
+    pub fn from_str(string: &str) -> Result<Self, AddressParseError> {
         let pos = string
             .strip_prefix(Self::PREFIX)
-            .ok_or(OperandError::InvalidAddressFormat(String::from(string)))?;
+            .ok_or(AddressParseError::InvalidFormat {
+                got: string.to_string(),
+            })?;
 
-        let pos = Position::from_string(pos).map_err(OperandError::InvalidAddress)?;
+        let pos = Position::from_string(pos)?;
 
         Ok(Self::from_position(pos))
     }
@@ -63,7 +74,7 @@ impl Address {
     /// Returns an error if the `Cell` could not be parsed as an address, either because its
     /// content does not start with the right prefix (`@`) or because the following position is
     /// invalid, see [position representation](Position#representation) for more info
-    pub fn from_ref_cell(cell: &Cell) -> Result<Self, OperandError> {
+    pub fn from_ref_cell(cell: &Cell) -> Result<Self, AddressParseError> {
         Self::from_str(cell.as_str())
     }
 
@@ -119,7 +130,7 @@ mod tests {
     }
 
     #[test]
-    fn new() -> Result<(), OperandError> {
+    fn new() -> Result<(), AddressParseError> {
         assert_eq!(
             Address::from_str("@PO")?.position(),
             &Position::from_string("PO").unwrap()
@@ -139,7 +150,7 @@ mod tests {
     }
 
     #[test]
-    fn parse() -> Result<(), OperandError> {
+    fn parse() -> Result<(), AddressParseError> {
         assert_eq!(
             Address::from_ref_cell(&Cell::new_trim("@yA"))?.position(),
             &Position::from_string("yA").unwrap()
@@ -152,22 +163,28 @@ mod tests {
 
         assert_eq!(
             Address::from_ref_cell(&Cell::new_trim(" @A")),
-            Err(OperandError::InvalidAddressFormat(" @A".to_string()))
+            Err(AddressParseError::InvalidFormat {
+                got: " @A".to_string()
+            })
         );
 
         assert_eq!(
             Address::from_ref_cell(&Cell::new_trim("&AA")),
-            Err(OperandError::InvalidAddressFormat("&AA".to_string()))
+            Err(AddressParseError::InvalidFormat {
+                got: "&AA".to_string()
+            })
         );
 
         assert_eq!(
             Address::from_ref_cell(&Cell::new_trim("AA")),
-            Err(OperandError::InvalidAddressFormat("AA".to_string()))
+            Err(AddressParseError::InvalidFormat {
+                got: "AA".to_string()
+            })
         );
 
         assert_eq!(
             Address::from_ref_cell(&Cell::new_trim("@p")),
-            Err(OperandError::InvalidAddress(PositionError::WrongFormat(
+            Err(AddressParseError::Position(PositionError::WrongFormat(
                 "p".to_string()
             )))
         );
@@ -176,13 +193,14 @@ mod tests {
     }
 
     #[test]
-    fn to_cell() -> Result<(), OperandError> {
-        assert_eq!(Address::from_str("@a5")?.to_string(), String::from("@a5"));
+    fn to_cell() {
+        assert_eq!(
+            Address::from_str("@a5").unwrap().to_string(),
+            String::from("@a5")
+        );
 
-        let address = Address::from_str("@oO")?;
+        let address = Address::from_str("@oO").unwrap();
         assert_eq!(address.to_cell().to_string(), address.to_string());
-
-        Ok(())
     }
 
     #[test]

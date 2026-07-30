@@ -2,7 +2,23 @@ use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Cell, OperandError};
+use crate::{Cell, CellError};
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[error("invalid literal: {0}")]
+pub struct LiteralFormatError(#[from] CellError);
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[error("literal could not be parsed as bool, expected either `0` or `1` found `{got}`")]
+pub struct ParseLiteralAsBoolError {
+    got: String,
+}
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[error("literal could not be parsed as number, expected valid number found `{got}`")]
+pub struct ParseLiteralAsNumberError {
+    got: String,
+}
 
 /// A `Literal` is a string of character that represents data
 ///
@@ -22,10 +38,8 @@ impl Literal {
         Self::new(cell)
     }
 
-    pub fn from_str(string: &str) -> Result<Self, OperandError> {
-        Ok(Self::new(
-            Cell::new(string).map_err(|err| OperandError::InvalidLiteralFormat(err))?,
-        ))
+    pub fn from_str(string: &str) -> Result<Self, LiteralFormatError> {
+        Ok(Self::new(Cell::new(string)?))
     }
 
     pub fn from_str_trim(string: &str) -> Self {
@@ -53,11 +67,13 @@ impl Literal {
     /// - `0` returns `Ok(false)`
     /// - `1` returns `Ok(true)`
     /// - Anything else returns an `Err`
-    pub fn try_as_bool(&self) -> Result<bool, OperandError> {
+    pub fn try_as_bool(&self) -> Result<bool, ParseLiteralAsBoolError> {
         match self.as_str() {
             "0" => Ok(false),
             "1" => Ok(true),
-            _ => Err(OperandError::CouldNotParseLiteralAsBool(self.to_string())),
+            _ => Err(ParseLiteralAsBoolError {
+                got: self.to_string(),
+            }),
         }
     }
 
@@ -73,15 +89,39 @@ impl Literal {
     }
 
     /// Return a number evaluation of `Self`
-    pub fn try_as_number(&self) -> Result<u32, OperandError> {
+    ///
+    /// # Error
+    /// Returns an error if `Self` could not be parsed as a number
+    pub fn try_as_number(&self) -> Result<u32, ParseLiteralAsNumberError> {
         self.as_str()
             .parse()
-            .map_err(|_| OperandError::CouldNotParseLiteralAsNumber(self.to_string()))
+            .map_err(|_| ParseLiteralAsNumberError {
+                got: self.to_string(),
+            })
+    }
+
+    /// Get `Self` from an `u32`
+    ///
+    /// Trim the end of any excess of the string representation of `value`
+    pub fn from_number_trim(value: u32) -> Self {
+        Self::from_str_trim(&value.to_string())
     }
 
     /// Get `Self` from an `u32`, trimming any excess
-    pub fn from_number(value: u32) -> Self {
-        Self::from_str_trim(&value.to_string())
+    ///
+    /// # Error
+    /// Return an error if the string representation of the number could not fit in the literal,
+    /// because of the [`Cell`] restrictions
+    pub fn try_from_number(value: u32) -> Result<Self, LiteralFormatError> {
+        Self::from_str(&value.to_string())
+    }
+}
+
+impl TryFrom<u32> for Literal {
+    type Error = LiteralFormatError;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        Self::try_from_number(value)
     }
 }
 
@@ -141,15 +181,15 @@ mod tests {
         assert_eq!(Literal::from_str_trim("1").try_as_bool(), Ok(true));
         assert_eq!(
             Literal::from_str_trim("gle").try_as_bool(),
-            Err(OperandError::CouldNotParseLiteralAsBool("gle".into()))
+            Err(ParseLiteralAsBoolError { got: "gle".into() })
         );
         assert_eq!(
             Literal::from_str_trim("05").try_as_bool(),
-            Err(OperandError::CouldNotParseLiteralAsBool("05".into()))
+            Err(ParseLiteralAsBoolError { got: "05".into() })
         );
         assert_eq!(
             Literal::from_str_trim("0 ").try_as_bool(),
-            Err(OperandError::CouldNotParseLiteralAsBool("0 ".into()))
+            Err(ParseLiteralAsBoolError { got: "0 ".into() })
         );
     }
 
@@ -157,5 +197,20 @@ mod tests {
     fn from_bool() {
         assert_eq!(Literal::from_bool(false).as_str(), "0");
         assert_eq!(Literal::from_bool(true).as_str(), "1");
+    }
+
+    #[test]
+    fn from_number() -> Result<(), LiteralFormatError> {
+        assert_eq!(Literal::try_from_number(5)?.as_str(), "5");
+        assert_eq!(Literal::try_from_number(999)?.as_str(), "999");
+
+        assert_eq!(
+            Literal::try_from_number(413)?,
+            Literal::from_number_trim(413)
+        );
+
+        // assert_eq!(Literal::try_from_number(1234), Err(LiteralFormatError));
+
+        Ok(())
     }
 }

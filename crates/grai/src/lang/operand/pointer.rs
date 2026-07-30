@@ -2,7 +2,25 @@ use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Address, Cell, Grid, Literal, Operand, OperandError, Position};
+use crate::{
+    Address, Cell, Grid, Literal, Operand, Position, PositionError, ResolveToAddressError,
+};
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum PointerParseError {
+    #[error("invalid pointer format: expected to find format `&XY`, found `{got}`")]
+    InvalidFormat { got: String },
+
+    #[error(transparent)]
+    Position(#[from] PositionError),
+}
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[error("could not resolve pointer chain, loop at `{looping_position}`")]
+pub struct PointerLoopError {
+    last_pointer: Pointer,
+    looping_position: Position,
+}
 
 /// A `Pointer` contains a [`Position`] and can be used in operations to reference another
 /// [`Cell`]'s operand, that will then be interpreted.
@@ -39,12 +57,14 @@ impl Pointer {
     /// Returns an error if string could not be parsed as a pointer, either because it does not
     /// start with the right prefix (`&`) or because the following position is invalid,
     /// see [position representation](Position#representation) for more info
-    pub fn from_str(string: &str) -> Result<Self, OperandError> {
+    pub fn from_str(string: &str) -> Result<Self, PointerParseError> {
         let pos = string
             .strip_prefix(Self::PREFIX)
-            .ok_or(OperandError::InvalidPointerFormat(String::from(string)))?;
+            .ok_or(PointerParseError::InvalidFormat {
+                got: String::from(string),
+            })?;
 
-        let pos = Position::from_string(pos).map_err(OperandError::InvalidPointer)?;
+        let pos = Position::from_string(pos)?;
 
         Ok(Self::from_position(pos))
     }
@@ -56,7 +76,7 @@ impl Pointer {
     /// Returns an error if the `Cell` could not be parsed as a pointer, either because it does not
     /// start with the right prefix (`&`) or because the following position is invalid,
     /// see [position representation](Position#representation) for more info
-    pub fn from_ref_cell(cell: &Cell) -> Result<Self, OperandError> {
+    pub fn from_ref_cell(cell: &Cell) -> Result<Self, PointerParseError> {
         Self::from_str(cell.as_str())
     }
 
@@ -73,12 +93,12 @@ impl Pointer {
         Literal::from_cell(self.to_cell())
     }
 
-    pub fn resolve_to_operand(&self, grid: &Grid) -> Result<Operand, OperandError> {
+    pub fn resolve_to_operand(&self, grid: &Grid) -> Result<Operand, PointerLoopError> {
         fn get(
             current_pointer: Pointer,
             grid: &Grid,
             visited_cells: &mut Vec<Position>,
-        ) -> Result<Operand, OperandError> {
+        ) -> Result<Operand, PointerLoopError> {
             let next_position = current_pointer.position();
             visited_cells.push(*next_position);
 
@@ -86,7 +106,7 @@ impl Pointer {
             if let Ok(next_pointer) = Pointer::from_ref_cell(&next_cell) {
                 if visited_cells.contains(next_pointer.position()) {
                     // pointer chain loop
-                    Err(OperandError::PointerChainLoop {
+                    Err(PointerLoopError {
                         last_pointer: next_pointer,
                         looping_position: *next_position,
                     })
@@ -101,12 +121,12 @@ impl Pointer {
         get(*self, grid, &mut Vec::new())
     }
 
-    pub fn resolve_to_literal(&self, grid: &Grid) -> Result<Literal, OperandError> {
+    pub fn resolve_to_literal(&self, grid: &Grid) -> Result<Literal, PointerLoopError> {
         // TODO: Might induce unchecked recusrsion
         self.resolve_to_operand(grid)?.resolve_to_literal(grid)
     }
 
-    pub fn resolve_to_address(&self, grid: &Grid) -> Result<Address, OperandError> {
+    pub fn resolve_to_address(&self, grid: &Grid) -> Result<Address, ResolveToAddressError> {
         self.resolve_to_operand(grid)?.resolve_to_address(grid)
     }
 }
@@ -123,7 +143,7 @@ mod tests {
 
     use serde_json::json;
 
-    use crate::{OperandKind, PositionError};
+    use crate::{NotAnAddress, PositionError};
 
     use super::*;
 
@@ -141,7 +161,7 @@ mod tests {
     }
 
     #[test]
-    fn new() -> Result<(), OperandError> {
+    fn new() -> Result<(), PointerParseError> {
         assert_eq!(
             Pointer::from_str("&b8")?.position(),
             &Position::from_string("b8").unwrap()
@@ -161,7 +181,7 @@ mod tests {
     }
 
     #[test]
-    fn parse() -> Result<(), OperandError> {
+    fn parse() -> Result<(), PointerParseError> {
         assert_eq!(
             Pointer::from_ref_cell(&Cell::new_trim("&yA"))?.position(),
             &Position::from_string("yA").unwrap()
@@ -174,22 +194,28 @@ mod tests {
 
         assert_eq!(
             Pointer::from_ref_cell(&Cell::new_trim(" &A")),
-            Err(OperandError::InvalidPointerFormat(" &A".to_string()))
+            Err(PointerParseError::InvalidFormat {
+                got: " &A".to_string()
+            })
         );
 
         assert_eq!(
             Pointer::from_ref_cell(&Cell::new_trim("@AA")),
-            Err(OperandError::InvalidPointerFormat("@AA".to_string()))
+            Err(PointerParseError::InvalidFormat {
+                got: "@AA".to_string()
+            })
         );
 
         assert_eq!(
             Pointer::from_ref_cell(&Cell::new_trim("AA")),
-            Err(OperandError::InvalidPointerFormat("AA".to_string()))
+            Err(PointerParseError::InvalidFormat {
+                got: "AA".to_string()
+            })
         );
 
         assert_eq!(
             Pointer::from_ref_cell(&Cell::new_trim("&p")),
-            Err(OperandError::InvalidPointer(PositionError::WrongFormat(
+            Err(PointerParseError::Position(PositionError::WrongFormat(
                 "p".to_string()
             )))
         );
@@ -198,17 +224,18 @@ mod tests {
     }
 
     #[test]
-    fn to_cell() -> Result<(), OperandError> {
-        assert_eq!(Pointer::from_str("&a5")?.to_string(), String::from("&a5"));
+    fn to_cell() {
+        assert_eq!(
+            Pointer::from_str("&a5").unwrap().to_string(),
+            String::from("&a5")
+        );
 
-        let pointer = Pointer::from_str("&oO")?;
+        let pointer = Pointer::from_str("&oO").unwrap();
         assert_eq!(pointer.to_cell().to_string(), pointer.to_string());
-
-        Ok(())
     }
 
     #[test]
-    fn resolve_to_literal() -> Result<(), OperandError> {
+    fn resolve_to_literal() -> Result<(), PointerLoopError> {
         let (grid, pointer) = create_grid_with_pointer(json!({
             "AA": "&AB",
             "AB": "pwt",
@@ -225,7 +252,7 @@ mod tests {
         }));
         assert_eq!(
             pointer.resolve_to_literal(&grid)?,
-            Literal::from_str("0")?.into(),
+            Literal::from_str_trim("0").into(),
         );
 
         let (grid, pointer) = create_grid_with_pointer(json!({
@@ -235,14 +262,14 @@ mod tests {
         }));
         assert_eq!(
             pointer.resolve_to_literal(&grid)?,
-            Literal::from_str("@di")?.into(),
+            Literal::from_str_trim("@di").into(),
         );
 
         Ok(())
     }
 
     #[test]
-    fn resolve_to_operand() -> Result<(), OperandError> {
+    fn resolve_to_operand() -> Result<(), PointerLoopError> {
         let (grid, pointer) = create_grid_with_pointer(json!({
             "AA": "&AB",
             "AB": "pwt",
@@ -258,7 +285,7 @@ mod tests {
         }));
         assert_eq!(
             pointer.resolve_to_operand(&grid)?,
-            Address::from_str("@AC")?.into(),
+            Address::from_str("@AC").unwrap().into(),
         );
 
         let (grid, pointer) = create_grid_with_pointer(json!({
@@ -269,21 +296,21 @@ mod tests {
         }));
         assert_eq!(
             pointer.resolve_to_operand(&grid)?,
-            Address::from_str("@pr")?.into(),
+            Address::from_str("@pr").unwrap().into(),
         );
 
         Ok(())
     }
 
     #[test]
-    fn resolve_to_address() -> Result<(), OperandError> {
+    fn resolve_to_address() -> Result<(), ResolveToAddressError> {
         let (grid, pointer) = create_grid_with_pointer(json!({
             "AA": "&AB",
             "AB": "@d5",
         }));
         assert_eq!(
             pointer.resolve_to_address(&grid)?,
-            Address::from_str("@d5")?
+            Address::from_str("@d5").unwrap()
         );
 
         let (grid, pointer) = create_grid_with_pointer(json!({
@@ -293,7 +320,7 @@ mod tests {
         }));
         assert_eq!(
             pointer.resolve_to_address(&grid)?,
-            Address::from_str("@pa")?
+            Address::from_str("@pa").unwrap()
         );
 
         let (grid, pointer) = create_grid_with_pointer(json!({
@@ -303,17 +330,16 @@ mod tests {
         }));
         assert_eq!(
             pointer.resolve_to_address(&grid),
-            Err(OperandError::CouldNotResolveAsAddress {
-                operand_kind: OperandKind::Literal,
-                got: String::from("prt")
-            })
+            Err(ResolveToAddressError::NotAnAddress(NotAnAddress {
+                got: Literal::from_str_trim("prt")
+            }))
         );
 
         Ok(())
     }
 
     #[test]
-    fn resolve_loop() -> Result<(), OperandError> {
+    fn resolve_loop() -> Result<(), PointerLoopError> {
         let (grid, pointer) = create_grid_with_pointer(json!({
             "AA": "&AB",
             "AB": "&AC",
@@ -323,8 +349,8 @@ mod tests {
         }));
         assert_eq!(
             pointer.resolve_to_operand(&grid),
-            Err(OperandError::PointerChainLoop {
-                last_pointer: Pointer::from_str("&AB")?.into(),
+            Err(PointerLoopError {
+                last_pointer: Pointer::from_str("&AB").unwrap().into(),
                 looping_position: Position::from_str("AA").unwrap()
             }),
         );
