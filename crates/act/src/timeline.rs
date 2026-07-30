@@ -100,7 +100,9 @@ impl<S: State> Timeline<S> {
         }
     }
 
-    pub fn act(&mut self, action: S::Action) -> Result<(), TimelineError<S::Error>> {
+    pub fn act(&mut self, action: impl Into<S::Action>) -> Result<(), TimelineError<S::Error>> {
+        let action = action.into();
+
         match self.state.act(action.clone()) {
             Ok(revert) => {
                 self.append(Undoable {
