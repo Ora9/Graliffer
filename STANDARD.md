@@ -1,20 +1,19 @@
 # Graliffer Standard
 
-This document is intended to be a reference and standard for the Graliffer programming language.
+This document is intended to stand as a reference and standard for the Graliffer programming language.
 
 Graliffer is an interpreted exotic programming language using a 2 dimensional grid to hold code and data
 
 # Memory
 
 Graliffer uses two separate memory models :
-- a *grid* of cells that can hold up to 3 characters
-- a *stack*, holding operands that have been parsed and waiting to be popped by operations
+- a 2d *grid*, with cells that can hold up to 3 characters
+- a *stack* of operands, that can be manipulated by operations
 
 ## Grid
 
-Graliffer uses a 2 dimensional grid of cells that can hold up to 3 characters
-
-That way every words, opcodes or operation, in the language has a maximum of 3 char
+Graliffer uses a 2 dimensional grid, with cells that can hold up to 3 characters
+With that restriction, every opcodes or operands in the language have to fit in a cell
 
 ### Position
 
@@ -154,3 +153,9 @@ Pop one as bool, negate it, and push the result :
 
 Halt the program, stopping all heads :
 - `hlt` ("halt")
+
+# Error handling
+
+Error in Graliffer are handled in two ways :
+- Ignoring
+- Returning special word

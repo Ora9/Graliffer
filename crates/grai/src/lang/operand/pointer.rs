@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     Address, Cell, Grid, Literal, Operand, Position, PositionError, ResolveToAddressError,
+    ResolveToLiteralError,
 };
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -121,7 +122,7 @@ impl Pointer {
         get(*self, grid, &mut Vec::new())
     }
 
-    pub fn resolve_to_literal(&self, grid: &Grid) -> Result<Literal, PointerLoopError> {
+    pub fn resolve_to_literal(&self, grid: &Grid) -> Result<Literal, ResolveToLiteralError> {
         // TODO: Might induce unchecked recusrsion
         self.resolve_to_operand(grid)?.resolve_to_literal(grid)
     }
@@ -235,7 +236,7 @@ mod tests {
     }
 
     #[test]
-    fn resolve_to_literal() -> Result<(), PointerLoopError> {
+    fn resolve_to_literal() -> Result<(), ResolveToLiteralError> {
         let (grid, pointer) = create_grid_with_pointer(json!({
             "AA": "&AB",
             "AB": "pwt",
@@ -331,7 +332,7 @@ mod tests {
         assert_eq!(
             pointer.resolve_to_address(&grid),
             Err(ResolveToAddressError::NotAnAddress(NotAnAddress {
-                got: Literal::from_str_trim("prt")
+                got: Literal::from_str_trim("prt").into()
             }))
         );
 

@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::{Display, write};
 
 use serde::{Deserialize, Serialize};
 
@@ -13,11 +13,15 @@ pub use literal::*;
 mod pointer;
 pub use pointer::*;
 
+mod errored;
+pub use errored::*;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OperandKind {
     Literal,
     Address,
     Pointer,
+    Errored,
 }
 
 impl Display for OperandKind {
@@ -26,15 +30,20 @@ impl Display for OperandKind {
             Self::Literal => f.write_str("literal"),
             Self::Address => f.write_str("address"),
             Self::Pointer => f.write_str("pointer"),
+            Self::Errored => f.write_str("errored"),
         }
     }
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
-#[error("expected an address, got a literal `{got}`")]
+#[error("expected an address, got {} `{got}`", got.kind())]
 pub struct NotAnAddress {
-    got: Literal,
+    pub got: Operand,
 }
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[error("expected a valid value, found an errored cell")]
+pub struct ErroredEncountered;
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum ResolveToAddressError {
@@ -43,6 +52,18 @@ pub enum ResolveToAddressError {
 
     #[error(transparent)]
     NotAnAddress(#[from] NotAnAddress),
+
+    #[error(transparent)]
+    ErroredEncountered(#[from] ErroredEncountered),
+}
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum ResolveToLiteralError {
+    #[error(transparent)]
+    PointerLoop(#[from] PointerLoopError),
+
+    #[error(transparent)]
+    ErroredEncountered(#[from] ErroredEncountered),
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -56,14 +77,17 @@ pub enum Operand {
     Literal(Literal),
     Address(Address),
     Pointer(Pointer),
+    Errored(Errored),
 }
 
 impl Operand {
     pub fn from_cell(cell: Cell) -> Self {
         if let Ok(address) = Address::from_ref_cell(&cell) {
-            Self::Address(address)
+            Self::Address(address.into())
         } else if let Ok(pointer) = Pointer::from_ref_cell(&cell) {
-            Self::Pointer(pointer)
+            Self::Pointer(pointer.into())
+        } else if let Ok(errored) = Errored::from_ref_cell(&cell) {
+            Self::Errored(errored.into())
         } else {
             Self::Literal(Literal::from_cell(cell))
         }
@@ -82,6 +106,16 @@ impl Operand {
             Self::Literal(literal) => literal.as_cell().clone(),
             Self::Address(address) => address.to_cell(),
             Self::Pointer(pointer) => pointer.to_cell(),
+            Self::Errored(errored) => errored.to_cell(),
+        }
+    }
+
+    pub fn kind(&self) -> OperandKind {
+        match self {
+            Operand::Literal(_) => OperandKind::Literal,
+            Operand::Address(_) => OperandKind::Address,
+            Operand::Pointer(_) => OperandKind::Pointer,
+            Operand::Errored(_) => OperandKind::Errored,
         }
     }
 
@@ -109,22 +143,31 @@ impl Operand {
         }
     }
 
-    pub fn resolve_to_literal(&self, grid: &Grid) -> Result<Literal, PointerLoopError> {
+    pub fn as_errored(&self) -> Option<&Errored> {
+        match self {
+            Self::Errored(errored) => Some(errored),
+            _ => None,
+        }
+    }
+
+    pub fn resolve_to_literal(&self, grid: &Grid) -> Result<Literal, ResolveToLiteralError> {
         match self {
             Self::Literal(literal) => Ok(literal.clone()),
             Self::Address(address) => Ok(address.fetch_literal(grid)),
             Self::Pointer(pointer) => pointer.resolve_to_literal(grid),
+            Self::Errored(_) => Err(ErroredEncountered.into()),
         }
     }
 
     pub fn resolve_to_address(&self, grid: &Grid) -> Result<Address, ResolveToAddressError> {
         match self {
             Self::Literal(literal) => Err(NotAnAddress {
-                got: literal.clone(),
+                got: literal.clone().into(),
             }
             .into()),
             Self::Address(address) => Ok(*address),
             Self::Pointer(pointer) => pointer.resolve_to_address(grid),
+            Self::Errored(_) => Err(ErroredEncountered.into()),
         }
     }
 }
@@ -159,12 +202,19 @@ impl From<Pointer> for Operand {
     }
 }
 
+impl From<Errored> for Operand {
+    fn from(value: Errored) -> Self {
+        Self::Errored(value)
+    }
+}
+
 impl Display for Operand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Literal(literal) => write!(f, "{literal}"),
             Self::Address(address) => write!(f, "{address}"),
             Self::Pointer(pointer) => write!(f, "{pointer}"),
+            Self::Errored(errored) => write!(f, "{errored}"),
         }
     }
 }

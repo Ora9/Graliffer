@@ -3,11 +3,12 @@ use std::str::FromStr;
 use act::{Revert, State};
 
 use crate::{
-    Address, Cell, Direction, Frame, GridAction, HeadAction, Literal, NotAnAddress, Operand,
-    ParseLiteralAsBoolError, ParseLiteralAsNumberError, PointerLoopError, ResolveToAddressError,
-    StackAction, StackError,
+    Address, Cell, Direction, Errored, ErroredEncountered, Frame, GridAction, HeadAction, Literal,
+    NotAnAddress, Operand, ParseLiteralAsBoolError, ParseLiteralAsNumberError, PointerLoopError,
+    ResolveToAddressError, ResolveToLiteralError, StackAction, StackError,
 };
 
+// TODO: Split to have a multiples enums for each types of operands
 #[derive(Debug, strum_macros::EnumString)]
 #[strum(ascii_case_insensitive)]
 pub enum Opcode {
@@ -44,25 +45,25 @@ pub enum Opcode {
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum EvaluationError {
     #[error(transparent)]
-    ResolveToAddress(#[from] ResolveToAddressError),
-
-    #[error(transparent)]
-    NotAnAddress(#[from] NotAnAddress),
+    ErroredEncountered(#[from] ErroredEncountered),
 
     #[error(transparent)]
     PointerLoop(#[from] PointerLoopError),
 
+    #[error(transparent)]
+    NotAnAddress(#[from] NotAnAddress),
+
     #[error("not an opcode, found {0}")]
     NotAnOpcode(String),
-
-    #[error("stack error: {0}")]
-    StackError(#[from] StackError),
 
     #[error(transparent)]
     ParseAsNumber(#[from] ParseLiteralAsNumberError),
 
     #[error(transparent)]
     ParseAsBool(#[from] ParseLiteralAsBoolError),
+
+    #[error("stack error: {0}")]
+    StackError(#[from] StackError),
 }
 
 fn pop_operand(frame: &mut Frame) -> Result<(Operand, Revert), EvaluationError> {
@@ -81,6 +82,11 @@ fn pop_address(frame: &mut Frame) -> Result<(Address, Revert), EvaluationError> 
                 .map_err(|err| match err {
                     ResolveToAddressError::PointerLoop(err) => EvaluationError::PointerLoop(err),
                     ResolveToAddressError::NotAnAddress(err) => EvaluationError::NotAnAddress(err),
+                    ResolveToAddressError::ErroredEncountered(_) => {
+                        EvaluationError::NotAnAddress(NotAnAddress {
+                            got: Operand::Errored(Errored::new()),
+                        })
+                    }
                 })?,
             revert,
         ))
@@ -88,8 +94,19 @@ fn pop_address(frame: &mut Frame) -> Result<(Address, Revert), EvaluationError> 
 }
 
 fn pop_literal(frame: &mut Frame) -> Result<(Literal, Revert), EvaluationError> {
-    pop_operand(frame)
-        .and_then(|(operand, revert)| Ok((operand.resolve_to_literal(&frame.grid)?, revert)))
+    pop_operand(frame).and_then(|(operand, revert)| {
+        Ok((
+            operand
+                .resolve_to_literal(&frame.grid)
+                .map_err(|err| match err {
+                    ResolveToLiteralError::PointerLoop(err) => EvaluationError::PointerLoop(err),
+                    ResolveToLiteralError::ErroredEncountered(err) => {
+                        EvaluationError::ErroredEncountered(err)
+                    }
+                })?,
+            revert,
+        ))
+    })
 }
 
 fn pop_as_number(frame: &mut Frame) -> Result<(u32, Revert), EvaluationError> {
@@ -110,6 +127,8 @@ impl Opcode {
 
         dbg!(&self);
 
+        // TODO: use timeline to auto register actions performed instead of having to return each of
+        // their reverts in the right order
         let mut revert = match self {
             Nop => Ok(Revert::None),
 
@@ -127,24 +146,46 @@ impl Opcode {
 
             Set => {
                 let (at, at_pop) = pop_address(frame)?;
-                let (lit, lit_pop) = pop_literal(frame)?;
 
-                let set = frame.act(GridAction::Set(*at.position(), lit.as_cell().clone()))?;
+                let lit_result = pop_literal(frame)
+
+                match pop_literal(frame) {
+                    Ok((lit, lit_pop)) => {
+                        let set = frame.act(GridAction::Set(*at.position(), lit.as_cell().clone()))?;
+                    }
+                    Err(EvaluationError::ErroredEncountered(_)) => {
+
+                    }
+                    Err(_) => {
+
+                    }
+                }
+
 
                 Ok(vec![at_pop, lit_pop, set].into())
             }
 
             Add | Sub | Mul | Div => {
-                let (rhs, rhs_pop_revert) = pop_as_number(frame)?;
-                let (lhs, lhs_pop_revert) = pop_as_number(frame)?;
+                let rhs = pop_as_number(frame);
+                let lhs = pop_as_number(frame);
 
-                let result = match self {
-                    Add => lhs.saturating_add(rhs),
-                    Sub => lhs.saturating_sub(rhs),
-                    Mul => lhs.saturating_mul(rhs),
-                    Div => lhs.checked_div(rhs).unwrap_or(0),
-                    _ => unreachable!(),
+                let (operand, revert) = match (rhs, lhs) {
+                    (Ok(rhs), Ok(lhs)) => {
+                        let result = match self {
+                            Add => lhs.saturating_add(rhs),
+                            Sub => lhs.saturating_sub(rhs),
+                            Mul => lhs.saturating_mul(rhs),
+                            Div => lhs.checked_div(rhs).unwrap_or(0),
+                            _ => unreachable!(),
+                        };
+
+                        Literal::from_number_trim(result).into()
+                    }
+                    (Err(_), _) || (_, Err(_)) => {
+                        Errored.into()
+                    }
                 };
+
 
                 let push_revert =
                     frame.act(StackAction::Push(Literal::from_number_trim(result).into()))?;
