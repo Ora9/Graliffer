@@ -256,7 +256,7 @@ impl Opcode {
             }
         };
 
-        if !matches!(self, Jmp) {
+        if !matches!(self, Jmp | Jif) {
             frame.act(HeadAction::Step)?;
         }
 
