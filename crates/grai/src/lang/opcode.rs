@@ -27,6 +27,9 @@ pub enum Opcode {
 
     Jmp,
 
+    // Conditional jumps
+    Jif,
+
     // Arithmetic operations
     Add,
     Sub,
@@ -241,6 +244,15 @@ impl Opcode {
             Jmp => {
                 let address = pop_to_address(&mut frame)?;
                 frame.act(HeadAction::MoveTo(*address.position()))?;
+            }
+
+            Jif => {
+                let address = pop_to_address(&mut frame)?;
+                let condition_opt = pop_as_bool(&mut frame)?;
+
+                if condition_opt.is_some_and(|condition| condition) {
+                    frame.act(HeadAction::MoveTo(*address.position()))?;
+                }
             }
         };
 
