@@ -1,11 +1,11 @@
 use std::str::FromStr;
 
-use act::{Revert, State};
+use act::{Revert, State, TimelineRef};
 
 use crate::{
-    Address, Cell, Direction, Errored, ErroredEncountered, Frame, GridAction, HeadAction, Literal,
-    NotAnAddress, Operand, ParseLiteralAsBoolError, ParseLiteralAsNumberError, PointerLoopError,
-    ResolveToAddressError, ResolveToLiteralError, StackAction, StackError,
+    Address, Cell, Direction, Errored, ErroredEncountered, Frame, FrameError, GridAction,
+    HeadAction, Literal, NotAnAddress, Operand, ParseLiteralAsBoolError, ParseLiteralAsNumberError,
+    PointerLoopError, ResolveToAddressError, ResolveToLiteralError, StackAction, StackError,
 };
 
 // TODO: Split to have a multiples enums for each types of operands
@@ -66,55 +66,53 @@ pub enum EvaluationError {
     StackError(#[from] StackError),
 }
 
-fn pop_operand(frame: &mut Frame) -> Result<(Operand, Revert), EvaluationError> {
-    if let Some(popped) = frame.stack.last() {
-        Ok((popped.clone(), frame.stack.act(StackAction::Pop)?))
+fn pop_operand(frame: &mut TimelineRef<Frame>) -> Result<Operand, EvaluationError> {
+    if let Some(popped) = frame.stack.last().cloned() {
+        frame.act(StackAction::Pop).map_err(|err| match err {
+            FrameError::Stack(stack_error) => EvaluationError::StackError(stack_error),
+            _ => unreachable!("StackAction should only return a StackError"),
+        })?;
+        Ok(popped.clone())
     } else {
         unreachable!("stack.pop() must only return None when StackAction::Pop return an Err");
     }
 }
 
-fn pop_address(frame: &mut Frame) -> Result<(Address, Revert), EvaluationError> {
-    pop_operand(frame).and_then(|(operand, revert)| {
-        Ok((
-            operand
-                .resolve_to_address(&frame.grid)
-                .map_err(|err| match err {
-                    ResolveToAddressError::PointerLoop(err) => EvaluationError::PointerLoop(err),
-                    ResolveToAddressError::NotAnAddress(err) => EvaluationError::NotAnAddress(err),
-                    ResolveToAddressError::ErroredEncountered(_) => {
-                        EvaluationError::NotAnAddress(NotAnAddress {
-                            got: Operand::Errored(Errored::new()),
-                        })
-                    }
-                })?,
-            revert,
-        ))
+fn pop_address(frame: &mut TimelineRef<Frame>) -> Result<Address, EvaluationError> {
+    pop_operand(frame).and_then(|operand| {
+        Ok(operand
+            .resolve_to_address(&frame.grid)
+            .map_err(|err| match err {
+                ResolveToAddressError::PointerLoop(err) => EvaluationError::PointerLoop(err),
+                ResolveToAddressError::NotAnAddress(err) => EvaluationError::NotAnAddress(err),
+                ResolveToAddressError::ErroredEncountered(_) => {
+                    EvaluationError::NotAnAddress(NotAnAddress {
+                        got: Operand::Errored(Errored::new()),
+                    })
+                }
+            })?)
     })
 }
 
-fn pop_literal(frame: &mut Frame) -> Result<(Literal, Revert), EvaluationError> {
-    pop_operand(frame).and_then(|(operand, revert)| {
-        Ok((
-            operand
-                .resolve_to_literal(&frame.grid)
-                .map_err(|err| match err {
-                    ResolveToLiteralError::PointerLoop(err) => EvaluationError::PointerLoop(err),
-                    ResolveToLiteralError::ErroredEncountered(err) => {
-                        EvaluationError::ErroredEncountered(err)
-                    }
-                })?,
-            revert,
-        ))
+fn pop_literal(frame: &mut TimelineRef<Frame>) -> Result<Literal, EvaluationError> {
+    pop_operand(frame).and_then(|operand| {
+        Ok(operand
+            .resolve_to_literal(&frame.grid)
+            .map_err(|err| match err {
+                ResolveToLiteralError::PointerLoop(err) => EvaluationError::PointerLoop(err),
+                ResolveToLiteralError::ErroredEncountered(err) => {
+                    EvaluationError::ErroredEncountered(err)
+                }
+            })?)
     })
 }
 
-fn pop_as_number(frame: &mut Frame) -> Result<(u32, Revert), EvaluationError> {
-    pop_literal(frame).and_then(|(literal, revert)| Ok((literal.try_as_number()?, revert)))
+fn pop_as_number(frame: &mut TimelineRef<Frame>) -> Result<u32, EvaluationError> {
+    pop_literal(frame).and_then(|literal| Ok(literal.try_as_number()?))
 }
 
-fn pop_as_bool(frame: &mut Frame) -> Result<(bool, Revert), EvaluationError> {
-    pop_literal(frame).and_then(|(literal, revert)| Ok((literal.try_as_bool()?, revert)))
+fn pop_as_bool(frame: &mut TimelineRef<Frame>) -> Result<bool, EvaluationError> {
+    pop_literal(frame).and_then(|literal| Ok(literal.try_as_bool()?))
 }
 
 impl Opcode {
@@ -124,13 +122,12 @@ impl Opcode {
 
     pub fn evaluate(self, frame: &mut Frame) -> Result<Revert, <Frame as State>::Error> {
         use Opcode::*;
+        let mut frame = TimelineRef::new(frame);
 
         dbg!(&self);
 
-        // TODO: use timeline to auto register actions performed instead of having to return each of
-        // their reverts in the right order
-        let mut revert = match self {
-            Nop => Ok(Revert::None),
+        match self {
+            Nop => {}
 
             Gup | Gri | Gdo | Gle => {
                 let direction = match self {
@@ -141,61 +138,42 @@ impl Opcode {
                     _ => unreachable!(),
                 };
 
-                frame.act(HeadAction::DirectTo(direction))
+                frame.act(HeadAction::DirectTo(direction))?;
             }
 
             Set => {
-                let (at, at_pop) = pop_address(frame)?;
+                let at = pop_address(&mut frame)?;
+                let lit = pop_literal(&mut frame)?;
 
-                let lit_result = pop_literal(frame)
-
-                match pop_literal(frame) {
-                    Ok((lit, lit_pop)) => {
-                        let set = frame.act(GridAction::Set(*at.position(), lit.as_cell().clone()))?;
-                    }
-                    Err(EvaluationError::ErroredEncountered(_)) => {
-
-                    }
-                    Err(_) => {
-
-                    }
-                }
-
-
-                Ok(vec![at_pop, lit_pop, set].into())
+                frame.act(GridAction::Set(*at.position(), lit.as_cell().clone()))?;
             }
 
             Add | Sub | Mul | Div => {
-                let rhs = pop_as_number(frame);
-                let lhs = pop_as_number(frame);
+                let rhs = pop_as_number(&mut frame)?;
+                let lhs = pop_as_number(&mut frame)?;
 
-                let (operand, revert) = match (rhs, lhs) {
-                    (Ok(rhs), Ok(lhs)) => {
-                        let result = match self {
-                            Add => lhs.saturating_add(rhs),
-                            Sub => lhs.saturating_sub(rhs),
-                            Mul => lhs.saturating_mul(rhs),
-                            Div => lhs.checked_div(rhs).unwrap_or(0),
-                            _ => unreachable!(),
-                        };
-
-                        Literal::from_number_trim(result).into()
-                    }
-                    (Err(_), _) || (_, Err(_)) => {
-                        Errored.into()
-                    }
+                let result = match self {
+                    Add => lhs.saturating_add(rhs),
+                    Sub => lhs.saturating_sub(rhs),
+                    Mul => lhs.saturating_mul(rhs),
+                    Div => lhs.checked_div(rhs).unwrap_or(0),
+                    _ => unreachable!(),
                 };
 
+                frame.act(StackAction::Push(Literal::from_number_trim(result).into()))?;
 
-                let push_revert =
-                    frame.act(StackAction::Push(Literal::from_number_trim(result).into()))?;
-
-                Ok(vec![rhs_pop_revert, lhs_pop_revert, push_revert].into())
+                // let (operand, revert) = match (rhs, lhs) {
+                //     (Ok(rhs), Ok(lhs)) => {
+                //     }
+                //     (Err(_), _) || (_, Err(_)) => {
+                //         Errored.into()
+                //     }
+                // };
             }
 
             Equ | Neq => {
-                let (rhs, rhs_pop_revert) = pop_literal(frame)?;
-                let (lhs, lhs_pop_revert) = pop_literal(frame)?;
+                let rhs = pop_literal(&mut frame)?;
+                let lhs = pop_literal(&mut frame)?;
 
                 let result = match self {
                     Equ => lhs.eq(&rhs),
@@ -203,15 +181,12 @@ impl Opcode {
                     _ => unreachable!(),
                 };
 
-                let push_revert =
-                    frame.act(StackAction::Push(Literal::from_bool(result).into()))?;
-
-                Ok(vec![rhs_pop_revert, lhs_pop_revert, push_revert].into())
+                frame.act(StackAction::Push(Literal::from_bool(result).into()))?;
             }
 
             Grt | Lst | Grq | Lsq => {
-                let (rhs, rhs_pop_revert) = pop_as_number(frame)?;
-                let (lhs, lhs_pop_revert) = pop_as_number(frame)?;
+                let rhs = pop_as_number(&mut frame)?;
+                let lhs = pop_as_number(&mut frame)?;
 
                 let result = match self {
                     Grt => lhs.gt(&rhs),
@@ -221,24 +196,19 @@ impl Opcode {
                     _ => unreachable!(),
                 };
 
-                let push_revert =
-                    frame.act(StackAction::Push(Literal::from_bool(result).into()))?;
-
-                Ok(vec![rhs_pop_revert, lhs_pop_revert, push_revert].into())
+                frame.act(StackAction::Push(Literal::from_bool(result).into()))?;
             }
 
             Jmp => {
-                let (address, mut revert) = pop_address(frame)?;
-                revert.extend(frame.act(HeadAction::MoveTo(*address.position()))?);
-
-                Ok(revert)
+                let address = pop_address(&mut frame)?;
+                frame.act(HeadAction::MoveTo(*address.position()))?;
             }
-        }?;
+        };
 
         if !matches!(self, Jmp) {
-            revert.extend(frame.act(HeadAction::Step)?);
+            frame.act(HeadAction::Step)?;
         }
 
-        Ok(revert)
+        Ok(frame.into_revert())
     }
 }

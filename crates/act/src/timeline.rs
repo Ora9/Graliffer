@@ -1,4 +1,4 @@
-use std::ops::Add;
+use std::ops::{Add, Deref};
 
 use crate::{Action, AnyAction, State};
 
@@ -14,10 +14,12 @@ impl Revert {
         Self::Apply(Apply::new(action))
     }
 
+    #[must_use]
     pub fn is_none(&self) -> bool {
         matches!(self, Revert::None)
     }
 
+    #[must_use]
     pub fn is_apply(&self) -> bool {
         matches!(self, Revert::Apply(_))
     }
@@ -75,9 +77,32 @@ pub struct Undoable {
     revert: Revert,
 }
 
+#[derive(Debug, Default)]
+struct Undoes {
+    undoes: Vec<Undoable>,
+    cursor: usize,
+}
+
+impl Undoes {
+    fn append(&mut self, undoable: Undoable) {
+        self.undoes.truncate(self.cursor);
+        self.undoes.push(undoable);
+        self.cursor = self.cursor.checked_add(1).unwrap();
+    }
+
+    fn into_reverts(self) -> Revert {
+        self.undoes
+            .into_iter()
+            .fold(Revert::None, |mut acc, undoable| {
+                acc.extend(undoable.revert);
+                acc
+            })
+    }
+}
+
 #[derive(Debug)]
-pub enum TimelineError<E> {
-    ActionError(E),
+pub enum TimelineError {
+    // ActionError(E),
     NothingToUndo,
 }
 
@@ -87,40 +112,85 @@ where
     S: State,
 {
     state: S,
-    undoes: Vec<Undoable>,
-    cursor: usize,
+    undoes: Undoes,
+}
+
+impl<S: State> Deref for Timeline<S> {
+    type Target = S;
+
+    fn deref(&self) -> &Self::Target {
+        &self.state
+    }
 }
 
 impl<S: State> Timeline<S> {
     pub fn new(state: S) -> Self {
         Self {
             state,
-            undoes: Vec::new(),
-            cursor: 0,
+            undoes: Undoes::default(),
         }
     }
 
-    pub fn act(&mut self, action: impl Into<S::Action>) -> Result<(), TimelineError<S::Error>> {
+    pub fn act(&mut self, action: impl Into<S::Action>) -> Result<(), S::Error> {
         let action = action.into();
 
-        match self.state.act(action.clone()) {
-            Ok(revert) => {
-                self.append(Undoable {
-                    apply: Apply::new(action),
-                    revert,
-                });
-
-                Ok(())
-            }
-            Err(err) => Err(TimelineError::ActionError(err)),
-        }
+        self.state.act(action.clone()).map(|revert| {
+            self.append(Undoable {
+                apply: Apply::new(action),
+                revert,
+            });
+        })
     }
 
     fn append(&mut self, undoable: Undoable) {
-        self.undoes.truncate(self.cursor);
-        self.undoes.push(undoable);
-        self.cursor = self.cursor.checked_add(1).unwrap();
+        self.undoes.append(undoable);
+    }
 
-        // dbg!(self);
+    pub fn into_revert(self) -> Revert {
+        self.undoes.into_reverts()
+    }
+}
+
+pub struct TimelineRef<'a, S>
+where
+    S: State,
+{
+    state: &'a mut S,
+    undoes: Undoes,
+}
+
+impl<S: State> Deref for TimelineRef<'_, S> {
+    type Target = S;
+
+    fn deref(&self) -> &Self::Target {
+        self.state
+    }
+}
+
+impl<'a, S: State> TimelineRef<'a, S> {
+    pub fn new(state: &'a mut S) -> Self {
+        Self {
+            state,
+            undoes: Undoes::default(),
+        }
+    }
+
+    pub fn act(&mut self, action: impl Into<S::Action>) -> Result<(), S::Error> {
+        let action = action.into();
+
+        self.state.act(action.clone()).map(|revert| {
+            self.append(Undoable {
+                apply: Apply::new(action),
+                revert,
+            });
+        })
+    }
+
+    fn append(&mut self, undoable: Undoable) {
+        self.undoes.append(undoable);
+    }
+
+    pub fn into_revert(self) -> Revert {
+        self.undoes.into_reverts()
     }
 }

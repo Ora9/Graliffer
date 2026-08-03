@@ -1,5 +1,3 @@
-use std::convert::Infallible;
-
 use act::{Action, Revert, State};
 use serde::{Deserialize, Serialize};
 
