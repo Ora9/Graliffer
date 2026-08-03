@@ -15,7 +15,7 @@ mod head;
 pub use head::*;
 use unwrap_infallible::UnwrapInfallible;
 
-use crate::{EvaluationError, Word};
+use crate::{EvaluationError, FetchOperandError, Word};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Frame {
@@ -49,8 +49,11 @@ pub enum FrameError {
     #[error("stack error : {0}")]
     Stack(#[from] StackError),
 
-    #[error("opcode error : {0}")]
+    #[error("evaluation error : {0}")]
     Evaluation(#[from] EvaluationError),
+
+    #[error("while in evaluation, fetch operand error : {0}")]
+    FetchOperand(#[from] FetchOperandError),
 }
 
 #[derive(Debug, Clone)]

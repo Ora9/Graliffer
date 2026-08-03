@@ -107,7 +107,7 @@ impl Literal {
         Self::from_str_trim(&value.to_string())
     }
 
-    /// Get `Self` from an `u32`, trimming any excess
+    /// Get `Self` from an `u32`
     ///
     /// # Error
     /// Return an error if the string representation of the number could not fit in the literal,
