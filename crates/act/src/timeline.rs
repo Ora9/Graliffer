@@ -14,10 +14,12 @@ impl Revert {
         Self::Apply(Apply::new(action))
     }
 
+    #[must_use]
     pub fn is_none(&self) -> bool {
         matches!(self, Revert::None)
     }
 
+    #[must_use]
     pub fn is_apply(&self) -> bool {
         matches!(self, Revert::Apply(_))
     }
@@ -88,7 +90,7 @@ impl Undoes {
         self.cursor = self.cursor.checked_add(1).unwrap();
     }
 
-    fn to_reverts(self) -> Revert {
+    fn into_reverts(self) -> Revert {
         self.undoes
             .into_iter()
             .fold(Revert::None, |mut acc, undoable| {
@@ -132,12 +134,11 @@ impl<S: State> Timeline<S> {
     pub fn act(&mut self, action: impl Into<S::Action>) -> Result<(), S::Error> {
         let action = action.into();
 
-        self.state.act(action.clone()).and_then(|revert| {
+        self.state.act(action.clone()).map(|revert| {
             self.append(Undoable {
                 apply: Apply::new(action),
                 revert,
             });
-            Ok(())
         })
     }
 
@@ -145,8 +146,8 @@ impl<S: State> Timeline<S> {
         self.undoes.append(undoable);
     }
 
-    pub fn to_revert(self) -> Revert {
-        self.undoes.to_reverts()
+    pub fn into_revert(self) -> Revert {
+        self.undoes.into_reverts()
     }
 }
 
@@ -158,7 +159,7 @@ where
     undoes: Undoes,
 }
 
-impl<'a, S: State> Deref for TimelineRef<'a, S> {
+impl<S: State> Deref for TimelineRef<'_, S> {
     type Target = S;
 
     fn deref(&self) -> &Self::Target {
@@ -177,12 +178,11 @@ impl<'a, S: State> TimelineRef<'a, S> {
     pub fn act(&mut self, action: impl Into<S::Action>) -> Result<(), S::Error> {
         let action = action.into();
 
-        self.state.act(action.clone()).and_then(|revert| {
+        self.state.act(action.clone()).map(|revert| {
             self.append(Undoable {
                 apply: Apply::new(action),
                 revert,
             });
-            Ok(())
         })
     }
 
@@ -190,7 +190,7 @@ impl<'a, S: State> TimelineRef<'a, S> {
         self.undoes.append(undoable);
     }
 
-    pub fn to_revert(self) -> Revert {
-        self.undoes.to_reverts()
+    pub fn into_revert(self) -> Revert {
+        self.undoes.into_reverts()
     }
 }

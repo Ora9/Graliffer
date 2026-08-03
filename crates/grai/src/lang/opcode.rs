@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use act::{Revert, State, Timeline, TimelineRef};
+use act::{Revert, State, TimelineRef};
 
 use crate::{
     Address, Cell, Direction, Frame, FrameError, GridAction, HeadAction, Literal, NotAnAddress,
@@ -70,7 +70,7 @@ fn pop_operand(frame: &mut TimelineRef<Frame>) -> Result<Operand, EvaluationErro
         frame.act(StackAction::Pop).map_err(|err| match err {
             FrameError::Stack(stack_error) => EvaluationError::StackError(stack_error),
             _ => unreachable!("StackAction should only return a StackError"),
-        });
+        })?;
         Ok(popped.clone())
     } else {
         unreachable!("stack.pop() must only return None when StackAction::Pop return an Err");
@@ -186,6 +186,6 @@ impl Opcode {
             frame.act(HeadAction::Step)?;
         }
 
-        Ok(frame.to_revert())
+        Ok(frame.into_revert())
     }
 }
