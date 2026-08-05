@@ -1,6 +1,6 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, convert::Infallible, rc::Rc};
 
-use action::{Action, Revert, State};
+use act::{Action, Revert, State};
 use crossterm::event::{MouseEvent, MouseEventKind};
 use grai::granary::GranaryDigit;
 use log::debug;
@@ -14,10 +14,7 @@ use ratatui::{
 use serde::{Deserialize, Serialize};
 use tui_input::Input;
 
-use crate::{
-    AnyAppAction, Context, GridAction::Insert, InputSinkBinding, InputSinkBindingList,
-    KeyContextPredicate, View, ViewType,
-};
+use crate::{AppAction, Context, GridAction::Insert, View, ViewType};
 
 #[derive(Debug, Default)]
 pub struct Cursor {
@@ -297,9 +294,9 @@ fn buffer_merge_areas(
     }
 }
 
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
-#[error("grid action error")]
-pub struct GridActionError;
+// #[derive(Debug, thiserror::Error, PartialEq, Eq)]
+// #[error("grid action error")]
+// pub struct GridActionError;
 
 #[derive(Debug, Clone, strum::EnumString, Serialize, Deserialize)]
 pub enum GridAction {
@@ -314,12 +311,12 @@ impl Action for GridAction {}
 
 impl State for GridView {
     type Action = GridAction;
-    type Error = GridActionError;
+    type Error = Infallible;
 
-    fn act(&mut self, action: &Self::Action) -> Result<Revert, Self::Error> {
+    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
         use GridAction::*;
 
-        match action {
+        match action.into() {
             CursorUp => {
                 self.cursor.step_towards(grai::Direction::Up, 1);
             }
@@ -335,7 +332,6 @@ impl State for GridView {
             Insert(input) => {
                 debug!("grid insert : {input}");
             }
-            _ => {}
         }
         Ok(Revert::None)
     }
@@ -350,8 +346,8 @@ impl View for GridView {
         ViewType::Pane
     }
 
-    fn input_sink_action(input: String) -> Option<AnyAppAction> {
-        Some(AnyAppAction::GridAction(Insert(input)))
+    fn input_sink_action(input: String) -> Option<AppAction> {
+        Some(AppAction::GridAction(Insert(input)))
     }
 
     // fn input_sink_binding_list(input: String) -> InputSinkBindingList {

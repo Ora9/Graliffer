@@ -1,4 +1,6 @@
-use action::{Action, Revert, State};
+use std::convert::Infallible;
+
+use act::{Action, Revert, State};
 use crossterm::event::MouseEvent;
 use ratatui::{
     buffer::Buffer,
@@ -14,7 +16,7 @@ use tui_scrollbar::{
     ScrollMetrics,
 };
 
-use crate::{AnyAppAction, Context, InputSinkBinding, InputSinkBindingList, View, ViewType};
+use crate::{Context, View, ViewType};
 
 #[derive(Debug)]
 pub struct ConsoleView {
@@ -327,9 +329,9 @@ impl StatefulWidget for ConsoleWidget {
     }
 }
 
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
-#[error("console action error")]
-pub struct ConsoleActionError;
+// #[derive(Debug, thiserror::Error, PartialEq, Eq)]
+// #[error("console action error")]
+// pub struct ConsoleActionError;
 
 #[derive(Debug, Clone, strum::EnumString, Serialize, Deserialize)]
 pub enum ConsoleAction {
@@ -347,12 +349,12 @@ impl Action for ConsoleAction {}
 
 impl State for ConsoleView {
     type Action = ConsoleAction;
-    type Error = ConsoleActionError;
+    type Error = Infallible;
 
-    fn act(&mut self, action: &Self::Action) -> Result<Revert, Self::Error> {
+    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
         use ConsoleAction::*;
 
-        match action {
+        match action.into() {
             ScrollUp => {
                 self.scroll_up_by(1);
             }
@@ -372,7 +374,7 @@ impl State for ConsoleView {
                 self.stick_to_bottom();
             }
             ScrollBy(isize) => {
-                self.scroll_by(*isize);
+                self.scroll_by(isize);
             }
             Clear => {
                 self.clear_content();

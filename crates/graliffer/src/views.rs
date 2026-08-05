@@ -1,9 +1,6 @@
-use std::collections::HashMap;
-
-use crate::{AnyAppAction, App, KeyContextPredicate};
+use crate::{App, AppAction, KeyContextPredicate};
 
 mod grid;
-use action::State;
 pub use grid::*;
 
 mod console;
@@ -54,7 +51,7 @@ impl From<InputSinkBinding> for InputSinkBindingList {
 
 #[derive(Debug)]
 pub struct InputSinkBinding {
-    pub action: AnyAppAction,
+    pub action: AppAction,
     pub context: KeyContextPredicate,
 }
 
@@ -96,7 +93,7 @@ pub trait View {
     // }
 
     #[allow(unused)]
-    fn input_sink_action(input: String) -> Option<AnyAppAction> {
+    fn input_sink_action(input: String) -> Option<AppAction> {
         None
     }
 }

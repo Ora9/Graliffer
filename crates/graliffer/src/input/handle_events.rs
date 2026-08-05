@@ -1,26 +1,23 @@
-use action::State;
+use act::State;
 use crossterm::event::{KeyEvent, MouseEvent};
-use log::debug;
 use ratatui::layout::Position;
 
-use crate::{AppState, Context, GridView, Key, Keystroke, PaneId, PickerView, View, ViewId};
+use crate::{AppState, Context, GridView, Key, Keystroke, PickerView, View};
 
 impl AppState {
     pub fn handle_key_events(&mut self, key_event: KeyEvent, app_context: Context) {
         if let Result::Ok(keystroke) = Keystroke::try_from(key_event) {
             if let Some(action) = self.keymap.find(app_context, keystroke) {
                 // debug!("{:?}", action);
-                let _ = self.act(&action.try_into().unwrap());
-            }
-
-            if let Key::Char(char) = keystroke.key {
+                let _ = self.act(action);
+            } else if let Key::Char(char) = keystroke.key {
                 let action = match self.focused().to_string().as_str() {
                     "Grid" => GridView::input_sink_action(char.to_string()),
                     "Picker" => PickerView::input_sink_action(char.to_string()),
                     _ => None,
                 };
 
-                let _ = self.act(&action.unwrap().try_into().unwrap());
+                let _ = self.act(action.unwrap());
             }
         }
     }

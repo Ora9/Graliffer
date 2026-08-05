@@ -1,7 +1,4 @@
-use std::{
-    fmt::Display,
-    hash::{DefaultHasher, Hash, Hasher},
-};
+use std::fmt::Display;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PaneId(String);

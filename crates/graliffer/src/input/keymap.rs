@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::{AnyAppAction, Context, KeyContextPredicate, Keystroke};
+use crate::{AppAction, Context, KeyContextPredicate, Keystroke};
 
 static DEFAULT_KEYMAP: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -20,7 +20,7 @@ impl Keymap {
         self.0.push(binding_group);
     }
 
-    pub fn find(&self, app_context: Context, keystroke: Keystroke) -> Option<AnyAppAction> {
+    pub fn find(&self, app_context: Context, keystroke: Keystroke) -> Option<AppAction> {
         // todo: make more specific context predicate have a higher priorities
         // or maybe just by order of declaration?
 
@@ -41,7 +41,7 @@ impl Default for Keymap {
 pub struct KeymapBindingGroup {
     // #[serde(rename = "context")]
     context: KeyContextPredicate,
-    bindings: HashMap<Keystroke, AnyAppAction>,
+    bindings: HashMap<Keystroke, AppAction>,
 }
 
 impl KeymapBindingGroup {
@@ -52,11 +52,11 @@ impl KeymapBindingGroup {
         }
     }
 
-    fn push(&mut self, keystroke: Keystroke, action: AnyAppAction) {
+    fn push(&mut self, keystroke: Keystroke, action: AppAction) {
         self.bindings.insert(keystroke, action);
     }
 
-    fn find_keystroke(&self, keystroke: Keystroke) -> Option<AnyAppAction> {
+    fn find_keystroke(&self, keystroke: Keystroke) -> Option<AppAction> {
         self.bindings
             .iter()
             .find(|(entry_keystroke, _)| **entry_keystroke == keystroke)
@@ -67,11 +67,11 @@ impl KeymapBindingGroup {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Binding {
     keystroke: Keystroke,
-    action: AnyAppAction,
+    action: AppAction,
 }
 
 impl Binding {
-    pub fn new(keystroke: Keystroke, action: AnyAppAction) -> Self {
+    pub fn new(keystroke: Keystroke, action: AppAction) -> Self {
         Self { keystroke, action }
     }
 }

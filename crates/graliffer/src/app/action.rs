@@ -1,12 +1,12 @@
-use std::str::FromStr;
+use std::{convert::Infallible, str::FromStr};
 
 use crate::{
-    AboutView, AppState, ConsoleAction, ConsoleActionError, GridAction, GridActionError, InputMode,
-    PickerAction, PickerActionError, PickerView, PopupId, StackView, View,
+    AboutView, AppState, ConsoleAction, GridAction, InputMode, PickerAction, PickerView, PopupId,
+    StackView, View,
 };
 use serde::{Deserialize, Serialize};
 
-use action::{Action, AnyAction, Revert, State};
+use act::{Action, Revert, State};
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum ActionParseError {
@@ -17,27 +17,8 @@ pub enum ActionParseError {
     UnknownAction { action: String, r#source: String },
 }
 
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
-pub enum AnyAppActionError {
-    #[error("app action error")]
-    App(#[from] AppActionError),
-
-    #[error("grid action error")]
-    Grid(#[from] GridActionError),
-
-    #[error("console action error")]
-    Console(#[from] ConsoleActionError),
-
-    #[error("picker action error")]
-    Picker(#[from] PickerActionError),
-}
-
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
-#[error("app action error")]
-pub struct AppActionError;
-
 #[derive(Debug, Clone, strum::EnumString, Serialize, Deserialize)]
-pub enum AppAction {
+pub enum GralifferAction {
     Quit,
     ClosePopup,
     FocusStack,
@@ -47,129 +28,126 @@ pub enum AppAction {
     CommandMode,
 }
 
-impl Action for AppAction {}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(try_from = "String")]
-pub enum AnyAppAction {
-    AppAction(AppAction),
+pub enum AppAction {
+    GralifferAction(GralifferAction),
     ConsoleAction(ConsoleAction),
     GridAction(GridAction),
     PickerAction(PickerAction),
 }
 
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
-pub enum IntoActionError {
-    #[error("unknown action")]
-    UnknownAction,
+impl Action for AppAction {}
+
+impl From<GralifferAction> for AppAction {
+    fn from(value: GralifferAction) -> Self {
+        Self::GralifferAction(value)
+    }
 }
 
-impl TryFrom<AnyAction> for AnyAppAction {
-    type Error = IntoActionError;
+impl From<ConsoleAction> for AppAction {
+    fn from(value: ConsoleAction) -> Self {
+        Self::ConsoleAction(value)
+    }
+}
 
-    fn try_from(action: AnyAction) -> Result<Self, Self::Error> {
-        if let Some(app_action) = action.downcast_ref::<AppAction>() {
-            Ok(Self::AppAction(app_action.clone()))
-        } else if let Some(console_action) = action.downcast_ref::<ConsoleAction>() {
-            Ok(Self::ConsoleAction(console_action.clone()))
-        } else if let Some(grid_action) = action.downcast_ref::<GridAction>() {
-            Ok(Self::GridAction(grid_action.clone()))
-        } else if let Some(picker_action) = action.downcast_ref::<PickerAction>() {
-            Ok(Self::PickerAction(picker_action.clone()))
+impl From<GridAction> for AppAction {
+    fn from(value: GridAction) -> Self {
+        Self::GridAction(value)
+    }
+}
+
+impl From<PickerAction> for AppAction {
+    fn from(value: PickerAction) -> Self {
+        Self::PickerAction(value)
+    }
+}
+
+impl FromStr for AppAction {
+    type Err = ActionParseError;
+
+    fn from_str(source: &str) -> Result<Self, Self::Err> {
+        if let Some((namespace, action)) = source.rsplit_once("::") {
+            match namespace {
+                "grid" => Ok(GralifferAction::from_str(action)
+                    .map_err(|_| ActionParseError::UnknownAction {
+                        action: action.to_string(),
+                        source: namespace.to_string(),
+                    })?
+                    .into()),
+                "console" => Ok(ConsoleAction::from_str(action)
+                    .map_err(|_| ActionParseError::UnknownAction {
+                        action: action.to_string(),
+                        source: namespace.to_string(),
+                    })?
+                    .into()),
+                "picker" => Ok(PickerAction::from_str(action)
+                    .map_err(|_| ActionParseError::UnknownAction {
+                        action: action.to_string(),
+                        source: namespace.to_string(),
+                    })?
+                    .into()),
+                _ => Err(ActionParseError::UnknownNamespace {
+                    source: namespace.to_string(),
+                }),
+            }
         } else {
-            Err(IntoActionError::UnknownAction)
+            // Defaults to GralifferAction
+            Ok(GralifferAction::from_str(source)
+                .map_err(|_| ActionParseError::UnknownAction {
+                    action: source.to_string(),
+                    source: source.to_string(),
+                })?
+                .into())
         }
     }
 }
 
-impl TryFrom<String> for AnyAppAction {
+impl TryFrom<String> for AppAction {
     type Error = ActionParseError;
 
-    fn try_from(source: String) -> Result<Self, Self::Error> {
-        if let Some((namespace, action)) = source.rsplit_once("::") {
-            // let action = action.to_ascii_lowercase();
-            // let namespace = namespace.to_ascii_lowercase();
-
-            match namespace {
-                "console" => Ok(Self::ConsoleAction(
-                    ConsoleAction::from_str(&action).map_err(|_| {
-                        ActionParseError::UnknownAction {
-                            action: action.to_string(),
-                            source: source.to_owned(),
-                        }
-                    })?,
-                )),
-                "grid" => Ok(Self::GridAction(GridAction::from_str(&action).map_err(
-                    |_| ActionParseError::UnknownAction {
-                        action: action.to_string(),
-                        source: source.to_owned(),
-                    },
-                )?)),
-                "picker" => Ok(Self::PickerAction(
-                    PickerAction::from_str(&action).map_err(|_| {
-                        ActionParseError::UnknownAction {
-                            action: action.to_string(),
-                            source: source.to_owned(),
-                        }
-                    })?,
-                )),
-                _ => Err(ActionParseError::UnknownNamespace { source }),
-            }
-        } else {
-            let action = source.clone();
-            Ok(Self::AppAction(AppAction::from_str(&action).map_err(
-                |_| ActionParseError::UnknownAction {
-                    action: action,
-                    source: source,
-                },
-            )?))
-        }
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        value.parse()
     }
 }
 
-impl Action for AnyAppAction {}
-
 impl State for AppState {
-    type Action = AnyAppAction;
-    type Error = AnyAppActionError;
+    type Action = AppAction;
+    type Error = Infallible;
 
-    fn act(&mut self, action: &Self::Action) -> Result<Revert, Self::Error> {
-        use AppAction::*;
+    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
+        use GralifferAction::*;
 
-        match action {
-            AnyAppAction::ConsoleAction(console_action) => {
-                self.console_state.act(console_action)?;
+        match action.into() {
+            AppAction::ConsoleAction(console_action) => self.console_state.act(console_action),
+            AppAction::GridAction(grid_action) => self.grid_state.act(grid_action),
+            AppAction::PickerAction(picker_action) => self.command_picker_state.act(picker_action),
+            AppAction::GralifferAction(app_action) => {
+                match app_action {
+                    Quit => {
+                        self.quit();
+                    }
+                    ToggleAbout => {
+                        self.toggle_popup(PopupId::from(AboutView::title().as_str()));
+                    }
+                    ToggleCommandPicker => {
+                        self.toggle_popup(PopupId::from(PickerView::title().as_str()));
+                    }
+                    ClosePopup => {
+                        self.close_popup();
+                    }
+                    FocusStack => {
+                        self.set_focus(StackView::view_id());
+                    }
+                    InsertMode => {
+                        self.set_input_mode(InputMode::Insert);
+                    }
+                    CommandMode => {
+                        self.set_input_mode(InputMode::Command);
+                    }
+                };
+                Ok(Revert::None)
             }
-            AnyAppAction::GridAction(grid_action) => {
-                self.grid_state.act(grid_action)?;
-            }
-            AnyAppAction::PickerAction(picker_action) => {
-                self.command_picker_state.act(picker_action)?;
-            }
-            AnyAppAction::AppAction(app_action) => match app_action {
-                Quit => {
-                    self.quit();
-                }
-                ToggleAbout => {
-                    self.toggle_popup(PopupId::from(AboutView::title().as_str()));
-                }
-                ToggleCommandPicker => {
-                    self.toggle_popup(PopupId::from(PickerView::title().as_str()));
-                }
-                ClosePopup => {
-                    self.close_popup();
-                }
-                FocusStack => {
-                    self.set_focus(StackView::view_id());
-                }
-                InsertMode => {
-                    self.set_input_mode(InputMode::Insert);
-                }
-                CommandMode => {
-                    self.set_input_mode(InputMode::Command);
-                }
-            },
-        };
-        Ok(Revert::None)
+        }
     }
 }

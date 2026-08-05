@@ -1,4 +1,7 @@
-use action::{Action, Revert, State};
+use std::convert::Infallible;
+
+use act::{Action, Revert, State};
+use log::debug;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect, Size, Spacing},
@@ -12,7 +15,7 @@ use ratatui::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{AnyAppAction, View, ViewType, widgets::Popup};
+use crate::{AppAction, View, ViewType, widgets::Popup};
 
 #[derive(Debug, Clone)]
 pub struct PickerItem {
@@ -120,8 +123,8 @@ impl StatefulWidget for Picker {
     }
 }
 
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
-pub enum PickerActionError {}
+// #[derive(Debug, thiserror::Error, PartialEq, Eq)]
+// pub enum PickerActionError {}
 
 #[derive(Debug, Clone, strum::EnumString, Serialize, Deserialize)]
 pub enum PickerAction {
@@ -135,10 +138,13 @@ impl Action for PickerAction {}
 
 impl State for PickerView {
     type Action = PickerAction;
-    type Error = PickerActionError;
+    type Error = Infallible;
 
-    fn act(&mut self, action: &Self::Action) -> Result<Revert, Self::Error> {
-        match action {
+    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
+        match action.into() {
+            PickerAction::Insert(input) => {
+                debug!("picker insert : {input}");
+            }
             PickerAction::CursorUp => self.cursor = self.cursor.saturating_add(1),
             PickerAction::CursorDown => self.cursor = self.cursor.saturating_sub(1),
             _ => {}
@@ -157,7 +163,7 @@ impl View for PickerView {
         ViewType::Popup
     }
 
-    fn input_sink_action(input: String) -> Option<AnyAppAction> {
-        Some(AnyAppAction::PickerAction(PickerAction::Insert(input)))
+    fn input_sink_action(input: String) -> Option<AppAction> {
+        Some(AppAction::PickerAction(PickerAction::Insert(input)))
     }
 }
