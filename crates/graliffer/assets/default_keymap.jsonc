@@ -25,5 +25,13 @@
     "bindings": {
       "escape": "CommandMode"
     }
+  },
+  {
+    "context": "Picker",
+    "bindings": {
+      "backspace": "picker::DeletePrevChar",
+      "delete": "picker::DeleteNextChar",
+      "ctrl-backspace": "picker::DeleteTillStart"
+    }
   }
 ]

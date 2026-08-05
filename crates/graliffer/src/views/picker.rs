@@ -4,7 +4,7 @@ use act::{Action, Revert, State};
 use log::debug;
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Layout, Rect, Size, Spacing},
+    layout::{Constraint, Layout, Margin, Rect, Size, Spacing},
     style::{
         Color::{Black, White},
         Style,
@@ -14,6 +14,7 @@ use ratatui::{
     widgets::{Block, Borders, StatefulWidget, Widget},
 };
 use serde::{Deserialize, Serialize};
+use tui_input::{Input, InputRequest};
 
 use crate::{AppAction, View, ViewType, widgets::Popup};
 
@@ -44,6 +45,7 @@ impl From<&str> for PickerItem {
 
 #[derive(Debug, Default)]
 pub struct PickerView {
+    input: Input,
     items: Vec<PickerItem>,
     cursor: usize,
 }
@@ -51,6 +53,7 @@ pub struct PickerView {
 impl PickerView {
     pub fn new() -> Self {
         Self {
+            input: Input::default(),
             items: vec![
                 "lorem".into(),
                 "ipsum".into(),
@@ -117,8 +120,9 @@ impl StatefulWidget for Picker {
             .merge_borders(MergeStrategy::Fuzzy);
 
         border_block.clone().render(input_area, buf);
-        border_block.clone().render(item_area, buf);
+        Text::raw(state.input.value()).render(input_area.inner(Margin::new(2, 1)), buf);
 
+        border_block.clone().render(item_area, buf);
         Text::from(item_list).render(border_block.inner(item_area), buf);
     }
 }
@@ -131,7 +135,14 @@ pub enum PickerAction {
     CursorUp,
     CursorDown,
     Select,
+
     Insert(String),
+    CursorRight,
+    CursorLeft,
+    DeletePrevChar,
+    DeleteNextChar,
+
+    DeleteTillStart,
 }
 
 impl Action for PickerAction {}
@@ -141,13 +152,36 @@ impl State for PickerView {
     type Error = Infallible;
 
     fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
+        use PickerAction::*;
         match action.into() {
-            PickerAction::Insert(input) => {
-                debug!("picker insert : {input}");
+            Insert(input) => {
+                for char in input.chars() {
+                    self.input.handle(InputRequest::InsertChar(char));
+                }
             }
-            PickerAction::CursorUp => self.cursor = self.cursor.saturating_add(1),
-            PickerAction::CursorDown => self.cursor = self.cursor.saturating_sub(1),
-            _ => {}
+            DeleteNextChar => {
+                self.input.handle(InputRequest::DeleteNextChar);
+            }
+            DeletePrevChar => {
+                self.input.handle(InputRequest::DeletePrevChar);
+            }
+
+            DeleteTillStart => {
+                self.input.handle(InputRequest::DeleteLine);
+            }
+
+            CursorLeft => {
+                self.input.handle(InputRequest::GoToPrevChar);
+            }
+            CursorRight => {
+                self.input.handle(InputRequest::GoToNextChar);
+            }
+
+            Select => {}
+
+            // CusorLeft =>
+            CursorUp => self.cursor = self.cursor.saturating_add(1),
+            CursorDown => self.cursor = self.cursor.saturating_sub(1),
         };
 
         Ok(Revert::None)
