@@ -3,7 +3,7 @@
     "context": "",
     "bindings": {
       "ctrl-a": "ToggleAbout",
-      "ctrl-p": "ToggleCommandPicker",
+      "alt-p": "ToggleCommandPicker",
       "ctrl-q": "Quit"
     }
   },
@@ -31,7 +31,12 @@
     "bindings": {
       "backspace": "picker::DeletePrevChar",
       "delete": "picker::DeleteNextChar",
-      "ctrl-backspace": "picker::DeleteTillStart"
+      "up": "picker::SelectionUp",
+      "down": "picker::SelectionDown",
+      "right": "picker::CursorRight",
+      "left": "picker::CursorLeft",
+      "ctrl-backspace": "picker::DeleteTillStart",
+      "ctrl-w": "picker::DeleteTillStart"
     }
   }
 ]

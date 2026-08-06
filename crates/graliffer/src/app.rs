@@ -1,6 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use rand::seq::SliceRandom;
+use ratatui::layout::Position;
 
 use crate::{
     Config, ConsoleView, Context, GridView, PaneId, PickerView, PopupId, View, ViewId,
@@ -51,9 +52,9 @@ impl AppState {
             should_run: true,
 
             console_state: ConsoleView::new(context.clone()),
-            grid_state: GridView::new(frame, context),
+            grid_state: GridView::new(frame, context.clone()),
 
-            command_picker_state: PickerView::new(),
+            command_picker_state: PickerView::new(context.clone()),
 
             last_focused_pane: None,
         };
@@ -86,7 +87,26 @@ impl AppState {
     }
 
     pub fn set_focus(&mut self, focus_id: impl Into<ViewId>) {
-        self.context.set_focus(focus_id.into());
+        let focus_id = focus_id.into();
+
+        let prev = self.context.get_focus();
+        let next = focus_id.clone();
+
+        if prev != next {
+            match prev.to_string().as_str() {
+                "Grid" => GridView::loose_focus(&mut self.context),
+                "Picker" => PickerView::loose_focus(&mut self.context),
+                _ => {}
+            }
+
+            match next.to_string().as_str() {
+                "Grid" => GridView::gain_focus(&mut self.context),
+                "Picker" => PickerView::gain_focus(&mut self.context),
+                _ => {}
+            }
+        }
+
+        self.context.set_focus(focus_id);
     }
 
     pub fn popup_opened(&self) -> bool {

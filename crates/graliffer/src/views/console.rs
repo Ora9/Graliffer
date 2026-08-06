@@ -54,7 +54,8 @@ impl ConsoleView {
     }
 
     pub fn max_line_history(&self) -> usize {
-        self.context.config(|config| config.console.line_history)
+        self.context
+            .read(|context| context.config.console.line_history)
     }
 }
 

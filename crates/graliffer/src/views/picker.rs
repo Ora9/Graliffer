@@ -4,7 +4,7 @@ use act::{Action, Revert, State};
 use log::debug;
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Layout, Margin, Rect, Size, Spacing},
+    layout::{Constraint, Layout, Margin, Offset, Position, Rect, Size, Spacing},
     style::{
         Color::{Black, White},
         Style,
@@ -16,7 +16,7 @@ use ratatui::{
 use serde::{Deserialize, Serialize};
 use tui_input::{Input, InputRequest};
 
-use crate::{AppAction, View, ViewType, widgets::Popup};
+use crate::{AppAction, Context, View, ViewType, widgets::Popup};
 
 #[derive(Debug, Clone)]
 pub struct PickerItem {
@@ -43,16 +43,19 @@ impl From<&str> for PickerItem {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct PickerView {
+    context: Context,
+
     input: Input,
     items: Vec<PickerItem>,
-    cursor: usize,
+    selection: usize,
 }
 
 impl PickerView {
-    pub fn new() -> Self {
+    pub fn new(context: Context) -> Self {
         Self {
+            context,
             input: Input::default(),
             items: vec![
                 "lorem".into(),
@@ -60,7 +63,7 @@ impl PickerView {
                 "constructeris".into(),
                 "sit".into(),
             ],
-            cursor: 0,
+            selection: 0,
         }
     }
 
@@ -68,12 +71,12 @@ impl PickerView {
         self.items.len()
     }
 
-    pub fn move_cursor_down(&mut self) {
-        self.cursor = self.cursor.saturating_add(1).min(self.items_len());
+    pub fn selection_down(&mut self) {
+        self.selection = self.selection.saturating_add(1).min(self.items_len());
     }
 
-    pub fn move_cursor_up(&mut self) {
-        self.cursor = self.cursor.saturating_sub(1);
+    pub fn selection_up(&mut self) {
+        self.selection = self.selection.saturating_sub(1);
     }
 }
 
@@ -89,7 +92,7 @@ impl StatefulWidget for Picker {
         let popup = Popup::new(Size { width, height }).borders(Borders::empty());
         let popup_inner = popup.inner(area);
 
-        let [input_area, item_area] = popup_inner.layout(
+        let [input_block_area, item_area] = popup_inner.layout(
             &Layout::vertical(vec![Constraint::Length(3), Constraint::Fill(1)])
                 .spacing(Spacing::Overlap(1)),
         );
@@ -97,7 +100,7 @@ impl StatefulWidget for Picker {
         let mut item_list: Vec<Line> = Vec::new();
 
         for (i, item) in state.items.iter().enumerate() {
-            let style = if state.cursor == i {
+            let style = if state.selection == i {
                 Style::new().bg(White).fg(Black)
             } else {
                 Style::default()
@@ -119,8 +122,19 @@ impl StatefulWidget for Picker {
             .border_set(border::ROUNDED)
             .merge_borders(MergeStrategy::Fuzzy);
 
-        border_block.clone().render(input_area, buf);
-        Text::raw(state.input.value()).render(input_area.inner(Margin::new(2, 1)), buf);
+        let input_area = input_block_area.inner(Margin::new(2, 1));
+        let cursor_position = input_area
+            .as_position()
+            .offset(Offset::new(state.input.visual_cursor() as i32, 0));
+
+        border_block.clone().render(input_block_area, buf);
+        Text::raw(state.input.value()).render(input_area, buf);
+
+        state.context.write(|context| {
+            context
+                .terminal_cursor
+                .set_position_if_visible(cursor_position)
+        });
 
         border_block.clone().render(item_area, buf);
         Text::from(item_list).render(border_block.inner(item_area), buf);
@@ -132,8 +146,9 @@ impl StatefulWidget for Picker {
 
 #[derive(Debug, Clone, strum::EnumString, Serialize, Deserialize)]
 pub enum PickerAction {
-    CursorUp,
-    CursorDown,
+    SelectionUp,
+    SelectionDown,
+
     Select,
 
     Insert(String),
@@ -154,6 +169,9 @@ impl State for PickerView {
     fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
         use PickerAction::*;
         match action.into() {
+            SelectionDown => self.selection_down(),
+            SelectionUp => self.selection_up(),
+
             Insert(input) => {
                 for char in input.chars() {
                     self.input.handle(InputRequest::InsertChar(char));
@@ -178,10 +196,6 @@ impl State for PickerView {
             }
 
             Select => {}
-
-            // CusorLeft =>
-            CursorUp => self.cursor = self.cursor.saturating_add(1),
-            CursorDown => self.cursor = self.cursor.saturating_sub(1),
         };
 
         Ok(Revert::None)
@@ -199,5 +213,13 @@ impl View for PickerView {
 
     fn input_sink_action(input: String) -> Option<AppAction> {
         Some(AppAction::PickerAction(PickerAction::Insert(input)))
+    }
+
+    fn gain_focus(context: &mut Context) {
+        context.write(|context| context.terminal_cursor.show(Position::default()))
+    }
+
+    fn loose_focus(context: &mut Context) {
+        context.write(|context| context.terminal_cursor.hide())
     }
 }

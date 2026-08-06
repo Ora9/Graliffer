@@ -1,4 +1,4 @@
-use crate::{App, AppAction, KeyContextPredicate};
+use crate::{App, AppAction, Context, KeyContextPredicate};
 
 mod grid;
 pub use grid::*;
@@ -87,6 +87,23 @@ pub trait View {
             ViewType::Popup => PopupId::from(Self::title().as_str()).into(),
         }
     }
+
+    fn gain_focus(context: &mut Context) {}
+    fn loose_focus(context: &mut Context) {}
+
+    // fn gain_focus<F>() -> Option<F>
+    // where
+    //     F: FnOnce(&mut Context) -> (),
+    // {
+    //     None
+    // }
+
+    // fn loose_focus<F>() -> Option<F>
+    // where
+    //     F: FnOnce(&mut Context) -> (),
+    // {
+    //     None
+    // }
 
     // fn input_sink_binding_list(input: String) -> InputSinkBindingList {
     //     InputSinkBindingList::none()
