@@ -1,7 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
 use rand::seq::SliceRandom;
-use ratatui::layout::Position;
 
 use crate::{
     Config, ConsoleView, Context, GridView, PaneId, PickerView, PopupId, View, ViewId,

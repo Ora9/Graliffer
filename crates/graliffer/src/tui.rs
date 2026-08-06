@@ -1,5 +1,4 @@
 use color_eyre::Result;
-use log::debug;
 use ratatui::{
     crossterm::{
         self,

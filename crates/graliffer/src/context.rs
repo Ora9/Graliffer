@@ -1,6 +1,5 @@
 use std::{cell::RefCell, rc::Rc};
 
-use log::debug;
 use ratatui::layout::Position;
 
 use crate::{
