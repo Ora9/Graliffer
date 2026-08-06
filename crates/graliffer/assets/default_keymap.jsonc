@@ -27,6 +27,18 @@
     }
   },
   {
+    "context": "Grid",
+    "bindings": {
+      "up": "grid::CursorUp",
+      "down": "grid::CursorDown",
+      "right": "grid::CursorRight",
+      "left": "grid::CursorLeft",
+
+      "backspace": "grid::DeletePrevChar",
+      "delete": "grid::DeleteNextChar"
+    }
+  },
+  {
     "context": "Picker",
     "bindings": {
       "backspace": "picker::DeletePrevChar",

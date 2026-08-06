@@ -4,6 +4,7 @@ use crate::{
     AboutView, AppState, ConsoleAction, GridAction, InputMode, PickerAction, PickerView, PopupId,
     StackView, View,
 };
+use log::debug;
 use serde::{Deserialize, Serialize};
 
 use act::{Action, Revert, State};
@@ -69,7 +70,7 @@ impl FromStr for AppAction {
     fn from_str(source: &str) -> Result<Self, Self::Err> {
         if let Some((namespace, action)) = source.rsplit_once("::") {
             match namespace {
-                "grid" => Ok(GralifferAction::from_str(action)
+                "grid" => Ok(GridAction::from_str(action)
                     .map_err(|_| ActionParseError::UnknownAction {
                         action: action.to_string(),
                         source: namespace.to_string(),

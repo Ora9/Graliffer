@@ -35,9 +35,13 @@ impl App {
 
 impl AppState {
     pub fn new(config: Config) -> Self {
-        let frame = Rc::new(RefCell::new(
+        let frame = grai::FrameGuard::new(
             grai::Frame::from_example("getting_started").expect("should be a valid example"),
-        ));
+        );
+
+        // let frame = Rc::new(RefCell::new(
+        //     grai::Frame::from_example("getting_started").expect("should be a valid example"),
+        // ));
 
         let default_focus = GridView::view_id();
 

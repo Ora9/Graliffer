@@ -1,33 +1,68 @@
-use std::{cell::RefCell, convert::Infallible, rc::Rc};
+use std::{convert::Infallible, default};
 
 use act::{Action, Revert, State};
 use crossterm::event::{MouseEvent, MouseEventKind};
 use grai::granary::GranaryDigit;
-use log::debug;
 use ratatui::{
     buffer::Buffer,
-    layout::{Margin, Offset, Position, Rect},
-    style::{Color, Stylize},
+    layout::{Margin, Offset, Position, Rect, Size},
+    style::{Color, Style, Stylize},
     symbols::merge::MergeStrategy,
-    widgets::{Block, Paragraph, StatefulWidget, Widget},
+    widgets::{Block, BorderType, Paragraph, StatefulWidget, Widget},
 };
 use serde::{Deserialize, Serialize};
-use tui_input::Input;
+use tui_input::{Input, InputRequest};
 
-use crate::{AppAction, Context, GridAction::Insert, View, ViewType};
+use crate::{AppAction, Context, GridAction::Insert, PickerAction::DeletePrevChar, View, ViewType};
 
-#[derive(Debug, Default)]
-pub struct Cursor {
-    grid_position: grai::Position,
+#[derive(Debug)]
+struct GridInput {
+    grid_cursor: grai::Position,
+    input: Input,
 }
 
-impl Cursor {
-    pub fn move_to(&mut self, position: grai::Position) {
-        self.grid_position = position;
+impl GridInput {
+    fn new(grid: &grai::Grid) -> Self {
+        let mut grid_input = Self {
+            input: Input::default(),
+            grid_cursor: grai::Position::default(),
+        };
+
+        grid_input.sync_input(grid);
+        grid_input
     }
 
-    pub fn step_towards(&mut self, direction: grai::Direction, steps: u32) {
-        let _ = self.grid_position.checked_step(direction, steps);
+    fn sync_input(&mut self, grid: &grai::Grid) {
+        self.input = Input::new(grid.get(self.grid_cursor).to_string())
+    }
+
+    fn grid_position(&self) -> &grai::Position {
+        &self.grid_cursor
+    }
+
+    fn grid_move_to(&mut self, position: grai::Position, grid: &grai::Grid) {
+        self.grid_cursor = position;
+        self.sync_input(grid);
+    }
+
+    fn grid_step_towards(&mut self, direction: grai::Direction, steps: u32, grid: &grai::Grid) {
+        if let Ok(position) = self.grid_position().checked_step(direction, steps) {
+            self.grid_move_to(position, grid);
+        }
+    }
+
+    fn cursor_position(&self) -> usize {
+        self.input.visual_cursor()
+    }
+
+    // fn cell_mut<'a>(&self, grid: &'a mut grai::Grid) -> &'a mut grai::Cell {
+    //     grid.get_mut(self.grid_cursor)
+    // }
+
+    fn handle(&mut self, grid: &mut grai::Grid, input_request: InputRequest) {
+        self.input.handle(input_request);
+        grid.set(self.grid_cursor, grai::Cell::new_trim(self.input.value()));
+        self.sync_input(grid);
     }
 }
 
@@ -74,57 +109,39 @@ impl DragState {
 pub struct GridView {
     context: Context,
 
-    frame: Rc<RefCell<grai::Frame>>,
+    // frame: Rc<RefCell<grai::Frame>>,
+    frame: grai::FrameGuard,
 
-    input: Input,
-
-    layout: Option<Rect>,
-
+    grid_input: GridInput,
+    // grid_cursor: Cursor,
     drag_state: DragState,
-
-    cursor: Cursor,
     offset_x: usize,
     offset_y: usize,
+
+    layout: Option<Rect>,
 }
 
 impl GridView {
-    pub fn new(frame: Rc<RefCell<grai::Frame>>, context: Context) -> Self {
+    pub fn new(frame: grai::FrameGuard, context: Context) -> Self {
+        let grid_input = frame.read(|frame| GridInput::new(&frame.grid));
+
         GridView {
             context,
             frame,
 
-            input: Input::default(),
+            grid_input,
 
             layout: None,
 
             drag_state: DragState::Idle,
-            cursor: Cursor::default(),
 
             offset_x: 0,
             offset_y: 0,
         }
     }
 
-    // pub fn handle_key_event(&mut self, key_event: KeyEvent) {
-    //     match key_event.code {
-    //         KeyCode::Right => {
-    //             self.offset_x = self.offset_x.saturating_add(1);
-    //         }
-    //         KeyCode::Left => {
-    //             self.offset_x = self.offset_x.saturating_sub(1);
-    //         }
-    //         KeyCode::Down => {
-    //             self.offset_y = self.offset_y.saturating_add(1);
-    //         }
-    //         KeyCode::Up => {
-    //             self.offset_y = self.offset_y.saturating_sub(1);
-    //         }
-    //         _ => {}
-    //     }
-    // }
-
     pub fn handle_mouse_event(&mut self, mouse_event: MouseEvent) {
-        // debug!("{:?}", mouse_event);
+        // debug!("{:?reader}", mouse_event);
         let Some(viewport_area) = self.layout() else {
             return;
         };
@@ -189,6 +206,11 @@ impl StatefulWidget for GridWidget {
         let cell_width = 3;
         let border = 1;
 
+        let bordered_cell_size = Size {
+            width: (cell_width + border * 2) as u16,
+            height: (cell_height + border * 2) as u16,
+        };
+
         // A separate buffer is used to render the grid,
         // this is used to mask everything that is outside of the grid widget viewport
         // this is because widget drawn outside the buffer are clamped to the border, but we want to
@@ -224,41 +246,61 @@ impl StatefulWidget for GridWidget {
             .saturating_add(overdraw_cells)
             .min(GranaryDigit::MAX_NUMERIC as usize);
 
-        let frame = state
-            .frame
-            .try_borrow()
-            .expect("could not borrow the frame");
+        // let frame = state
+        //     .frame
+        //     .try_borrow()
+        //     .expect("could not borrow the frame");
+
+        let term_pos = |cell_x: usize, cell_y: usize| {
+            let x = (overdraw_viewport.x as usize)
+                .saturating_add(cell_x * (cell_width + border))
+                .saturating_sub(state.offset_x) as u16;
+
+            let y = (overdraw_viewport.y as usize)
+                .saturating_add(cell_y * (cell_height + border))
+                .saturating_sub(state.offset_y) as u16;
+
+            (x, y)
+        };
 
         for cell_x in in_view_left..in_view_right {
             for cell_y in in_view_top..in_view_bottom {
-                let x = (overdraw_viewport.x as usize)
-                    .saturating_add(cell_x * (cell_width + border))
-                    .saturating_sub(state.offset_x) as u16;
-
-                let y = (overdraw_viewport.y as usize)
-                    .saturating_add(cell_y * (cell_height + border))
-                    .saturating_sub(state.offset_y) as u16;
-
-                let width = (cell_width + border * 2) as u16;
-                let height = (cell_height + border * 2) as u16;
-
-                let cell_area = Rect::new(x, y, width, height);
-
-                let block = Block::bordered()
-                    .fg(Color::DarkGray)
-                    .merge_borders(MergeStrategy::Exact);
-
                 let grid_pos = grai::Position::from_numeric(cell_x as u32, cell_y as u32)
                     .expect("should be able to construct a valid position");
 
-                Paragraph::new(frame.grid.get(grid_pos).as_str())
+                let (x, y) = term_pos(cell_x, cell_y);
+
+                let cell_area =
+                    Rect::new(x, y, bordered_cell_size.width, bordered_cell_size.height);
+
+                let block = Block::bordered()
+                    // .borders(borders)
+                    // .border_type(border_type)
+                    .fg(Color::DarkGray)
+                    .merge_borders(MergeStrategy::Fuzzy);
+
+                let cell_content = state.frame.read(|frame| frame.grid.get(grid_pos));
+
+                Paragraph::new(cell_content.as_str())
                     .block(block)
                     .reset()
                     .render(cell_area, &mut overdraw_buf);
             }
         }
 
-        let _ = frame;
+        let cursor_pos = state.grid_input.grid_position();
+        let (cursor_x, cursor_y) = term_pos(cursor_pos.x() as usize, cursor_pos.y() as usize);
+        let cursor_area = Rect::new(
+            cursor_x,
+            cursor_y,
+            bordered_cell_size.width,
+            bordered_cell_size.height,
+        );
+        Block::bordered()
+            .border_type(BorderType::Thick)
+            .border_style(Style::default().fg(Color::DarkGray))
+            .merge_borders(MergeStrategy::Fuzzy)
+            .render(cursor_area, &mut overdraw_buf);
 
         // our own implementation of Buffer::merge
         buffer_merge_areas(buf, area.as_position(), &overdraw_buf, overdraw_viewport);
@@ -305,6 +347,9 @@ pub enum GridAction {
     CursorRight,
     CursorLeft,
     Insert(String),
+
+    DeletePrevChar,
+    DeleteNextChar,
 }
 
 impl Action for GridAction {}
@@ -314,24 +359,42 @@ impl State for GridView {
     type Error = Infallible;
 
     fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
+        let action = action.into();
         use GridAction::*;
 
-        match action.into() {
-            CursorUp => {
-                self.cursor.step_towards(grai::Direction::Up, 1);
+        match action {
+            CursorUp | CursorDown | CursorLeft | CursorRight => {
+                let direction = match action {
+                    CursorUp => grai::Direction::Up,
+                    CursorDown => grai::Direction::Down,
+                    CursorRight => grai::Direction::Right,
+                    CursorLeft => grai::Direction::Left,
+                    _ => unreachable!(),
+                };
+
+                self.frame.read(|frame| {
+                    self.grid_input.grid_step_towards(direction, 1, &frame.grid);
+                })
             }
-            CursorDown => {
-                self.cursor.step_towards(grai::Direction::Down, 1);
-            }
-            CursorRight => {
-                self.cursor.step_towards(grai::Direction::Right, 1);
-            }
-            CursorLeft => {
-                self.cursor.step_towards(grai::Direction::Left, 1);
-            }
+
             Insert(input) => {
-                debug!("grid insert : {input}");
+                self.frame.write(|frame| {
+                    for c in input.chars() {
+                        self.grid_input
+                            .handle(&mut frame.grid, InputRequest::InsertChar(c));
+                    }
+                });
             }
+
+            DeletePrevChar => self.frame.write(|frame| {
+                self.grid_input
+                    .handle(&mut frame.grid, InputRequest::DeletePrevChar);
+            }),
+
+            DeleteNextChar => self.frame.write(|frame| {
+                self.grid_input
+                    .handle(&mut frame.grid, InputRequest::DeleteNextChar);
+            }),
         }
         Ok(Revert::None)
     }

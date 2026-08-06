@@ -37,6 +37,14 @@ impl Grid {
             Cell::default()
         }
     }
+
+    pub fn get_mut(&mut self, position: Position) -> &mut Cell {
+        self.0.entry(position).or_default()
+        // if let Some(cell) = self.0.get_mut(&position) {
+        //     cell
+        // } else {
+        // }
+    }
 }
 
 impl Default for Grid {
