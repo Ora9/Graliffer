@@ -1,4 +1,4 @@
-use std::{convert::Infallible, default};
+use std::convert::Infallible;
 
 use act::{Action, Revert, State};
 use crossterm::event::{MouseEvent, MouseEventKind};
@@ -13,7 +13,25 @@ use ratatui::{
 use serde::{Deserialize, Serialize};
 use tui_input::{Input, InputRequest};
 
-use crate::{AppAction, Context, GridAction::Insert, PickerAction::DeletePrevChar, View, ViewType};
+use crate::{AppAction, Context, GridAction::Insert, View, ViewType};
+
+// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// pub enum CursorMovement {
+//     /// The default when pressing an arrow key, either stepping to the next character in a cell, or
+//     /// to the next cell is the char cursor is at the end or start of cell
+//     StepCharThenGrid(grai::Direction),
+
+//     /// A step to the next cell, ignoring the current char cursor position
+//     /// Used for the tab, enter and space keys
+//     StepGrid(grai::Direction),
+
+//     /// A dash to either the cell's bound (start or end) or to the next non-empty cell in that
+//     /// direction
+//     DashUntilBoundsOrNonEmpty(grai::Direction),
+
+//     /// Move the cursor to a given position in the grid
+//     Jump(grai::Position),
+// }
 
 #[derive(Debug)]
 struct GridInput {
@@ -51,7 +69,7 @@ impl GridInput {
         }
     }
 
-    fn cursor_position(&self) -> usize {
+    fn char_position(&self) -> usize {
         self.input.visual_cursor()
     }
 
@@ -350,6 +368,7 @@ pub enum GridAction {
 
     DeletePrevChar,
     DeleteNextChar,
+    
 }
 
 impl Action for GridAction {}
