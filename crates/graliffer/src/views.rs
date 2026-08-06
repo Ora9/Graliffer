@@ -73,10 +73,6 @@ pub enum ViewType {
     Popup,
 }
 
-// pub struct View<T: State>(T);
-
-// pub struct V(HashMap<ViewId, Box<View<dyn State>>>);
-
 pub trait View {
     fn title() -> String;
     fn view_type() -> ViewType;
@@ -88,26 +84,10 @@ pub trait View {
         }
     }
 
+    #[allow(unused)]
     fn gain_focus(context: &mut Context) {}
+    #[allow(unused)]
     fn loose_focus(context: &mut Context) {}
-
-    // fn gain_focus<F>() -> Option<F>
-    // where
-    //     F: FnOnce(&mut Context) -> (),
-    // {
-    //     None
-    // }
-
-    // fn loose_focus<F>() -> Option<F>
-    // where
-    //     F: FnOnce(&mut Context) -> (),
-    // {
-    //     None
-    // }
-
-    // fn input_sink_binding_list(input: String) -> InputSinkBindingList {
-    //     InputSinkBindingList::none()
-    // }
 
     #[allow(unused)]
     fn input_sink_action(input: String) -> Option<AppAction> {
