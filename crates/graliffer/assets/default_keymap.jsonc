@@ -8,7 +8,7 @@
     }
   },
   {
-    "context": "popup_opened",
+    "context": "popuped",
     "bindings": {
       "escape": "ClosePopup"
 
