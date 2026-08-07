@@ -85,6 +85,9 @@ impl GridInput {
         let at_end = self.char_position() >= grid.get(self.grid_cursor).len();
         let at_start = self.char_position() == 0;
 
+        let grid_at_left = self.grid_cursor.x() == 0;
+        let grid_at_right = self.grid_cursor.x() == grai::granary::GranaryDigit::MAX_NUMERIC;
+
         debug!("at_start: {at_start}, at_end: {at_end}");
 
         let (grid_position, char_position) = match movement {
@@ -104,6 +107,9 @@ impl GridInput {
                     GridCursorPosition::InDirectionByOffset(direction, 1),
                     CharCursorPosition::AtMost(self.char_position()),
                 ),
+                Direction::Left if at_start && grid_at_left => {
+                    (GridCursorPosition::Unchanged, CharCursorPosition::Unchanged)
+                }
                 Direction::Left if at_start => (
                     GridCursorPosition::InDirectionByOffset(direction, 1),
                     CharCursorPosition::AtEnd,
@@ -112,6 +118,9 @@ impl GridInput {
                     GridCursorPosition::Unchanged,
                     CharCursorPosition::InDirectionByOffset(HorizontalDirection::Left, 1),
                 ),
+                Direction::Right if at_end && grid_at_right => {
+                    (GridCursorPosition::Unchanged, CharCursorPosition::Unchanged)
+                }
                 Direction::Right if at_end => (
                     GridCursorPosition::InDirectionByOffset(direction, 1),
                     CharCursorPosition::AtStart,
@@ -126,11 +135,17 @@ impl GridInput {
                     GridCursorPosition::InDirectionByOffset(direction, 1),
                     CharCursorPosition::AtMost(self.char_position()),
                 ),
+                Direction::Left if at_start && grid_at_left => {
+                    (GridCursorPosition::Unchanged, CharCursorPosition::Unchanged)
+                }
                 Direction::Left if at_start => (
                     GridCursorPosition::InDirectionUntilNonEmpty(direction),
                     CharCursorPosition::AtEnd,
                 ),
                 Direction::Left => (GridCursorPosition::Unchanged, CharCursorPosition::AtStart),
+                Direction::Right if at_end && grid_at_right => {
+                    (GridCursorPosition::Unchanged, CharCursorPosition::Unchanged)
+                }
                 Direction::Right if at_end => (
                     GridCursorPosition::InDirectionUntilNonEmpty(direction),
                     CharCursorPosition::AtStart,
