@@ -7,7 +7,7 @@ use ratatui::{
     layout::{Constraint, Layout, Margin, Offset, Position, Rect, Size, Spacing},
     style::{
         Color::{Black, White},
-        Style,
+        Modifier, Style,
     },
     symbols::{border, merge::MergeStrategy},
     text::{Line, Text},
@@ -130,11 +130,9 @@ impl StatefulWidget for Picker {
         border_block.clone().render(input_block_area, buf);
         Text::raw(state.input.value()).render(input_area, buf);
 
-        state.context.write(|context| {
-            context
-                .terminal_cursor
-                .set_position_if_visible(cursor_position)
-        });
+        if let Some(cursor_cell) = buf.cell_mut(cursor_position) {
+            cursor_cell.modifier = cursor_cell.modifier.union(Modifier::REVERSED);
+        }
 
         border_block.clone().render(item_area, buf);
         Text::from(item_list).render(border_block.inner(item_area), buf);
