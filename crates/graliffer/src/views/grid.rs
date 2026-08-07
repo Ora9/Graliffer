@@ -449,12 +449,19 @@ impl StatefulWidget for GridWidget {
             .merge_borders(MergeStrategy::Fuzzy)
             .render(cursor_area, &mut overdraw_buf);
 
+        let cursor_color = if state.grid_input.char_position() >= 3 {
+            Color::DarkGray
+        } else {
+            Color::White
+        };
+
         let char_cursor_position = cursor_area
             .inner(Margin::from(border as u16))
             .as_position()
             .offset(Offset::new(state.grid_input.char_position() as i32, 0));
 
         if let Some(cursor_cell) = overdraw_buf.cell_mut(char_cursor_position) {
+            cursor_cell.fg = cursor_color;
             cursor_cell.modifier = cursor_cell.modifier.union(Modifier::REVERSED);
         }
 
