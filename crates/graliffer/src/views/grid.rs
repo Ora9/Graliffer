@@ -14,7 +14,7 @@ use ratatui::{
 use serde::{Deserialize, Serialize};
 use tui_input::{Input, InputRequest};
 
-use crate::{AppAction, Context, GridAction::Insert, View, ViewType};
+use crate::{AppAction, Context, View, ViewType};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CursorMovement {
@@ -85,6 +85,17 @@ impl GridInput {
 
     pub fn char_at_max(&self) -> bool {
         self.char_position() >= 3
+    }
+
+    // todo! this probably induce a bug when codepoint != visual length != graphem count
+    pub fn input_full(&self) -> bool {
+        self.input.value().len() >= 3
+    }
+
+    pub fn insert(&mut self, grid: &mut grai::Grid, input: char) {
+        if !self.input_full() && input != ' ' {
+            self.handle(grid, InputRequest::InsertChar(input));
+        }
     }
 
     pub fn handle(&mut self, grid: &mut grai::Grid, input_request: InputRequest) {
@@ -537,6 +548,8 @@ pub enum GridAction {
     // CursorLeft,
     Insert(String),
 
+    InsertOverflow(String),
+
     DeletePrevChar,
     DeleteNextChar,
 
@@ -570,22 +583,22 @@ impl State for GridView {
 
         match action {
             Insert(input) => {
-                self.frame.write(|frame| {
-                    for c in input.chars() {
-                        if c == ' ' || self.grid_input.char_at_max() {
-                            self.grid_input.with_movement(
-                                CursorMovement::StepGrid(Direction::Right),
-                                &frame.grid,
-                            );
-                        }
-
-                        if c != ' ' {
-                            self.grid_input
-                                .handle(&mut frame.grid, InputRequest::InsertChar(c));
-                        }
-                    }
-                });
+                for c in input.chars() {
+                    self.frame
+                        .write(|frame| self.grid_input.insert(&mut frame.grid, c));
+                }
             }
+
+            InsertOverflow(input) => self.frame.write(|frame| {
+                for c in input.chars() {
+                    if self.grid_input.char_at_max() || c == ' ' {
+                        self.grid_input
+                            .with_movement(CursorMovement::StepGrid(Direction::Right), &frame.grid);
+                    }
+
+                    self.grid_input.insert(&mut frame.grid, c);
+                }
+            }),
 
             DeletePrevCharOrStepLeftGrid => self.frame.write(|frame| {
                 if self.grid_input.char_position() != 0 {
@@ -679,7 +692,7 @@ impl View for GridView {
     }
 
     fn input_sink_action(input: String) -> Option<AppAction> {
-        Some(AppAction::GridAction(Insert(input)))
+        Some(AppAction::GridAction(GridAction::InsertOverflow(input)))
     }
 
     // fn gain_focus(context: &mut Context) {
