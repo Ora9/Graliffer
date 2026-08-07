@@ -75,6 +75,18 @@ impl GridInput {
         self.input.visual_cursor()
     }
 
+    pub fn char_at_start(&self) -> bool {
+        self.char_position() == 0
+    }
+
+    pub fn char_at_end(&self, grid: &grai::Grid) -> bool {
+        self.char_position() >= grid.get(self.grid_cursor).len()
+    }
+
+    pub fn char_at_max(&self) -> bool {
+        self.char_position() >= 3
+    }
+
     pub fn handle(&mut self, grid: &mut grai::Grid, input_request: InputRequest) {
         self.input.handle(input_request);
         grid.set(self.grid_cursor, grai::Cell::new_trim(self.input.value()));
@@ -82,8 +94,8 @@ impl GridInput {
     }
 
     pub fn with_movement(&mut self, movement: CursorMovement, grid: &grai::Grid) {
-        let at_end = self.char_position() >= grid.get(self.grid_cursor).len();
-        let at_start = self.char_position() == 0;
+        let at_start = self.char_at_start();
+        let at_end = self.char_at_end(grid);
 
         let grid_at_left = self.grid_cursor.x() == 0;
         let grid_at_right = self.grid_cursor.x() == grai::granary::GranaryDigit::MAX_NUMERIC;
@@ -463,7 +475,7 @@ impl StatefulWidget for GridWidget {
             .merge_borders(MergeStrategy::Fuzzy)
             .render(cursor_area, &mut overdraw_buf);
 
-        let cursor_color = if state.grid_input.char_position() >= 3 {
+        let cursor_color = if state.grid_input.char_at_max() {
             Color::DarkGray
         } else {
             Color::White
@@ -558,8 +570,17 @@ impl State for GridView {
             Insert(input) => {
                 self.frame.write(|frame| {
                     for c in input.chars() {
-                        self.grid_input
-                            .handle(&mut frame.grid, InputRequest::InsertChar(c));
+                        if c == ' ' || self.grid_input.char_at_max() {
+                            self.grid_input.with_movement(
+                                CursorMovement::StepGrid(Direction::Right),
+                                &frame.grid,
+                            );
+                        }
+
+                        if c != ' ' {
+                            self.grid_input
+                                .handle(&mut frame.grid, InputRequest::InsertChar(c));
+                        }
                     }
                 });
             }
