@@ -410,8 +410,8 @@ impl StatefulWidget for GridWidget {
             (x, y)
         };
 
-        for cell_x in in_view_left..in_view_right {
-            for cell_y in in_view_top..in_view_bottom {
+        for cell_x in in_view_left..=in_view_right {
+            for cell_y in in_view_top..=in_view_bottom {
                 let grid_pos = grai::Position::from_numeric(cell_x as u32, cell_y as u32)
                     .expect("should be able to construct a valid position");
 
