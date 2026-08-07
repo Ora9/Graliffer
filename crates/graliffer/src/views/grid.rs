@@ -542,6 +542,8 @@ pub enum GridAction {
 
     DeletePrevCharOrStepLeftGrid,
 
+    DeleteTillStartOrStepLeftGrid,
+
     CursorStepUpGrid,
     CursorStepDownGrid,
     CursorStepRightGrid,
@@ -589,6 +591,16 @@ impl State for GridView {
                 if self.grid_input.char_position() != 0 {
                     self.grid_input
                         .handle(&mut frame.grid, InputRequest::DeletePrevChar);
+                } else {
+                    self.grid_input
+                        .with_movement(CursorMovement::StepGrid(Direction::Left), &frame.grid);
+                }
+            }),
+
+            DeleteTillStartOrStepLeftGrid => self.frame.write(|frame| {
+                if self.grid_input.char_position() != 0 {
+                    self.grid_input
+                        .handle(&mut frame.grid, InputRequest::DeletePrevWord);
                 } else {
                     self.grid_input
                         .with_movement(CursorMovement::StepGrid(Direction::Left), &frame.grid);

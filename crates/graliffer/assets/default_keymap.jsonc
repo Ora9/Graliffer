@@ -48,6 +48,8 @@
       "enter": "grid::CursorStepDownGrid",
 
       "backspace": "grid::DeletePrevCharOrStepLeftGrid",
+      "ctrl-backspace": "grid::DeleteTillStartOrStepLeftGrid",
+
       "delete": "grid::DeleteNextChar"
     }
   },
