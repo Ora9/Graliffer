@@ -256,11 +256,10 @@ impl DragState {
 pub struct GridView {
     context: Context,
 
-    // frame: Rc<RefCell<grai::Frame>>,
     frame: grai::FrameGuard,
 
     grid_input: GridInput,
-    // grid_cursor: Cursor,
+
     drag_state: DragState,
     offset_x: usize,
     offset_y: usize,
