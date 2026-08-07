@@ -85,11 +85,6 @@ pub trait View {
     }
 
     #[allow(unused)]
-    fn gain_focus(context: &mut Context) {}
-    #[allow(unused)]
-    fn loose_focus(context: &mut Context) {}
-
-    #[allow(unused)]
     fn input_sink_action(input: String) -> Option<AppAction> {
         None
     }

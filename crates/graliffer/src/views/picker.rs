@@ -139,9 +139,6 @@ impl StatefulWidget for Picker {
     }
 }
 
-// #[derive(Debug, thiserror::Error, PartialEq, Eq)]
-// pub enum PickerActionError {}
-
 #[derive(Debug, Clone, strum::EnumString, Serialize, Deserialize)]
 pub enum PickerAction {
     SelectionUp,
@@ -211,13 +208,5 @@ impl View for PickerView {
 
     fn input_sink_action(input: String) -> Option<AppAction> {
         Some(AppAction::PickerAction(PickerAction::Insert(input)))
-    }
-
-    fn gain_focus(context: &mut Context) {
-        context.write(|context| context.terminal_cursor.show(Position::default()))
-    }
-
-    fn loose_focus(context: &mut Context) {
-        context.write(|context| context.terminal_cursor.hide())
     }
 }

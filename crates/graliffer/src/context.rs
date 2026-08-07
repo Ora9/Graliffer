@@ -7,49 +7,8 @@ use crate::{
     input::{InputMode, KeyContext},
 };
 
-#[derive(Debug, Default)]
-pub struct TerminalCursor {
-    position: Option<Position>,
-    // visibilty_update: bool,
-}
-
-impl TerminalCursor {
-    pub fn show(&mut self, at: Position) {
-        self.position = Some(at);
-        // self.visibilty_update = true;
-    }
-
-    pub fn hide(&mut self) {
-        self.position = None;
-        // self.visibilty_update = true;
-    }
-
-    // pub fn acknowledge_visibility(&mut self) {
-    //     self.visibilty_update = false;
-    // }
-
-    // pub fn has_changed(&self) -> bool {
-    //     self.visibilty_update
-    // }
-
-    pub fn visible(&self) -> bool {
-        self.position.is_some()
-    }
-
-    pub fn set_position_if_visible(&mut self, at: Position) {
-        if self.position.is_some() {
-            self.position = Some(at);
-        }
-    }
-
-    pub fn get_position(&mut self) -> Option<Position> {
-        self.position
-    }
-}
-
 #[derive(Debug)]
 pub struct ContextInner {
-    pub terminal_cursor: TerminalCursor,
     pub config: Config,
 
     focus: ViewId,
@@ -68,8 +27,6 @@ impl Context {
         let mut context = Self(Rc::new(RefCell::new(ContextInner {
             focus: default_focus.clone(),
             input_mode,
-
-            terminal_cursor: TerminalCursor::default(),
 
             config,
 

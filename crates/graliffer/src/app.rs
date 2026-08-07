@@ -90,26 +90,24 @@ impl AppState {
     }
 
     pub fn set_focus(&mut self, focus_id: impl Into<ViewId>) {
-        let focus_id = focus_id.into();
+        // let prev = self.context.get_focus();
+        // let next = focus_id.clone();
 
-        let prev = self.context.get_focus();
-        let next = focus_id.clone();
+        // if prev != next {
+        //     match prev.to_string().as_str() {
+        //         "Grid" => GridView::loose_focus(&mut self.context),
+        //         "Picker" => PickerView::loose_focus(&mut self.context),
+        //         _ => {}
+        //     }
 
-        if prev != next {
-            match prev.to_string().as_str() {
-                "Grid" => GridView::loose_focus(&mut self.context),
-                "Picker" => PickerView::loose_focus(&mut self.context),
-                _ => {}
-            }
+        //     match next.to_string().as_str() {
+        //         "Grid" => GridView::gain_focus(&mut self.context),
+        //         "Picker" => PickerView::gain_focus(&mut self.context),
+        //         _ => {}
+        //     }
+        // }
 
-            match next.to_string().as_str() {
-                "Grid" => GridView::gain_focus(&mut self.context),
-                "Picker" => PickerView::gain_focus(&mut self.context),
-                _ => {}
-            }
-        }
-
-        self.context.set_focus(focus_id);
+        self.context.set_focus(focus_id.into());
     }
 
     pub fn popup_opened(&self) -> bool {

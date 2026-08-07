@@ -33,26 +33,6 @@ impl Tui {
         Self { terminal, events }
     }
 
-    // pub fn handle_cursor(&mut self, app_state: &mut AppState) -> Result<()> {
-    //     app_state.context.write(|context| {
-    //         if context.terminal_cursor.has_changed() {
-    //             context.terminal_cursor.acknowledge_visibility();
-    //             if context.terminal_cursor.visible() {
-    //                 debug!("show_cursor");
-    //                 self.terminal.show_cursor().unwrap();
-    //             } else {
-    //                 debug!("hide_cursor");
-    //                 self.terminal.hide_cursor()?;
-    //             }
-    //         }
-
-    //         if let Some(cursor_position) = context.terminal_cursor.get_position() {
-    //             self.terminal.set_cursor_position(cursor_position)?;
-    //         };
-    //         Ok(())
-    //     })
-    // }
-
     /// Initializes the terminal interface.
     ///
     /// It enables the raw mode and sets terminal properties.
@@ -71,7 +51,7 @@ impl Tui {
             panic_hook(panic);
         }));
 
-        // self.terminal.hide_cursor()?;
+        self.terminal.hide_cursor()?;
         self.terminal.clear()?;
         Ok(())
     }
@@ -81,16 +61,8 @@ impl Tui {
     /// [`Draw`]: tui::Terminal::draw
     /// [`rendering`]: crate::ui:render
     pub fn draw(&mut self, app: App, app_state: &mut AppState) -> Result<()> {
-        self.terminal.draw(|frame| {
-            app.render(frame.area(), frame.buffer_mut(), app_state);
-
-            if let Some(cursor_position) = app_state
-                .context
-                .write(|context| context.terminal_cursor.get_position())
-            {
-                frame.set_cursor_position(cursor_position);
-            }
-        })?;
+        self.terminal
+            .draw(|frame| app.render(frame.area(), frame.buffer_mut(), app_state))?;
 
         Ok(())
     }
