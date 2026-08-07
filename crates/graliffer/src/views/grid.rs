@@ -2,11 +2,12 @@ use std::convert::Infallible;
 
 use act::{Action, Revert, State};
 use crossterm::event::{MouseEvent, MouseEventKind};
-use grai::granary::GranaryDigit;
+use grai::{Direction, HorizontalDirection, granary::GranaryDigit};
+use log::debug;
 use ratatui::{
     buffer::Buffer,
     layout::{Margin, Offset, Position, Rect, Size},
-    style::{Color, Style, Stylize},
+    style::{Color, Modifier, Style, Stylize},
     symbols::merge::MergeStrategy,
     widgets::{Block, BorderType, Paragraph, StatefulWidget, Widget},
 };
@@ -15,23 +16,38 @@ use tui_input::{Input, InputRequest};
 
 use crate::{AppAction, Context, GridAction::Insert, View, ViewType};
 
-// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-// pub enum CursorMovement {
-//     /// The default when pressing an arrow key, either stepping to the next character in a cell, or
-//     /// to the next cell is the char cursor is at the end or start of cell
-//     StepCharThenGrid(grai::Direction),
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CursorMovement {
+    /// The default when pressing an arrow key, either stepping to the next character in a cell, or
+    /// to the next cell is the char cursor is at the end or start of cell
+    StepCharThenGrid(Direction),
 
-//     /// A step to the next cell, ignoring the current char cursor position
-//     /// Used for the tab, enter and space keys
-//     StepGrid(grai::Direction),
+    /// A step to the next cell, ignoring the current char cursor position
+    /// Used for the tab, enter and space keys
+    StepGrid(Direction),
 
-//     /// A dash to either the cell's bound (start or end) or to the next non-empty cell in that
-//     /// direction
-//     DashUntilBoundsOrNonEmpty(grai::Direction),
+    /// A dash to either the cell's bound (start or end) or to the next non-empty cell in that
+    /// direction
+    DashUntilBoundsOrNonEmpty(Direction),
 
-//     /// Move the cursor to a given position in the grid
-//     Jump(grai::Position),
-// }
+    /// Move the cursor to a given position in the grid
+    Jump(grai::Position),
+}
+
+enum CharCursorPosition {
+    Unchanged,
+    AtEnd,
+    AtStart,
+    AtMost(usize),
+    InDirectionByOffset(HorizontalDirection, usize),
+}
+
+enum GridCursorPosition {
+    Unchanged,
+    At(grai::Position),
+    InDirectionByOffset(Direction, u32),
+    InDirectionUntilNonEmpty(Direction),
+}
 
 #[derive(Debug)]
 struct GridInput {
@@ -47,40 +63,153 @@ impl GridInput {
         };
 
         grid_input.sync_input(grid);
+        grid_input.set_char_position(CharCursorPosition::AtEnd, grid);
         grid_input
     }
 
-    fn sync_input(&mut self, grid: &grai::Grid) {
-        self.input = Input::new(grid.get(self.grid_cursor).to_string())
-    }
-
-    fn grid_position(&self) -> &grai::Position {
+    pub fn grid_position(&self) -> &grai::Position {
         &self.grid_cursor
     }
 
-    fn grid_move_to(&mut self, position: grai::Position, grid: &grai::Grid) {
-        self.grid_cursor = position;
-        self.sync_input(grid);
-    }
-
-    fn grid_step_towards(&mut self, direction: grai::Direction, steps: u32, grid: &grai::Grid) {
-        if let Ok(position) = self.grid_position().checked_step(direction, steps) {
-            self.grid_move_to(position, grid);
-        }
-    }
-
-    fn char_position(&self) -> usize {
+    pub fn char_position(&self) -> usize {
         self.input.visual_cursor()
     }
 
-    // fn cell_mut<'a>(&self, grid: &'a mut grai::Grid) -> &'a mut grai::Cell {
-    //     grid.get_mut(self.grid_cursor)
-    // }
-
-    fn handle(&mut self, grid: &mut grai::Grid, input_request: InputRequest) {
+    pub fn handle(&mut self, grid: &mut grai::Grid, input_request: InputRequest) {
         self.input.handle(input_request);
         grid.set(self.grid_cursor, grai::Cell::new_trim(self.input.value()));
         self.sync_input(grid);
+    }
+
+    pub fn with_movement(&mut self, movement: CursorMovement, grid: &grai::Grid) {
+        let at_end = self.char_position() >= grid.get(self.grid_cursor).len();
+        let at_start = self.char_position() == 0;
+
+        debug!("at_start: {at_start}, at_end: {at_end}");
+
+        let (grid_position, char_position) = match movement {
+            CursorMovement::Jump(position) => {
+                (GridCursorPosition::At(position), CharCursorPosition::AtEnd)
+            }
+            CursorMovement::StepGrid(direction) => (
+                GridCursorPosition::InDirectionByOffset(direction, 1),
+                match direction {
+                    Direction::Up | Direction::Down => CharCursorPosition::Unchanged,
+                    Direction::Left => CharCursorPosition::AtEnd,
+                    Direction::Right => CharCursorPosition::AtStart,
+                },
+            ),
+            CursorMovement::StepCharThenGrid(direction) => match direction {
+                Direction::Up | Direction::Down => (
+                    GridCursorPosition::InDirectionByOffset(direction, 1),
+                    CharCursorPosition::AtMost(self.char_position()),
+                ),
+                Direction::Left if at_start => (
+                    GridCursorPosition::InDirectionByOffset(direction, 1),
+                    CharCursorPosition::AtEnd,
+                ),
+                Direction::Left => (
+                    GridCursorPosition::Unchanged,
+                    CharCursorPosition::InDirectionByOffset(HorizontalDirection::Left, 1),
+                ),
+                Direction::Right if at_end => (
+                    GridCursorPosition::InDirectionByOffset(direction, 1),
+                    CharCursorPosition::AtStart,
+                ),
+                Direction::Right => (
+                    GridCursorPosition::Unchanged,
+                    CharCursorPosition::InDirectionByOffset(HorizontalDirection::Right, 1),
+                ),
+            },
+            CursorMovement::DashUntilBoundsOrNonEmpty(direction) => match direction {
+                Direction::Up | Direction::Down => (
+                    GridCursorPosition::InDirectionByOffset(direction, 1),
+                    CharCursorPosition::AtMost(self.char_position()),
+                ),
+                Direction::Left if at_start => (
+                    GridCursorPosition::InDirectionUntilNonEmpty(direction),
+                    CharCursorPosition::AtEnd,
+                ),
+                Direction::Left => (GridCursorPosition::Unchanged, CharCursorPosition::AtStart),
+                Direction::Right if at_end => (
+                    GridCursorPosition::InDirectionUntilNonEmpty(direction),
+                    CharCursorPosition::AtStart,
+                ),
+                Direction::Right => (GridCursorPosition::Unchanged, CharCursorPosition::AtEnd),
+            },
+        };
+
+        self.set_positions(grid_position, char_position, grid);
+        debug!(
+            "grid: {}, char {}, movement: {:?}",
+            self.grid_cursor,
+            self.input.visual_cursor(),
+            movement
+        )
+    }
+
+    fn set_positions(
+        &mut self,
+        grid_position: GridCursorPosition,
+        char_position: CharCursorPosition,
+        grid: &grai::Grid,
+    ) {
+        self.set_grid_position(grid_position, grid);
+        self.sync_input(grid);
+        self.set_char_position(char_position, grid);
+    }
+
+    fn sync_input(&mut self, grid: &grai::Grid) {
+        let cursor = self.input.cursor();
+        self.input = Input::new(grid.get(self.grid_cursor).to_string());
+        self.input.handle(InputRequest::SetCursor(cursor));
+    }
+
+    fn set_grid_position(&mut self, grid_position: GridCursorPosition, grid: &grai::Grid) {
+        let position = match grid_position {
+            GridCursorPosition::Unchanged => *self.grid_position(),
+            GridCursorPosition::At(position) => position,
+            GridCursorPosition::InDirectionByOffset(direction, offset) => self
+                .grid_position()
+                .checked_step(direction, offset)
+                .unwrap_or(*self.grid_position()),
+            GridCursorPosition::InDirectionUntilNonEmpty(direction) => {
+                let mut pos = self.grid_cursor;
+                while let Ok(next) = pos.checked_step(direction, 1) {
+                    pos = next;
+
+                    if grid.get(pos).is_empty() {
+                        continue;
+                    } else {
+                        break;
+                    }
+                }
+
+                pos
+            }
+        };
+
+        self.grid_cursor = position
+    }
+
+    fn set_char_position(&mut self, char_position: CharCursorPosition, grid: &grai::Grid) {
+        let cell = grid.get(self.grid_cursor);
+        let cursor = match char_position {
+            CharCursorPosition::Unchanged => self.char_position(),
+            CharCursorPosition::AtStart => 0,
+            CharCursorPosition::AtEnd => cell.len(),
+            CharCursorPosition::AtMost(p) => p,
+            CharCursorPosition::InDirectionByOffset(direction, offset) => {
+                debug!("{direction:?} by {offset}");
+                match direction {
+                    HorizontalDirection::Left => self.char_position().saturating_sub(offset),
+                    HorizontalDirection::Right => self.char_position().saturating_add(offset),
+                }
+            }
+        }
+        .min(cell.len());
+
+        self.input.handle(InputRequest::SetCursor(cursor));
     }
 }
 
@@ -320,6 +449,15 @@ impl StatefulWidget for GridWidget {
             .merge_borders(MergeStrategy::Fuzzy)
             .render(cursor_area, &mut overdraw_buf);
 
+        let char_cursor_position = cursor_area
+            .inner(Margin::from(border as u16))
+            .as_position()
+            .offset(Offset::new(state.grid_input.char_position() as i32, 0));
+
+        if let Some(cursor_cell) = overdraw_buf.cell_mut(char_cursor_position) {
+            cursor_cell.modifier = cursor_cell.modifier.union(Modifier::REVERSED);
+        }
+
         // our own implementation of Buffer::merge
         buffer_merge_areas(buf, area.as_position(), &overdraw_buf, overdraw_viewport);
     }
@@ -360,15 +498,27 @@ fn buffer_merge_areas(
 
 #[derive(Debug, Clone, strum::EnumString, Serialize, Deserialize)]
 pub enum GridAction {
-    CursorUp,
-    CursorDown,
-    CursorRight,
-    CursorLeft,
+    // CursorUp,
+    // CursorDown,
+    // CursorRight,
+    // CursorLeft,
     Insert(String),
 
     DeletePrevChar,
     DeleteNextChar,
-    
+
+    CursorStepUpGrid,
+    CursorStepDownGrid,
+    CursorStepRightGrid,
+    CursorStepLeftGrid,
+
+    CursorStepRightCharThenGrid,
+    CursorStepLeftCharThenGrid,
+
+    CursorDashUpCharThenGrid,
+    CursorDashDownCharThenGrid,
+    CursorDashRightCharThenGrid,
+    CursorDashLeftCharThenGrid,
 }
 
 impl Action for GridAction {}
@@ -382,20 +532,6 @@ impl State for GridView {
         use GridAction::*;
 
         match action {
-            CursorUp | CursorDown | CursorLeft | CursorRight => {
-                let direction = match action {
-                    CursorUp => grai::Direction::Up,
-                    CursorDown => grai::Direction::Down,
-                    CursorRight => grai::Direction::Right,
-                    CursorLeft => grai::Direction::Left,
-                    _ => unreachable!(),
-                };
-
-                self.frame.read(|frame| {
-                    self.grid_input.grid_step_towards(direction, 1, &frame.grid);
-                })
-            }
-
             Insert(input) => {
                 self.frame.write(|frame| {
                     for c in input.chars() {
@@ -404,7 +540,6 @@ impl State for GridView {
                     }
                 });
             }
-
             DeletePrevChar => self.frame.write(|frame| {
                 self.grid_input
                     .handle(&mut frame.grid, InputRequest::DeletePrevChar);
@@ -414,6 +549,54 @@ impl State for GridView {
                 self.grid_input
                     .handle(&mut frame.grid, InputRequest::DeleteNextChar);
             }),
+
+            CursorStepUpGrid | CursorStepDownGrid | CursorStepLeftGrid | CursorStepRightGrid => {
+                let direction = match action {
+                    CursorStepUpGrid => Direction::Up,
+                    CursorStepDownGrid => Direction::Down,
+                    CursorStepRightGrid => Direction::Right,
+                    CursorStepLeftGrid => Direction::Left,
+                    _ => unreachable!(),
+                };
+
+                self.frame.read(|frame| {
+                    self.grid_input
+                        .with_movement(CursorMovement::StepGrid(direction), &frame.grid);
+                })
+            }
+
+            CursorStepLeftCharThenGrid | CursorStepRightCharThenGrid => {
+                let direction = match action {
+                    CursorStepRightCharThenGrid => Direction::Right,
+                    CursorStepLeftCharThenGrid => Direction::Left,
+                    _ => unreachable!(),
+                };
+
+                self.frame.read(|frame| {
+                    self.grid_input
+                        .with_movement(CursorMovement::StepCharThenGrid(direction), &frame.grid);
+                })
+            }
+
+            CursorDashUpCharThenGrid
+            | CursorDashRightCharThenGrid
+            | CursorDashDownCharThenGrid
+            | CursorDashLeftCharThenGrid => {
+                let direction = match action {
+                    CursorDashUpCharThenGrid => Direction::Up,
+                    CursorDashDownCharThenGrid => Direction::Down,
+                    CursorDashRightCharThenGrid => Direction::Right,
+                    CursorDashLeftCharThenGrid => Direction::Left,
+                    _ => unreachable!(),
+                };
+
+                self.frame.read(|frame| {
+                    self.grid_input.with_movement(
+                        CursorMovement::DashUntilBoundsOrNonEmpty(direction),
+                        &frame.grid,
+                    );
+                })
+            }
         }
         Ok(Revert::None)
     }
@@ -431,6 +614,14 @@ impl View for GridView {
     fn input_sink_action(input: String) -> Option<AppAction> {
         Some(AppAction::GridAction(Insert(input)))
     }
+
+    // fn gain_focus(context: &mut Context) {
+    //     context.write(|context| context.terminal_cursor.show(Position::default()))
+    // }
+
+    // fn loose_focus(context: &mut Context) {
+    //     context.write(|context| context.terminal_cursor.hide())
+    // }
 
     // fn input_sink_binding_list(input: String) -> InputSinkBindingList {
     //     InputSinkBinding {

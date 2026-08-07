@@ -29,10 +29,23 @@
   {
     "context": "Grid",
     "bindings": {
-      "up": "grid::CursorUp",
-      "down": "grid::CursorDown",
-      "right": "grid::CursorRight",
-      "left": "grid::CursorLeft",
+      "up": "grid::CursorStepUpGrid",
+      "down": "grid::CursorStepDownGrid",
+      "right": "grid::CursorStepRightCharThenGrid",
+      "left": "grid::CursorStepLeftCharThenGrid",
+
+      "alt-up": "grid::CursorStepUpGrid",
+      "alt-down": "grid::CursorStepDownGrid",
+      "alt-right": "grid::CursorStepRightGrid",
+      "alt-left": "grid::CursorStepLeftGrid",
+
+      "ctrl-up": "grid::CursorDashUpCharThenGrid",
+      "ctrl-down": "grid::CursorDashDownCharThenGrid",
+      "ctrl-right": "grid::CursorDashRightCharThenGrid",
+      "ctrl-left": "grid::CursorDashLeftCharThenGrid",
+
+      "tab": "grid::CursorStepRightGrid",
+      "enter": "grid::CursorStepDownGrid",
 
       "backspace": "grid::DeletePrevChar",
       "delete": "grid::DeleteNextChar"
