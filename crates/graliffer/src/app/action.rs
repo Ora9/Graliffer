@@ -4,7 +4,6 @@ use crate::{
     AboutView, AppState, ConsoleAction, GridAction, InputMode, PickerAction, PickerView, PopupId,
     StackView, View,
 };
-use log::debug;
 use serde::{Deserialize, Serialize};
 
 use act::{Action, Revert, State};

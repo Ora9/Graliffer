@@ -1,10 +1,9 @@
 use std::convert::Infallible;
 
 use act::{Action, Revert, State};
-use log::debug;
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Layout, Margin, Offset, Position, Rect, Size, Spacing},
+    layout::{Constraint, Layout, Margin, Offset, Rect, Size, Spacing},
     style::{
         Color::{Black, White},
         Modifier, Style,
@@ -45,6 +44,7 @@ impl From<&str> for PickerItem {
 
 #[derive(Debug)]
 pub struct PickerView {
+    #[allow(unused)]
     context: Context,
 
     input: Input,

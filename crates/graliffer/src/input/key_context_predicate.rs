@@ -1,4 +1,4 @@
-use std::{fmt::Display, ops::Deref, str::FromStr};
+use std::{fmt::Display, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 
@@ -27,14 +27,14 @@ impl KeyContextPredicate {
         }
     }
 
-    fn operands(&self) -> Option<(&KeyContextPredicate, &KeyContextPredicate)> {
-        match self {
-            Self::Flag(_) | Self::Not(_) | Self::None => None,
-            Self::And(lhs, rhs) | Self::Or(lhs, rhs) | Self::Xor(lhs, rhs) => {
-                Some((lhs.deref(), rhs.deref()))
-            }
-        }
-    }
+    // fn operands(&self) -> Option<(&KeyContextPredicate, &KeyContextPredicate)> {
+    //     match self {
+    //         Self::Flag(_) | Self::Not(_) | Self::None => None,
+    //         Self::And(lhs, rhs) | Self::Or(lhs, rhs) | Self::Xor(lhs, rhs) => {
+    //             Some((lhs.deref(), rhs.deref()))
+    //         }
+    //     }
+    // }
 
     // fn lhs(&self) -> KeyContextPredicate {
     //     // use KeyContextPredicate::*;

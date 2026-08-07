@@ -1,5 +1,3 @@
-use std::{cell::RefCell, rc::Rc};
-
 use rand::seq::SliceRandom;
 
 use crate::{
@@ -38,10 +36,6 @@ impl AppState {
         let frame = grai::FrameGuard::new(
             grai::Frame::from_example("getting_started").expect("should be a valid example"),
         );
-
-        // let frame = Rc::new(RefCell::new(
-        //     grai::Frame::from_example("getting_started").expect("should be a valid example"),
-        // ));
 
         let default_focus = GridView::view_id();
 
@@ -90,23 +84,6 @@ impl AppState {
     }
 
     pub fn set_focus(&mut self, focus_id: impl Into<ViewId>) {
-        // let prev = self.context.get_focus();
-        // let next = focus_id.clone();
-
-        // if prev != next {
-        //     match prev.to_string().as_str() {
-        //         "Grid" => GridView::loose_focus(&mut self.context),
-        //         "Picker" => PickerView::loose_focus(&mut self.context),
-        //         _ => {}
-        //     }
-
-        //     match next.to_string().as_str() {
-        //         "Grid" => GridView::gain_focus(&mut self.context),
-        //         "Picker" => PickerView::gain_focus(&mut self.context),
-        //         _ => {}
-        //     }
-        // }
-
         self.context.set_focus(focus_id.into());
     }
 

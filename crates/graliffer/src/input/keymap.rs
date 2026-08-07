@@ -45,16 +45,9 @@ pub struct KeymapBindingGroup {
 }
 
 impl KeymapBindingGroup {
-    fn new(context: KeyContextPredicate) -> Self {
-        Self {
-            context,
-            ..Default::default()
-        }
-    }
-
-    fn push(&mut self, keystroke: Keystroke, action: AppAction) {
-        self.bindings.insert(keystroke, action);
-    }
+    // fn push(&mut self, keystroke: Keystroke, action: AppAction) {
+    //     self.bindings.insert(keystroke, action);
+    // }
 
     fn find_keystroke(&self, keystroke: Keystroke) -> Option<AppAction> {
         self.bindings

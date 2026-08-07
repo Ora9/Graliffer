@@ -1,7 +1,5 @@
 use std::{cell::RefCell, rc::Rc};
 
-use ratatui::layout::Position;
-
 use crate::{
     Config, KeyContextFlag, KeyContextFlagKey, KeyContextPredicate, ViewId,
     input::{InputMode, KeyContext},

@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use etcetera::{BaseStrategy, choose_base_strategy};
 use std::path::PathBuf;
 

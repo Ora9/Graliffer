@@ -292,6 +292,7 @@ impl DragState {
 
 #[derive(Debug)]
 pub struct GridView {
+    #[allow(unused)]
     context: Context,
 
     frame: grai::FrameGuard,
