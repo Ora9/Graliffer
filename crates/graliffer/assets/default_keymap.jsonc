@@ -47,7 +47,7 @@
       "tab": "grid::CursorStepRightGrid",
       "enter": "grid::CursorStepDownGrid",
 
-      "backspace": "grid::DeletePrevChar",
+      "backspace": "grid::DeletePrevCharOrStepLeftGrid",
       "delete": "grid::DeleteNextChar"
     }
   },
