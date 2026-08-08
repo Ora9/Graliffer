@@ -2,7 +2,7 @@ use std::convert::Infallible;
 
 use act::{Action, Revert, State};
 use crossterm::event::{MouseEvent, MouseEventKind};
-use grai::{Direction, HorizontalDirection, granary::GranaryDigit};
+use grai::{Direction, HorizontalDirection, VerticalDirection, granary::GranaryDigit};
 use log::debug;
 use ratatui::{
     buffer::Buffer,
@@ -337,6 +337,21 @@ impl GridView {
         };
 
         match mouse_event.kind {
+            MouseEventKind::ScrollUp
+            | MouseEventKind::ScrollDown
+            | MouseEventKind::ScrollLeft
+            | MouseEventKind::ScrollRight => {
+                let (x_offset, y_offset) = match mouse_event.kind {
+                    MouseEventKind::ScrollLeft => (-1, 0),
+                    MouseEventKind::ScrollRight => (1, 0),
+                    MouseEventKind::ScrollUp => (0, -1),
+                    MouseEventKind::ScrollDown => (0, 1),
+                    _ => unreachable!(),
+                };
+
+                self.offset_x = self.offset_x.saturating_add_signed(x_offset);
+                self.offset_y = self.offset_y.saturating_add_signed(y_offset);
+            }
             MouseEventKind::Drag(button) if button.is_left() => {
                 if self.drag_state.idle() {
                     self.drag_state
@@ -556,6 +571,7 @@ pub enum GridAction {
 
     DeletePrevCharOrStepLeftGrid,
 
+    DeleteTillStart,
     DeleteTillStartOrStepLeftGrid,
 
     CursorStepUpGrid,
@@ -609,6 +625,11 @@ impl State for GridView {
                     self.grid_input
                         .with_movement(CursorMovement::StepGrid(Direction::Left), &frame.grid);
                 }
+            }),
+
+            DeleteTillStart => self.frame.write(|frame| {
+                self.grid_input
+                    .handle(&mut frame.grid, InputRequest::DeletePrevWord);
             }),
 
             DeleteTillStartOrStepLeftGrid => self.frame.write(|frame| {
