@@ -4,7 +4,7 @@
 
 Each cells in the grid can contain up to 3 chars (unicode graphems).
 
-Heads walk through the grid, pushing operands to their stack, and executing opcodes.
+Heads walk through the grid reading cells, executing opcodes, and pushing operands to their stack.
 
 ## Roadmap
 
