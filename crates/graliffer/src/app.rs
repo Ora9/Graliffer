@@ -1,7 +1,7 @@
 use rand::seq::SliceRandom;
 
 use crate::{
-    Config, ConsoleView, Context, GridView, PaneId, PickerView, PopupId, View, ViewId,
+    Config, ConsoleView, Context, GridView, PaneId, PickerView, PopupId, StackView, View, ViewId,
     input::{InputMode, Keymap},
 };
 
@@ -16,6 +16,7 @@ pub struct AppState {
 
     pub console_state: ConsoleView,
     pub grid_state: GridView,
+    pub stack_state: StackView,
     pub command_picker_state: PickerView,
 
     pub should_run: bool,
@@ -49,7 +50,8 @@ impl AppState {
             should_run: true,
 
             console_state: ConsoleView::new(context.clone()),
-            grid_state: GridView::new(frame, context.clone()),
+            grid_state: GridView::new(frame.clone(), context.clone()),
+            stack_state: StackView::new(frame),
 
             command_picker_state: PickerView::new(context.clone()),
 

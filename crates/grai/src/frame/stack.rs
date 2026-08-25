@@ -1,9 +1,11 @@
+use std::slice::Iter;
+
 use act::{Action, Revert, State};
 use serde::{Deserialize, Serialize};
 
 use crate::Operand;
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Stack(Vec<Operand>);
 
 impl Stack {
@@ -31,9 +33,13 @@ impl Stack {
         self.0.last()
     }
 
-    // pub fn iter(&self) -> Iter<'_, Operand> {
-    //     self.0.iter()
-    // }
+    pub fn iter(&self) -> impl Iterator<Item = &Operand> {
+        self.0.iter()
+    }
+
+    pub fn into_iter(self) -> impl Iterator<Item = Operand> {
+        self.0.into_iter()
+    }
 }
 
 #[derive(Debug, Clone)]

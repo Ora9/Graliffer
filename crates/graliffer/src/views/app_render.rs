@@ -7,7 +7,7 @@ use ratatui::{
 
 use crate::{
     About, AboutView, App, AppState, ConsoleView, GridView, MenuGroup, MenuLine, MenuTitle,
-    NumberPrefix, PaneBorder, Picker, PickerView, StackView, View,
+    NumberPrefix, PaneBorder, Picker, PickerView, StackView, StackWidget, View,
 };
 use crate::{ConsoleWidget, GridWidget};
 
@@ -31,6 +31,12 @@ impl StatefulWidget for App {
             output_area.inner(Margin::from(1)),
             buf,
             &mut state.console_state,
+        );
+
+        StackWidget::new().render(
+            stack_area.inner(Margin::from(1)),
+            buf,
+            &mut state.stack_state,
         );
 
         let input_mode = MenuLine::from_title(MenuTitle::Info(state.input_mode().formated()))
