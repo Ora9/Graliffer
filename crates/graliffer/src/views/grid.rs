@@ -290,6 +290,51 @@ impl DragState {
     }
 }
 
+const CELL_HEIGHT: u16 = 1;
+const CELL_WIDTH: u16 = 3;
+const CELL_BORDER: u16 = 1;
+
+// fn terminal_to_grid_position(terminal_position: Position, area: Rect) -> Option<grai::Position> {
+//     debug!("{:?}", terminal_position);
+
+//     let x = terminal_position
+//         .x
+//         // .saturating_add(area.left())
+//         .saturating_div(CELL_WIDTH + CELL_BORDER)
+//         .min(GranaryDigit::MAX_NUMERIC as u16);
+
+//     debug!("{x}");
+
+//     None
+
+//     // grai::Position::new(
+//     //     terminal_position
+//     //         .x
+//     //         .into::<u32>()
+//     //         // .saturating_add(terminal_position.x)
+//     //         .saturating_div((CELL_WIDTH + CELL_BORDER) as u32)
+//     //         .min(GranaryDigit::MAX_NUMERIC)
+//     //         .into(),
+//     //     terminal_position
+//     //         .y
+//     //         // .saturating_add(area.height as u32)
+//     //         .saturating_div((CELL_HEIGHT + CELL_BORDER))
+//     //         .min(GranaryDigit::MAX_NUMERIC as u16)
+//     //         .into(),
+//     // )
+//     // .ok()
+// }
+
+// fn grid_to_terminal_position(grid_position: grai::Position, area: Rect) -> Position {
+//     Position::new(
+//         area.x
+//             .saturating_add(grid_position.x() as u16 * (CELL_WIDTH + CELL_BORDER)),
+//         // .saturating_sub(state.offset_x) as u16,
+//         area.y
+//             .saturating_add(grid_position.y() as u16 * (CELL_HEIGHT + CELL_BORDER)), // .saturating_sub(state.offset_y) as u16,
+//     )
+// }
+
 #[derive(Debug)]
 pub struct GridView {
     #[allow(unused)]
@@ -382,6 +427,12 @@ impl GridView {
         }
     }
 
+    // pub fn scroll_to_cursor(&mut self) {
+    //     let scroll_beyond = 5;
+
+    //     let position = self.grid_input.grid_cursor;
+    // }
+
     pub fn layout(&self) -> Option<Rect> {
         self.layout
     }
@@ -406,7 +457,7 @@ impl StatefulWidget for GridWidget {
         let cell_width = 3;
         let border = 1;
 
-        let bordered_cell_size = Size {
+        let cell_bordered = Size {
             width: (cell_width + border * 2) as u16,
             height: (cell_height + border * 2) as u16,
         };
@@ -415,33 +466,43 @@ impl StatefulWidget for GridWidget {
         // this is used to mask everything that is outside of the grid widget viewport
         // this is because widget drawn outside the buffer are clamped to the border, but we want to
         // have widgets drawn partialy onto the viewport
-        let overdraw_cells = 1;
+        let overdraw_cells: usize = 1;
         let overdraw_margin = Margin::new(
-            (cell_width * overdraw_cells * 2) as u16,
-            (cell_height * overdraw_cells * 2) as u16,
+            (cell_bordered.width * overdraw_cells as u16) as u16,
+            (cell_bordered.height * overdraw_cells as u16) as u16,
         );
-        let mut overdraw_buf = Buffer::empty(
-            area.offset(Offset::new(
-                overdraw_margin.horizontal as i32,
-                overdraw_margin.vertical as i32,
-            ))
-            .outer(overdraw_margin),
-        );
-        let overdraw_viewport = overdraw_buf.area().inner(overdraw_margin);
+        let mut overdraw_buf = Buffer::empty(Rect {
+            x: 0,
+            y: 0,
+            width: area.width + overdraw_margin.horizontal * 2,
+            height: area.height + overdraw_margin.vertical * 2,
+        });
+        let overdraw_area = overdraw_buf.area().inner(overdraw_margin);
+
+        let offset = Offset::new(state.offset_x as i32, state.offset_y as i32);
+        let viewport = overdraw_buf.area().offset(offset);
+
+        // debug!("{:?}", offset);
+        // debug!("{:?}", viewport);
+
+        // debug!(
+        //     "{:?}",
+        //     terminal_to_grid_position(Position::new(viewport.left(), viewport.top()), viewport)
+        // );
 
         let in_view_top = (state.offset_y / (cell_height + border)).saturating_sub(overdraw_cells);
         let in_view_left = (state.offset_x / (cell_width + border)).saturating_sub(overdraw_cells);
 
         let in_view_bottom = state
             .offset_y
-            .saturating_add(overdraw_viewport.height as usize)
+            .saturating_add(overdraw_area.height as usize)
             .saturating_div(cell_height + border)
             .saturating_add(overdraw_cells)
             .min(GranaryDigit::MAX_NUMERIC as usize);
 
         let in_view_right = state
             .offset_x
-            .saturating_add(overdraw_viewport.width as usize)
+            .saturating_add(overdraw_area.width as usize)
             .saturating_div(cell_width + border)
             .saturating_add(overdraw_cells)
             .min(GranaryDigit::MAX_NUMERIC as usize);
@@ -452,11 +513,11 @@ impl StatefulWidget for GridWidget {
         //     .expect("could not borrow the frame");
 
         let term_pos = |cell_x: usize, cell_y: usize| {
-            let x = (overdraw_viewport.x as usize)
+            let x = (overdraw_area.x as usize)
                 .saturating_add(cell_x * (cell_width + border))
                 .saturating_sub(state.offset_x) as u16;
 
-            let y = (overdraw_viewport.y as usize)
+            let y = (overdraw_area.y as usize)
                 .saturating_add(cell_y * (cell_height + border))
                 .saturating_sub(state.offset_y) as u16;
 
@@ -470,8 +531,7 @@ impl StatefulWidget for GridWidget {
 
                 let (x, y) = term_pos(cell_x, cell_y);
 
-                let cell_area =
-                    Rect::new(x, y, bordered_cell_size.width, bordered_cell_size.height);
+                let cell_area = Rect::new(x, y, cell_bordered.width, cell_bordered.height);
 
                 let block = Block::bordered()
                     // .borders(borders)
@@ -493,8 +553,8 @@ impl StatefulWidget for GridWidget {
         let cursor_area = Rect::new(
             cursor_x,
             cursor_y,
-            bordered_cell_size.width,
-            bordered_cell_size.height,
+            cell_bordered.width,
+            cell_bordered.height,
         );
         Block::bordered()
             .border_type(BorderType::Thick)
@@ -519,7 +579,7 @@ impl StatefulWidget for GridWidget {
         }
 
         // our own implementation of Buffer::merge
-        buffer_merge_areas(buf, area.as_position(), &overdraw_buf, overdraw_viewport);
+        buffer_merge_areas(buf, area.as_position(), &overdraw_buf, overdraw_area);
     }
 }
 
