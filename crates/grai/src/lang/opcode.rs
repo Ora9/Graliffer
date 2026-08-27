@@ -47,9 +47,9 @@ pub enum Opcode {
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
-pub enum FetchOperandError {
-    #[error("stack error: {0}")]
-    StackError(#[from] StackError),
+pub enum PopOperandError {
+    #[error(transparent)]
+    Stack(#[from] StackError),
 
     #[error(transparent)]
     ErroredEncountered(#[from] ErroredEncountered),
@@ -70,10 +70,26 @@ pub enum FetchOperandError {
     ParseAsBool(#[from] ParseLiteralAsBoolError),
 }
 
+// #[derive(Debug, thiserror::Error, PartialEq, Eq)]
+// pub enum OperandError {}
+
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum EvaluationError {
     #[error(transparent)]
-    FetchOperand(#[from] FetchOperandError),
+    PopOperand(#[from] PopOperandError),
+
+    #[error(transparent)]
+    Stack(#[from] StackError),
+}
+
+impl From<FrameError> for EvaluationError {
+    fn from(value: FrameError) -> Self {
+        match value {
+            FrameError::Evaluation(err) => err,
+            FrameError::Stack(err) => Self::Stack(err),
+            // FrameError::FetchOperand(err) => Self::FetchOperand(err),
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -82,26 +98,26 @@ pub struct NotAnOpcode {
     got: String,
 }
 
-fn pop_operand(frame: &mut TimelineRef<Frame>) -> Result<Operand, FetchOperandError> {
+fn pop_operand(frame: &mut TimelineRef<Frame>) -> Result<Operand, PopOperandError> {
     let popped = frame.stack.last().cloned();
 
     frame.act(StackAction::Pop).map_err(|err| match err {
-        FrameError::Stack(stack_error) => FetchOperandError::StackError(stack_error),
+        FrameError::Stack(stack_error) => PopOperandError::Stack(stack_error),
         _ => unreachable!("StackAction should only return a StackError"),
     })?;
 
     Ok(popped.expect("stack.pop() must only return None when StackAction::Pop returned an Err"))
 }
 
-fn pop_to_address(frame: &mut TimelineRef<Frame>) -> Result<Address, FetchOperandError> {
+fn pop_to_address(frame: &mut TimelineRef<Frame>) -> Result<Address, PopOperandError> {
     pop_operand(frame).and_then(|operand| {
         Ok(operand
             .resolve_to_address(&frame.grid)
             .map_err(|err| match err {
-                ResolveToAddressError::PointerLoop(err) => FetchOperandError::PointerLoop(err),
-                ResolveToAddressError::NotAnAddress(err) => FetchOperandError::NotAnAddress(err),
+                ResolveToAddressError::PointerLoop(err) => PopOperandError::PointerLoop(err),
+                ResolveToAddressError::NotAnAddress(err) => PopOperandError::NotAnAddress(err),
                 ResolveToAddressError::ErroredEncountered(_) => {
-                    FetchOperandError::NotAnAddress(NotAnAddress {
+                    PopOperandError::NotAnAddress(NotAnAddress {
                         got: Operand::Errored(Errored::new()),
                     })
                 }
@@ -109,26 +125,26 @@ fn pop_to_address(frame: &mut TimelineRef<Frame>) -> Result<Address, FetchOperan
     })
 }
 
-fn pop_to_literal(frame: &mut TimelineRef<Frame>) -> Result<Option<Literal>, FetchOperandError> {
+fn pop_to_literal(frame: &mut TimelineRef<Frame>) -> Result<Option<Literal>, PopOperandError> {
     pop_operand(frame).and_then(|operand| match operand.resolve_to_literal(&frame.grid) {
         Ok(literal) => Ok(Some(literal)),
         Err(ResolveToLiteralError::ErroredEncountered(_)) => Ok(None),
-        Err(ResolveToLiteralError::PointerLoop(err)) => Err(FetchOperandError::PointerLoop(err)),
+        Err(ResolveToLiteralError::PointerLoop(err)) => Err(PopOperandError::PointerLoop(err)),
     })
 }
 
-fn pop_as_cell(frame: &mut TimelineRef<Frame>) -> Result<Cell, FetchOperandError> {
+fn pop_as_cell(frame: &mut TimelineRef<Frame>) -> Result<Cell, PopOperandError> {
     pop_operand(frame).map(|operand| operand.to_cell())
 }
 
-fn pop_as_number(frame: &mut TimelineRef<Frame>) -> Result<Option<u32>, FetchOperandError> {
+fn pop_as_number(frame: &mut TimelineRef<Frame>) -> Result<Option<u32>, PopOperandError> {
     match pop_to_literal(frame)? {
         Some(literal) => Ok(Some(literal.try_as_number()?)),
         None => Ok(None),
     }
 }
 
-fn pop_as_bool(frame: &mut TimelineRef<Frame>) -> Result<Option<bool>, FetchOperandError> {
+fn pop_as_bool(frame: &mut TimelineRef<Frame>) -> Result<Option<bool>, PopOperandError> {
     match pop_to_literal(frame)? {
         Some(literal) => Ok(Some(literal.try_as_bool()?)),
         None => Ok(None),
@@ -142,7 +158,7 @@ impl Opcode {
         })
     }
 
-    pub fn evaluate(self, frame: &mut Frame) -> Result<Revert, <Frame as State>::Error> {
+    pub fn evaluate(self, frame: &mut Frame) -> Result<Revert, EvaluationError> {
         use Opcode::*;
         let mut frame = TimelineRef::new(frame);
 

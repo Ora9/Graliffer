@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Cell, CellError, Grid};
+use crate::{Cell, CellError, Grid, StackError};
 
 mod address;
 pub use address::*;
