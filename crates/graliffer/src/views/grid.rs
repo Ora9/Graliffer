@@ -87,7 +87,7 @@ impl GridInput {
         self.char_cursor() >= 3
     }
 
-    // todo! this probably induce a bug when codepoint != visual length != graphem count
+    // TODO: this probably induce a bug when codepoint != visual length != graphem count
     pub fn input_full(&self) -> bool {
         self.input.value().len() >= 3
     }
@@ -99,6 +99,8 @@ impl GridInput {
     }
 
     pub fn handle(&mut self, grid: &mut grai::Grid, input_request: InputRequest) {
+        // TODO, BUG: when cursor at right border, inserting when cell full move the cursor back
+
         self.input.handle(input_request);
         grid.set(self.grid_cursor, grai::Cell::new_trim(self.input.value()));
         self.sync_input(grid);
@@ -111,7 +113,7 @@ impl GridInput {
         let grid_at_left = self.grid_cursor.x() == 0;
         let grid_at_right = self.grid_cursor.x() == grai::granary::GranaryDigit::MAX_NUMERIC;
 
-        debug!("at_start: {at_start}, at_end: {at_end}");
+        // debug!("at_start: {at_start}, at_end: {at_end}");
 
         let (grid_position, char_position) = match movement {
             CursorMovement::Jump(position) => {
@@ -178,12 +180,12 @@ impl GridInput {
         };
 
         self.set_positions(grid_position, char_position, grid);
-        debug!(
-            "grid: {}, char {}, movement: {:?}",
-            self.grid_cursor,
-            self.input.visual_cursor(),
-            movement
-        )
+        // debug!(
+        //     "grid: {}, char {}, movement: {:?}",
+        //     self.grid_cursor,
+        //     self.input.visual_cursor(),
+        //     movement
+        // )
     }
 
     fn set_positions(
@@ -237,13 +239,10 @@ impl GridInput {
             CharCursorPosition::AtStart => 0,
             CharCursorPosition::AtEnd => cell.len(),
             CharCursorPosition::AtMost(p) => p,
-            CharCursorPosition::InDirectionByOffset(direction, offset) => {
-                debug!("{direction:?} by {offset}");
-                match direction {
-                    HorizontalDirection::Left => self.char_cursor().saturating_sub(offset),
-                    HorizontalDirection::Right => self.char_cursor().saturating_add(offset),
-                }
-            }
+            CharCursorPosition::InDirectionByOffset(direction, offset) => match direction {
+                HorizontalDirection::Left => self.char_cursor().saturating_sub(offset),
+                HorizontalDirection::Right => self.char_cursor().saturating_add(offset),
+            },
         }
         .min(cell.len());
 
@@ -300,6 +299,12 @@ fn terminal_to_grid_x_axis(terminal_x: u16, area: Rect, offset: GridOffset) -> O
             .saturating_sub(CELL_BORDER)
             .checked_div(CELL_WIDTH + CELL_BORDER)? as u32,
     )
+    .and_then(
+        |value| match grai::granary::GranaryDigit::is_valid_numeric(value) {
+            false => None,
+            true => Some(value),
+        },
+    )
 }
 
 fn terminal_to_grid_y_axis(terminal_y: u16, area: Rect, offset: GridOffset) -> Option<u32> {
@@ -309,6 +314,12 @@ fn terminal_to_grid_y_axis(terminal_y: u16, area: Rect, offset: GridOffset) -> O
             .saturating_sub(area.y)
             .saturating_sub(CELL_BORDER)
             .checked_div(CELL_HEIGHT + CELL_BORDER)? as u32,
+    )
+    .and_then(
+        |value| match grai::granary::GranaryDigit::is_valid_numeric(value) {
+            false => None,
+            true => Some(value),
+        },
     )
 }
 
@@ -389,23 +400,17 @@ impl GridView {
             y: mouse_event.row,
         };
 
-        debug!(
-            "{:?}",
-            terminal_to_grid_position(pointer_pos, viewport_area, self.grid_offset)
-        );
+        // debug!(
+        //     "{:?}",
+        //     terminal_to_grid_position(pointer_pos, viewport_area, self.grid_offset)
+        // );
 
         match mouse_event.kind {
             MouseEventKind::Down(mouse_button) if mouse_button == MouseButton::Left => {
                 if let Some(grid_pos) =
                     terminal_to_grid_position(pointer_pos, viewport_area, self.grid_offset)
                 {
-                    self.frame.read(|frame| {
-                        self.grid_input.set_positions(
-                            GridCursorPosition::At(grid_pos),
-                            CharCursorPosition::AtEnd,
-                            &frame.grid,
-                        );
-                    })
+                    self.cursor_movement(CursorMovement::Jump(grid_pos));
                 }
             }
             MouseEventKind::ScrollUp
@@ -451,11 +456,30 @@ impl GridView {
         }
     }
 
-    // pub fn scroll_to_cursor(&mut self) {
-    //     let scroll_beyond = 5;
+    pub fn handle_input(&mut self, input_request: InputRequest) {
+        self.frame.write(|frame| {
+            self.grid_input.handle(&mut frame.grid, input_request);
+        });
+    }
 
-    //     let position = self.grid_input.grid_cursor;
-    // }
+    pub fn cursor_movement(&mut self, movement: CursorMovement) {
+        self.frame.read(|frame| {
+            self.grid_input.with_movement(movement, &frame.grid);
+        });
+
+        // let Some(area) = self.layout() else {
+        //     return;
+        // };
+
+        // let grid_pos = self.grid_input.grid_cursor;
+        // let term_pos = grid_to_terminal_position(grid_pos, area, self.grid_offset);
+
+        // if area.left() < term_pos.x {
+        //     debug!("{:?}", term_pos);
+
+        //     self.grid_offset.x = term_pos.x as usize;
+        // }
+    }
 
     pub fn layout(&self) -> Option<Rect> {
         self.layout
@@ -496,18 +520,19 @@ impl StatefulWidget for GridWidget {
 
         let in_view_left =
             terminal_to_grid_x_axis(overdraw_area.left(), overdraw_area, state.grid_offset)
-                .unwrap();
+                .unwrap_or(grai::granary::GranaryDigit::MIN_NUMERIC);
 
         let in_view_right =
             terminal_to_grid_x_axis(overdraw_area.right(), overdraw_area, state.grid_offset)
-                .unwrap();
+                .unwrap_or(grai::granary::GranaryDigit::MAX_NUMERIC);
 
         let in_view_top =
-            terminal_to_grid_y_axis(overdraw_area.top(), overdraw_area, state.grid_offset).unwrap();
+            terminal_to_grid_y_axis(overdraw_area.top(), overdraw_area, state.grid_offset)
+                .unwrap_or(grai::granary::GranaryDigit::MIN_NUMERIC);
 
         let in_view_bottom =
             terminal_to_grid_y_axis(overdraw_area.bottom(), overdraw_area, state.grid_offset)
-                .unwrap();
+                .unwrap_or(grai::granary::GranaryDigit::MAX_NUMERIC);
 
         for cell_x in in_view_left..=in_view_right {
             for cell_y in in_view_top..=in_view_bottom {
@@ -648,51 +673,45 @@ impl State for GridView {
                 }
             }
 
-            InsertOverflow(input) => self.frame.write(|frame| {
+            InsertOverflow(input) => {
                 for c in input.chars() {
                     if self.grid_input.char_at_max() || c == ' ' {
-                        self.grid_input
-                            .with_movement(CursorMovement::StepGrid(Direction::Right), &frame.grid);
+                        self.cursor_movement(CursorMovement::StepGrid(Direction::Right));
                     }
 
-                    self.grid_input.insert(&mut frame.grid, c);
+                    // self.grid_input.insert(&mut frame.grid, c);
+                    self.handle_input(InputRequest::InsertChar(c));
                 }
-            }),
+            }
 
-            DeletePrevCharOrStepLeftGrid => self.frame.write(|frame| {
+            DeletePrevCharOrStepLeftGrid => {
                 if self.grid_input.char_cursor() != 0 {
-                    self.grid_input
-                        .handle(&mut frame.grid, InputRequest::DeletePrevChar);
+                    self.handle_input(InputRequest::DeletePrevChar);
                 } else {
-                    self.grid_input
-                        .with_movement(CursorMovement::StepGrid(Direction::Left), &frame.grid);
+                    self.cursor_movement(CursorMovement::StepGrid(Direction::Left));
                 }
-            }),
+            }
 
-            DeleteTillStart => self.frame.write(|frame| {
-                self.grid_input
-                    .handle(&mut frame.grid, InputRequest::DeletePrevWord);
-            }),
+            // todo: use the newer DeleteFromStart
+            DeleteTillStart => {
+                self.handle_input(InputRequest::DeletePrevWord);
+            }
 
-            DeleteTillStartOrStepLeftGrid => self.frame.write(|frame| {
+            DeleteTillStartOrStepLeftGrid => {
                 if self.grid_input.char_cursor() != 0 {
-                    self.grid_input
-                        .handle(&mut frame.grid, InputRequest::DeletePrevWord);
+                    self.handle_input(InputRequest::DeletePrevWord);
                 } else {
-                    self.grid_input
-                        .with_movement(CursorMovement::StepGrid(Direction::Left), &frame.grid);
+                    self.cursor_movement(CursorMovement::StepGrid(Direction::Left));
                 }
-            }),
+            }
 
-            DeletePrevChar => self.frame.write(|frame| {
-                self.grid_input
-                    .handle(&mut frame.grid, InputRequest::DeletePrevChar);
-            }),
+            DeletePrevChar => {
+                self.handle_input(InputRequest::DeletePrevChar);
+            }
 
-            DeleteNextChar => self.frame.write(|frame| {
-                self.grid_input
-                    .handle(&mut frame.grid, InputRequest::DeleteNextChar);
-            }),
+            DeleteNextChar => {
+                self.handle_input(InputRequest::DeleteNextChar);
+            }
 
             CursorStepUpGrid | CursorStepDownGrid | CursorStepLeftGrid | CursorStepRightGrid => {
                 let direction = match action {
@@ -703,10 +722,7 @@ impl State for GridView {
                     _ => unreachable!(),
                 };
 
-                self.frame.read(|frame| {
-                    self.grid_input
-                        .with_movement(CursorMovement::StepGrid(direction), &frame.grid);
-                })
+                self.cursor_movement(CursorMovement::StepGrid(direction));
             }
 
             CursorStepLeftCharThenGrid | CursorStepRightCharThenGrid => {
@@ -716,10 +732,7 @@ impl State for GridView {
                     _ => unreachable!(),
                 };
 
-                self.frame.read(|frame| {
-                    self.grid_input
-                        .with_movement(CursorMovement::StepCharThenGrid(direction), &frame.grid);
-                })
+                self.cursor_movement(CursorMovement::StepCharThenGrid(direction));
             }
 
             CursorDashUpCharThenGrid
@@ -734,12 +747,7 @@ impl State for GridView {
                     _ => unreachable!(),
                 };
 
-                self.frame.read(|frame| {
-                    self.grid_input.with_movement(
-                        CursorMovement::DashUntilBoundsOrNonEmpty(direction),
-                        &frame.grid,
-                    );
-                })
+                self.cursor_movement(CursorMovement::DashUntilBoundsOrNonEmpty(direction));
             }
         }
         Ok(Revert::None)
