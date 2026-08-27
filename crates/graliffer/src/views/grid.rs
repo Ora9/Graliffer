@@ -251,22 +251,23 @@ impl GridInput {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 enum DragState {
+    #[default]
     Idle,
     Dragging {
         start_pointer_pos: Position,
-        start_offset_x: usize,
-        start_offset_y: usize,
+        start_grid_offset: GridOffset,
+        // start_offset_x: usize,
+        // start_offset_y: usize,
     },
 }
 
 impl DragState {
-    fn start_drag(&mut self, pointer_position: Position, offset_x: usize, offset_y: usize) {
+    fn start_drag(&mut self, pointer_position: Position, grid_offset: GridOffset) {
         *self = Self::Dragging {
             start_pointer_pos: pointer_position,
-            start_offset_x: offset_x,
-            start_offset_y: offset_y,
+            start_grid_offset: grid_offset,
         };
     }
 
@@ -279,8 +280,7 @@ impl DragState {
             self,
             DragState::Dragging {
                 start_pointer_pos: _,
-                start_offset_x: _,
-                start_offset_y: _
+                start_grid_offset: _,
             }
         )
     }
@@ -325,15 +325,39 @@ const CELL_BORDER: u16 = 1;
 //     // .ok()
 // }
 
-// fn grid_to_terminal_position(grid_position: grai::Position, area: Rect) -> Position {
-//     Position::new(
-//         area.x
-//             .saturating_add(grid_position.x() as u16 * (CELL_WIDTH + CELL_BORDER)),
-//         // .saturating_sub(state.offset_x) as u16,
-//         area.y
-//             .saturating_add(grid_position.y() as u16 * (CELL_HEIGHT + CELL_BORDER)), // .saturating_sub(state.offset_y) as u16,
-//     )
+// fn grid_to_terminal_position(
+//     area: Rect,
+//     grid_position: grai::Position,
+//     offset: Offset,
+// ) -> Position {
+//     // Position::new(
+//     //     area.x
+//     //         .saturating_add(grid_position.x() as u16 * (CELL_WIDTH + CELL_BORDER)),
+//     //     // .saturating_sub(state.offset_x) as u16,
+//     //     area.y
+//     //         .saturating_add(grid_position.y() as u16 * (CELL_HEIGHT + CELL_BORDER)), // .saturating_sub(state.offset_y) as u16,
+//     // )
+
+//     let term_pos = |cell_x: usize, cell_y: usize| {
+//         let x = (overdraw_area.x as usize)
+//             .saturating_add(cell_x * (cell_width + border))
+//             .saturating_sub(state.offset_x) as u16;
+
+//         let y = (overdraw_area.y as usize)
+//             .saturating_add(cell_y * (cell_height + border))
+//             .saturating_sub(state.offset_y) as u16;
+
+//         (x, y)
+//     };
 // }
+
+#[derive(Debug, Default, Clone, Copy)]
+struct GridOffset {
+    x: usize,
+    y: usize,
+}
+
+impl GridOffset {}
 
 #[derive(Debug)]
 pub struct GridView {
@@ -343,10 +367,8 @@ pub struct GridView {
     frame: grai::FrameGuard,
 
     grid_input: GridInput,
-
+    grid_offset: GridOffset,
     drag_state: DragState,
-    offset_x: usize,
-    offset_y: usize,
 
     layout: Option<Rect>,
 }
@@ -360,13 +382,11 @@ impl GridView {
             frame,
 
             grid_input,
+            grid_offset: GridOffset::default(),
 
             layout: None,
 
             drag_state: DragState::Idle,
-
-            offset_x: 0,
-            offset_y: 0,
         }
     }
 
@@ -394,29 +414,27 @@ impl GridView {
                     _ => unreachable!(),
                 };
 
-                self.offset_x = self.offset_x.saturating_add_signed(x_offset);
-                self.offset_y = self.offset_y.saturating_add_signed(y_offset);
+                self.grid_offset.x = self.grid_offset.x.saturating_add_signed(x_offset);
+                self.grid_offset.y = self.grid_offset.y.saturating_add_signed(y_offset);
             }
             MouseEventKind::Drag(button) if button.is_left() => {
                 if self.drag_state.idle() {
-                    self.drag_state
-                        .start_drag(pointer_pos, self.offset_x, self.offset_y);
+                    self.drag_state.start_drag(pointer_pos, self.grid_offset);
                 }
 
                 if let DragState::Dragging {
                     start_pointer_pos,
-                    start_offset_x,
-                    start_offset_y,
+                    start_grid_offset,
                 } = self.drag_state
                 {
-                    let pointer_x_delta =
-                        (start_pointer_pos.x as i16).saturating_sub_unsigned(pointer_pos.x);
-
-                    let pointer_y_delta =
-                        (start_pointer_pos.y as i16).saturating_sub_unsigned(pointer_pos.y);
-
-                    self.offset_x = start_offset_x.saturating_add_signed(pointer_x_delta as isize);
-                    self.offset_y = start_offset_y.saturating_add_signed(pointer_y_delta as isize);
+                    self.grid_offset.x = start_grid_offset.x.saturating_add_signed(
+                        (start_pointer_pos.x as i16).saturating_sub_unsigned(pointer_pos.x)
+                            as isize,
+                    );
+                    self.grid_offset.y = start_grid_offset.y.saturating_add_signed(
+                        (start_pointer_pos.y as i16).saturating_sub_unsigned(pointer_pos.y)
+                            as isize,
+                    );
                 }
             }
             _ => {
@@ -479,8 +497,8 @@ impl StatefulWidget for GridWidget {
         });
         let overdraw_area = overdraw_buf.area().inner(overdraw_margin);
 
-        let offset = Offset::new(state.offset_x as i32, state.offset_y as i32);
-        let viewport = overdraw_buf.area().offset(offset);
+        // let offset = Offset::new(state.offset_x as i32, state.offset_y as i32);
+        // let viewport = overdraw_buf.area().offset(offset);
 
         // debug!("{:?}", offset);
         // debug!("{:?}", viewport);
@@ -490,20 +508,24 @@ impl StatefulWidget for GridWidget {
         //     terminal_to_grid_position(Position::new(viewport.left(), viewport.top()), viewport)
         // );
 
-        let in_view_top = (state.offset_y / (cell_height + border)).saturating_sub(overdraw_cells);
-        let in_view_left = (state.offset_x / (cell_width + border)).saturating_sub(overdraw_cells);
+        let in_view_left =
+            (state.grid_offset.x / (cell_width + border)).saturating_sub(overdraw_cells);
+        let in_view_top =
+            (state.grid_offset.y / (cell_height + border)).saturating_sub(overdraw_cells);
 
-        let in_view_bottom = state
-            .offset_y
-            .saturating_add(overdraw_area.height as usize)
-            .saturating_div(cell_height + border)
+        let in_view_right = state
+            .grid_offset
+            .x
+            .saturating_add(overdraw_area.width as usize)
+            .saturating_div(cell_width + border)
             .saturating_add(overdraw_cells)
             .min(GranaryDigit::MAX_NUMERIC as usize);
 
-        let in_view_right = state
-            .offset_x
-            .saturating_add(overdraw_area.width as usize)
-            .saturating_div(cell_width + border)
+        let in_view_bottom = state
+            .grid_offset
+            .y
+            .saturating_add(overdraw_area.height as usize)
+            .saturating_div(cell_height + border)
             .saturating_add(overdraw_cells)
             .min(GranaryDigit::MAX_NUMERIC as usize);
 
@@ -515,11 +537,11 @@ impl StatefulWidget for GridWidget {
         let term_pos = |cell_x: usize, cell_y: usize| {
             let x = (overdraw_area.x as usize)
                 .saturating_add(cell_x * (cell_width + border))
-                .saturating_sub(state.offset_x) as u16;
+                .saturating_sub(state.grid_offset.x) as u16;
 
             let y = (overdraw_area.y as usize)
                 .saturating_add(cell_y * (cell_height + border))
-                .saturating_sub(state.offset_y) as u16;
+                .saturating_sub(state.grid_offset.y) as u16;
 
             (x, y)
         };
