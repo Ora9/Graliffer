@@ -353,11 +353,15 @@ fn grid_to_terminal_position(
 
 #[derive(Debug, Default, Clone, Copy)]
 struct GridOffset {
-    x: usize,
-    y: usize,
+    x: u32,
+    y: u32,
 }
 
-impl GridOffset {}
+impl GridOffset {
+    // pub fn with(&mut ) {
+
+    // }
+}
 
 #[derive(Debug)]
 pub struct GridView {
@@ -439,12 +443,10 @@ impl GridView {
                 } = self.drag_state
                 {
                     self.grid_offset.x = start_grid_offset.x.saturating_add_signed(
-                        (start_pointer_pos.x as i16).saturating_sub_unsigned(pointer_pos.x)
-                            as isize,
+                        (start_pointer_pos.x as i16).saturating_sub_unsigned(pointer_pos.x) as i32,
                     );
                     self.grid_offset.y = start_grid_offset.y.saturating_add_signed(
-                        (start_pointer_pos.y as i16).saturating_sub_unsigned(pointer_pos.y)
-                            as isize,
+                        (start_pointer_pos.y as i16).saturating_sub_unsigned(pointer_pos.y) as i32,
                     );
                 }
             }
@@ -505,7 +507,7 @@ impl StatefulWidget for GridWidget {
         // this is used to mask everything that is outside of the grid widget viewport
         // this is because widget drawn outside the buffer are clamped to the border, but we want to
         // have widgets drawn partialy onto the viewport
-        let overdraw_cells: usize = 1;
+        let overdraw_cells: u32 = 1;
         let overdraw_margin = Margin::new(
             (CELL_WIDTH + CELL_BORDER * 2 * overdraw_cells as u16) as u16,
             (CELL_HEIGHT + CELL_BORDER * 2 * overdraw_cells as u16) as u16,
