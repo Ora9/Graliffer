@@ -141,6 +141,7 @@ impl State for AppState {
             AppAction::Grai(grai_action) => {
                 use GraiAction::*;
                 let revert = match grai_action {
+                    // That unwrap must go away!
                     Step => self.frame.act(grai::FrameAction::Step).unwrap(),
                 };
 
