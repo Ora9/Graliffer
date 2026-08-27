@@ -2,11 +2,11 @@ use std::convert::Infallible;
 
 use act::{Action, Revert, State};
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
-use grai::{Direction, HorizontalDirection, granary::GranaryDigit};
+use grai::{Direction, HorizontalDirection};
 use log::debug;
 use ratatui::{
     buffer::Buffer,
-    layout::{Margin, Offset, Position, Rect, Size},
+    layout::{Margin, Offset, Position, Rect},
     style::{Color, Modifier, Style, Stylize},
     symbols::merge::MergeStrategy,
     widgets::{Block, BorderType, Paragraph, StatefulWidget, Widget},
@@ -288,9 +288,29 @@ impl DragState {
     }
 }
 
-const CELL_HEIGHT: u16 = 1;
 const CELL_WIDTH: u16 = 3;
+const CELL_HEIGHT: u16 = 1;
 const CELL_BORDER: u16 = 1;
+
+fn terminal_to_grid_x_axis(terminal_x: u16, area: Rect, offset: GridOffset) -> Option<u32> {
+    Some(
+        terminal_x
+            .checked_add(offset.x as u16)?
+            .saturating_sub(area.x)
+            .saturating_sub(CELL_BORDER)
+            .checked_div(CELL_WIDTH + CELL_BORDER)? as u32,
+    )
+}
+
+fn terminal_to_grid_y_axis(terminal_y: u16, area: Rect, offset: GridOffset) -> Option<u32> {
+    Some(
+        terminal_y
+            .checked_add(offset.y as u16)?
+            .saturating_sub(area.y)
+            .saturating_sub(CELL_BORDER)
+            .checked_div(CELL_HEIGHT + CELL_BORDER)? as u32,
+    )
+}
 
 fn terminal_to_grid_position(
     terminal_position: Position,
@@ -298,18 +318,8 @@ fn terminal_to_grid_position(
     offset: GridOffset,
 ) -> Option<grai::Position> {
     grai::Position::new(
-        terminal_position
-            .x
-            .saturating_sub(area.x)
-            .saturating_sub(CELL_BORDER)
-            .checked_add(offset.x as u16)?
-            .checked_div(CELL_WIDTH + CELL_BORDER)? as u32,
-        terminal_position
-            .y
-            .saturating_sub(area.y)
-            .saturating_sub(CELL_BORDER)
-            .checked_add(offset.y as u16)?
-            .checked_div(CELL_HEIGHT + CELL_BORDER)? as u32,
+        terminal_to_grid_x_axis(terminal_position.x, area, offset)?,
+        terminal_to_grid_y_axis(terminal_position.y, area, offset)?,
     )
     .ok()
 }
@@ -370,14 +380,13 @@ impl GridView {
     }
 
     pub fn handle_mouse_event(&mut self, mouse_event: MouseEvent) {
-        // debug!("{:?reader}", mouse_event);
         let Some(viewport_area) = self.layout() else {
             return;
         };
 
         let pointer_pos = Position {
-            x: mouse_event.column, //.saturating_sub(viewport_area.top()),
-            y: mouse_event.row,    // .saturating_sub(viewport_area.left()),
+            x: mouse_event.column,
+            y: mouse_event.row,
         };
 
         debug!(
@@ -468,23 +477,14 @@ impl StatefulWidget for GridWidget {
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         state.layout = Some(area);
 
-        let cell_height = 1;
-        let cell_width = 3;
-        let border = 1;
-
-        let cell_bordered = Size {
-            width: (cell_width + border * 2) as u16,
-            height: (cell_height + border * 2) as u16,
-        };
-
         // A separate buffer is used to render the grid,
         // this is used to mask everything that is outside of the grid widget viewport
         // this is because widget drawn outside the buffer are clamped to the border, but we want to
         // have widgets drawn partialy onto the viewport
         let overdraw_cells: usize = 1;
         let overdraw_margin = Margin::new(
-            (cell_bordered.width * overdraw_cells as u16) as u16,
-            (cell_bordered.height * overdraw_cells as u16) as u16,
+            (CELL_WIDTH + CELL_BORDER * 2 * overdraw_cells as u16) as u16,
+            (CELL_HEIGHT + CELL_BORDER * 2 * overdraw_cells as u16) as u16,
         );
         let mut overdraw_buf = Buffer::empty(Rect {
             x: 0,
@@ -494,37 +494,20 @@ impl StatefulWidget for GridWidget {
         });
         let overdraw_area = overdraw_buf.area().inner(overdraw_margin);
 
-        // let offset = Offset::new(state.offset_x as i32, state.offset_y as i32);
-        // let viewport = overdraw_buf.area().offset(offset);
-
-        // debug!("{:?}", offset);
-        // debug!("{:?}", viewport);
-
-        // debug!(
-        //     "{:?}",
-        //     terminal_to_grid_position(Position::new(viewport.left(), viewport.top()), viewport)
-        // );
-
         let in_view_left =
-            (state.grid_offset.x / (cell_width + border)).saturating_sub(overdraw_cells);
+            terminal_to_grid_x_axis(overdraw_area.left(), overdraw_area, state.grid_offset)
+                .unwrap();
+
+        let in_view_right =
+            terminal_to_grid_x_axis(overdraw_area.right(), overdraw_area, state.grid_offset)
+                .unwrap();
+
         let in_view_top =
-            (state.grid_offset.y / (cell_height + border)).saturating_sub(overdraw_cells);
+            terminal_to_grid_y_axis(overdraw_area.top(), overdraw_area, state.grid_offset).unwrap();
 
-        let in_view_right = state
-            .grid_offset
-            .x
-            .saturating_add(overdraw_area.width as usize)
-            .saturating_div(cell_width + border)
-            .saturating_add(overdraw_cells)
-            .min(GranaryDigit::MAX_NUMERIC as usize);
-
-        let in_view_bottom = state
-            .grid_offset
-            .y
-            .saturating_add(overdraw_area.height as usize)
-            .saturating_div(cell_height + border)
-            .saturating_add(overdraw_cells)
-            .min(GranaryDigit::MAX_NUMERIC as usize);
+        let in_view_bottom =
+            terminal_to_grid_y_axis(overdraw_area.bottom(), overdraw_area, state.grid_offset)
+                .unwrap();
 
         for cell_x in in_view_left..=in_view_right {
             for cell_y in in_view_top..=in_view_bottom {
@@ -537,22 +520,19 @@ impl StatefulWidget for GridWidget {
                 let cell_area = Rect::new(
                     term_pos.x,
                     term_pos.y,
-                    cell_bordered.width,
-                    cell_bordered.height,
+                    CELL_WIDTH + CELL_BORDER * 2,
+                    CELL_HEIGHT + CELL_BORDER * 2,
                 );
 
                 let cell_content = state.frame.read(|frame| frame.grid.get(grid_pos));
 
                 let block = Block::bordered()
-                    // .borders(borders)
-                    // .border_type(border_type)
                     .fg(Color::DarkGray)
                     .merge_borders(MergeStrategy::Fuzzy);
 
                 Paragraph::new(cell_content.as_str())
                     .block(block)
                     .reset()
-                    // .fg(fg_color)
                     .render(cell_area, &mut overdraw_buf);
             }
         }
@@ -563,8 +543,8 @@ impl StatefulWidget for GridWidget {
         let head_area = Rect::new(
             head_term_pos.x,
             head_term_pos.y,
-            cell_bordered.width,
-            cell_bordered.height,
+            CELL_WIDTH + CELL_BORDER * 2,
+            CELL_HEIGHT + CELL_BORDER * 2,
         );
         Block::bordered()
             .border_type(BorderType::Thick)
@@ -576,7 +556,7 @@ impl StatefulWidget for GridWidget {
         let cursor_term_origin =
             grid_to_terminal_position(cursor_grid_pos, overdraw_area, state.grid_offset);
         let cursor_term_pos = Position::new(cursor_term_origin.x, cursor_term_origin.y)
-            .offset(Offset::new(border as i32, border as i32))
+            .offset(Offset::new(CELL_BORDER as i32, CELL_BORDER as i32))
             .offset(Offset::new(state.grid_input.char_cursor() as i32, 0));
 
         if let Some(cursor_cell) = overdraw_buf.cell_mut(cursor_term_pos) {
@@ -622,16 +602,8 @@ fn buffer_merge_areas(
     }
 }
 
-// #[derive(Debug, thiserror::Error, PartialEq, Eq)]
-// #[error("grid action error")]
-// pub struct GridActionError;
-
 #[derive(Debug, Clone, strum::EnumString, Serialize, Deserialize)]
 pub enum GridAction {
-    // CursorUp,
-    // CursorDown,
-    // CursorRight,
-    // CursorLeft,
     Insert(String),
 
     InsertOverflow(String),
@@ -786,23 +758,4 @@ impl View for GridView {
     fn input_sink_action(input: String) -> Option<AppAction> {
         Some(AppAction::GridAction(GridAction::InsertOverflow(input)))
     }
-
-    // fn gain_focus(context: &mut Context) {
-    //     context.write(|context| context.terminal_cursor.show(Position::default()))
-    // }
-
-    // fn loose_focus(context: &mut Context) {
-    //     context.write(|context| context.terminal_cursor.hide())
-    // }
-
-    // fn input_sink_binding_list(input: String) -> InputSinkBindingList {
-    //     InputSinkBinding {
-    //         context: KeyContextPredicate::And(
-    //             Box::new(KeyContextPredicate::from_flag("Grid")),
-    //             Box::new(KeyContextPredicate::from_flag("insert")),
-    //         ),
-    //         action: AnyAppAction::GridAction(Insert(input)),
-    //     }
-    //     .into()
-    // }
 }
