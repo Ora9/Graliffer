@@ -1,7 +1,7 @@
 use std::convert::Infallible;
 
 use act::{Action, Revert, State};
-use crossterm::event::{MouseEvent, MouseEventKind};
+use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 use grai::{Direction, HorizontalDirection, granary::GranaryDigit};
 use log::debug;
 use ratatui::{
@@ -292,49 +292,40 @@ const CELL_HEIGHT: u16 = 1;
 const CELL_WIDTH: u16 = 3;
 const CELL_BORDER: u16 = 1;
 
-// fn terminal_to_grid_position(terminal_position: Position, area: Rect) -> Option<grai::Position> {
-//     debug!("{:?}", terminal_position);
-
-//     let x = terminal_position
-//         .x
-//         // .saturating_add(area.left())
-//         .saturating_div(CELL_WIDTH + CELL_BORDER)
-//         .min(GranaryDigit::MAX_NUMERIC as u16);
-
-//     debug!("{x}");
-
-//     None
-
-//     // grai::Position::new(
-//     //     terminal_position
-//     //         .x
-//     //         .into::<u32>()
-//     //         // .saturating_add(terminal_position.x)
-//     //         .saturating_div((CELL_WIDTH + CELL_BORDER) as u32)
-//     //         .min(GranaryDigit::MAX_NUMERIC)
-//     //         .into(),
-//     //     terminal_position
-//     //         .y
-//     //         // .saturating_add(area.height as u32)
-//     //         .saturating_div((CELL_HEIGHT + CELL_BORDER))
-//     //         .min(GranaryDigit::MAX_NUMERIC as u16)
-//     //         .into(),
-//     // )
-//     // .ok()
-// }
+fn terminal_to_grid_position(
+    terminal_position: Position,
+    area: Rect,
+    offset: GridOffset,
+) -> Option<grai::Position> {
+    grai::Position::new(
+        terminal_position
+            .x
+            .saturating_sub(area.x)
+            .saturating_sub(CELL_BORDER)
+            .checked_add(offset.x as u16)?
+            .checked_div(CELL_WIDTH + CELL_BORDER)? as u32,
+        terminal_position
+            .y
+            .saturating_sub(area.y)
+            .saturating_sub(CELL_BORDER)
+            .checked_add(offset.y as u16)?
+            .checked_div(CELL_HEIGHT + CELL_BORDER)? as u32,
+    )
+    .ok()
+}
 
 fn grid_to_terminal_position(
-    area: Rect,
     grid_position: grai::Position,
+    area: Rect,
     offset: GridOffset,
 ) -> Position {
     Position {
         x: (area.x as u32)
-            .saturating_add(grid_position.x() * (CELL_WIDTH + CELL_BORDER) as u32)
+            .strict_add(grid_position.x() * (CELL_WIDTH + CELL_BORDER) as u32)
             .saturating_sub(offset.x as u32) as u16,
 
         y: (area.y as u32)
-            .saturating_add(grid_position.y() * (CELL_HEIGHT + CELL_BORDER) as u32)
+            .strict_add(grid_position.y() * (CELL_HEIGHT + CELL_BORDER) as u32)
             .saturating_sub(offset.y as u32) as u16,
     }
 }
@@ -385,11 +376,29 @@ impl GridView {
         };
 
         let pointer_pos = Position {
-            x: mouse_event.column.saturating_sub(viewport_area.top()),
-            y: mouse_event.row.saturating_sub(viewport_area.left()),
+            x: mouse_event.column, //.saturating_sub(viewport_area.top()),
+            y: mouse_event.row,    // .saturating_sub(viewport_area.left()),
         };
 
+        debug!(
+            "{:?}",
+            terminal_to_grid_position(pointer_pos, viewport_area, self.grid_offset)
+        );
+
         match mouse_event.kind {
+            MouseEventKind::Down(mouse_button) if mouse_button == MouseButton::Left => {
+                if let Some(grid_pos) =
+                    terminal_to_grid_position(pointer_pos, viewport_area, self.grid_offset)
+                {
+                    self.frame.read(|frame| {
+                        self.grid_input.set_positions(
+                            GridCursorPosition::At(grid_pos),
+                            CharCursorPosition::AtEnd,
+                            &frame.grid,
+                        );
+                    })
+                }
+            }
             MouseEventKind::ScrollUp
             | MouseEventKind::ScrollDown
             | MouseEventKind::ScrollLeft
@@ -523,7 +532,7 @@ impl StatefulWidget for GridWidget {
                     .expect("should be able to construct a valid position");
 
                 let term_pos =
-                    grid_to_terminal_position(overdraw_area, grid_pos, state.grid_offset);
+                    grid_to_terminal_position(grid_pos, overdraw_area, state.grid_offset);
 
                 let cell_area = Rect::new(
                     term_pos.x,
@@ -550,7 +559,7 @@ impl StatefulWidget for GridWidget {
 
         let head_grid_pos = state.frame.read(|frame| frame.head.position);
         let head_term_pos =
-            grid_to_terminal_position(overdraw_area, head_grid_pos, state.grid_offset);
+            grid_to_terminal_position(head_grid_pos, overdraw_area, state.grid_offset);
         let head_area = Rect::new(
             head_term_pos.x,
             head_term_pos.y,
@@ -565,7 +574,7 @@ impl StatefulWidget for GridWidget {
 
         let cursor_grid_pos = state.grid_input.grid_cursor();
         let cursor_term_origin =
-            grid_to_terminal_position(overdraw_area, cursor_grid_pos, state.grid_offset);
+            grid_to_terminal_position(cursor_grid_pos, overdraw_area, state.grid_offset);
         let cursor_term_pos = Position::new(cursor_term_origin.x, cursor_term_origin.y)
             .offset(Offset::new(border as i32, border as i32))
             .offset(Offset::new(state.grid_input.char_cursor() as i32, 0));
