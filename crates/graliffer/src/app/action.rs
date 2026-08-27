@@ -28,16 +28,28 @@ pub enum GralifferAction {
     CommandMode,
 }
 
+#[derive(Debug, Clone, strum::EnumString, Serialize, Deserialize)]
+pub enum GraiAction {
+    Step,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(try_from = "String")]
 pub enum AppAction {
     GralifferAction(GralifferAction),
+    Grai(GraiAction),
     ConsoleAction(ConsoleAction),
     GridAction(GridAction),
     PickerAction(PickerAction),
 }
 
 impl Action for AppAction {}
+
+impl From<GraiAction> for AppAction {
+    fn from(value: GraiAction) -> Self {
+        Self::Grai(value)
+    }
+}
 
 impl From<GralifferAction> for AppAction {
     fn from(value: GralifferAction) -> Self {
@@ -69,6 +81,12 @@ impl FromStr for AppAction {
     fn from_str(source: &str) -> Result<Self, Self::Err> {
         if let Some((namespace, action)) = source.rsplit_once("::") {
             match namespace {
+                "grai" => Ok(GraiAction::from_str(action)
+                    .map_err(|_| ActionParseError::UnknownAction {
+                        action: action.to_string(),
+                        source: namespace.to_string(),
+                    })?
+                    .into()),
                 "grid" => Ok(GridAction::from_str(action)
                     .map_err(|_| ActionParseError::UnknownAction {
                         action: action.to_string(),
@@ -116,13 +134,20 @@ impl State for AppState {
     type Error = Infallible;
 
     fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
-        use GralifferAction::*;
-
         match action.into() {
-            AppAction::ConsoleAction(console_action) => self.console_state.act(console_action),
             AppAction::GridAction(grid_action) => self.grid_state.act(grid_action),
+            AppAction::ConsoleAction(console_action) => self.console_state.act(console_action),
             AppAction::PickerAction(picker_action) => self.command_picker_state.act(picker_action),
+            AppAction::Grai(grai_action) => {
+                use GraiAction::*;
+                let revert = match grai_action {
+                    Step => self.frame.act(grai::FrameAction::Step).unwrap(),
+                };
+
+                Ok(revert)
+            }
             AppAction::GralifferAction(app_action) => {
+                use GralifferAction::*;
                 match app_action {
                     Quit => {
                         self.quit();

@@ -4,7 +4,8 @@
     "bindings": {
       "ctrl-a": "ToggleAbout",
       "alt-p": "ToggleCommandPicker",
-      "ctrl-q": "Quit"
+      "ctrl-q": "Quit",
+      "f5": "grai::Step"
     }
   },
   {

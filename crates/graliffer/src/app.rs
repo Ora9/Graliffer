@@ -1,3 +1,4 @@
+use grai::FrameGuard;
 use rand::seq::SliceRandom;
 
 use crate::{
@@ -13,6 +14,8 @@ pub struct AppState {
     pub context: Context,
 
     pub keymap: Keymap,
+
+    pub frame: FrameGuard,
 
     pub console_state: ConsoleView,
     pub grid_state: GridView,
@@ -43,6 +46,8 @@ impl AppState {
         let context = Context::new(config, default_focus);
 
         let mut app = Self {
+            frame: frame.clone(),
+
             keymap: Keymap::new(),
 
             context: context.clone(),
