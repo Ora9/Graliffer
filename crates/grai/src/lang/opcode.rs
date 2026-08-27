@@ -162,8 +162,6 @@ impl Opcode {
         use Opcode::*;
         let mut frame = TimelineRef::new(frame);
 
-        dbg!(&self);
-
         match self {
             Nop => {}
 
