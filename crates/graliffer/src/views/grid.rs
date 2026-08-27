@@ -67,24 +67,24 @@ impl GridInput {
         grid_input
     }
 
-    pub fn grid_position(&self) -> &grai::Position {
+    pub fn grid_cursor(&self) -> &grai::Position {
         &self.grid_cursor
     }
 
-    pub fn char_position(&self) -> usize {
+    pub fn char_cursor(&self) -> usize {
         self.input.visual_cursor()
     }
 
     pub fn char_at_start(&self) -> bool {
-        self.char_position() == 0
+        self.char_cursor() == 0
     }
 
     pub fn char_at_end(&self, grid: &grai::Grid) -> bool {
-        self.char_position() >= grid.get(self.grid_cursor).len()
+        self.char_cursor() >= grid.get(self.grid_cursor).len()
     }
 
     pub fn char_at_max(&self) -> bool {
-        self.char_position() >= 3
+        self.char_cursor() >= 3
     }
 
     // todo! this probably induce a bug when codepoint != visual length != graphem count
@@ -128,7 +128,7 @@ impl GridInput {
             CursorMovement::StepCharThenGrid(direction) => match direction {
                 Direction::Up | Direction::Down => (
                     GridCursorPosition::InDirectionByOffset(direction, 1),
-                    CharCursorPosition::AtMost(self.char_position()),
+                    CharCursorPosition::AtMost(self.char_cursor()),
                 ),
                 Direction::Left if at_start && grid_at_left => {
                     (GridCursorPosition::Unchanged, CharCursorPosition::Unchanged)
@@ -156,7 +156,7 @@ impl GridInput {
             CursorMovement::DashUntilBoundsOrNonEmpty(direction) => match direction {
                 Direction::Up | Direction::Down => (
                     GridCursorPosition::InDirectionByOffset(direction, 1),
-                    CharCursorPosition::AtMost(self.char_position()),
+                    CharCursorPosition::AtMost(self.char_cursor()),
                 ),
                 Direction::Left if at_start && grid_at_left => {
                     (GridCursorPosition::Unchanged, CharCursorPosition::Unchanged)
@@ -205,12 +205,12 @@ impl GridInput {
 
     fn set_grid_position(&mut self, grid_position: GridCursorPosition, grid: &grai::Grid) {
         let position = match grid_position {
-            GridCursorPosition::Unchanged => *self.grid_position(),
+            GridCursorPosition::Unchanged => *self.grid_cursor(),
             GridCursorPosition::At(position) => position,
             GridCursorPosition::InDirectionByOffset(direction, offset) => self
-                .grid_position()
+                .grid_cursor()
                 .checked_step(direction, offset)
-                .unwrap_or(*self.grid_position()),
+                .unwrap_or(*self.grid_cursor()),
             GridCursorPosition::InDirectionUntilNonEmpty(direction) => {
                 let mut pos = self.grid_cursor;
                 while let Ok(next) = pos.checked_step(direction, 1) {
@@ -233,15 +233,15 @@ impl GridInput {
     fn set_char_position(&mut self, char_position: CharCursorPosition, grid: &grai::Grid) {
         let cell = grid.get(self.grid_cursor);
         let cursor = match char_position {
-            CharCursorPosition::Unchanged => self.char_position(),
+            CharCursorPosition::Unchanged => self.char_cursor(),
             CharCursorPosition::AtStart => 0,
             CharCursorPosition::AtEnd => cell.len(),
             CharCursorPosition::AtMost(p) => p,
             CharCursorPosition::InDirectionByOffset(direction, offset) => {
                 debug!("{direction:?} by {offset}");
                 match direction {
-                    HorizontalDirection::Left => self.char_position().saturating_sub(offset),
-                    HorizontalDirection::Right => self.char_position().saturating_add(offset),
+                    HorizontalDirection::Left => self.char_cursor().saturating_sub(offset),
+                    HorizontalDirection::Right => self.char_cursor().saturating_add(offset),
                 }
             }
         }
@@ -533,48 +533,44 @@ impl StatefulWidget for GridWidget {
 
                 let cell_area = Rect::new(x, y, cell_bordered.width, cell_bordered.height);
 
+                let cell_content = state.frame.read(|frame| frame.grid.get(grid_pos));
+
                 let block = Block::bordered()
                     // .borders(borders)
                     // .border_type(border_type)
                     .fg(Color::DarkGray)
                     .merge_borders(MergeStrategy::Fuzzy);
 
-                let cell_content = state.frame.read(|frame| frame.grid.get(grid_pos));
-
                 Paragraph::new(cell_content.as_str())
                     .block(block)
                     .reset()
+                    // .fg(fg_color)
                     .render(cell_area, &mut overdraw_buf);
             }
         }
 
-        let cursor_pos = state.grid_input.grid_position();
-        let (cursor_x, cursor_y) = term_pos(cursor_pos.x() as usize, cursor_pos.y() as usize);
-        let cursor_area = Rect::new(
-            cursor_x,
-            cursor_y,
-            cell_bordered.width,
-            cell_bordered.height,
-        );
+        let head_position = state.frame.read(|frame| frame.head.position);
+        let (head_x, head_y) = term_pos(head_position.x() as usize, head_position.y() as usize);
+        let head_area = Rect::new(head_x, head_y, cell_bordered.width, cell_bordered.height);
         Block::bordered()
             .border_type(BorderType::Thick)
             .border_style(Style::default().fg(Color::DarkGray))
             .merge_borders(MergeStrategy::Fuzzy)
-            .render(cursor_area, &mut overdraw_buf);
+            .render(head_area, &mut overdraw_buf);
 
-        let cursor_color = if state.grid_input.char_at_max() {
-            Color::DarkGray
-        } else {
-            Color::White
-        };
+        let cursor_grid_pos = state.grid_input.grid_cursor();
+        let cursor_term_origin =
+            term_pos(cursor_grid_pos.x() as usize, cursor_grid_pos.y() as usize);
+        let cursor_term_pos = Position::new(cursor_term_origin.0, cursor_term_origin.1)
+            .offset(Offset::new(border as i32, border as i32))
+            .offset(Offset::new(state.grid_input.char_cursor() as i32, 0));
 
-        let char_cursor_position = cursor_area
-            .inner(Margin::from(border as u16))
-            .as_position()
-            .offset(Offset::new(state.grid_input.char_position() as i32, 0));
-
-        if let Some(cursor_cell) = overdraw_buf.cell_mut(char_cursor_position) {
-            cursor_cell.fg = cursor_color;
+        if let Some(cursor_cell) = overdraw_buf.cell_mut(cursor_term_pos) {
+            cursor_cell.fg = if state.grid_input.char_at_max() {
+                Color::DarkGray
+            } else {
+                Color::White
+            };
             cursor_cell.modifier = cursor_cell.modifier.union(Modifier::REVERSED);
         }
 
@@ -678,7 +674,7 @@ impl State for GridView {
             }),
 
             DeletePrevCharOrStepLeftGrid => self.frame.write(|frame| {
-                if self.grid_input.char_position() != 0 {
+                if self.grid_input.char_cursor() != 0 {
                     self.grid_input
                         .handle(&mut frame.grid, InputRequest::DeletePrevChar);
                 } else {
@@ -693,7 +689,7 @@ impl State for GridView {
             }),
 
             DeleteTillStartOrStepLeftGrid => self.frame.write(|frame| {
-                if self.grid_input.char_position() != 0 {
+                if self.grid_input.char_cursor() != 0 {
                     self.grid_input
                         .handle(&mut frame.grid, InputRequest::DeletePrevWord);
                 } else {
