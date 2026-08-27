@@ -19,6 +19,9 @@ pub enum Opcode {
     // Grid manipulation
     Set,
 
+    // Stack manipulation
+    Pop,
+
     // Basic head movements
     Gup,
     Gri,
@@ -182,6 +185,11 @@ impl Opcode {
                 let lit = pop_as_cell(&mut frame)?;
 
                 frame.act(GridAction::Set(*at.position(), lit.clone()))?;
+            }
+
+            Pop => {
+                // Ignore if the stack cannot be popped
+                let _ = frame.act(StackAction::Pop);
             }
 
             Add | Sub | Mul | Div => {

@@ -114,6 +114,16 @@ Example :
 
 There exists a large range of opcodes
 
+### Grid manipulation
+
+Pop one as address and one literal, set the cell pointed by the address with the content of the literal
+- `set`
+
+### Stack manipulation
+
+Pop an operand from the stack
+- `pop`
+
 ### Head movements
 
 Change executing head *direction* :
@@ -153,6 +163,7 @@ Pop one as bool, negate it, and push the result :
 
 Halt the program, stopping all heads :
 - `hlt` ("halt")
+
 
 # Error handling
 
