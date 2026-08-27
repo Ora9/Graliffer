@@ -168,7 +168,7 @@ impl Opcode {
             Gup | Gri | Gdo | Gle => {
                 let direction = match self {
                     Gup => Direction::Up,
-                    Gri => Direction::Left,
+                    Gri => Direction::Right,
                     Gdo => Direction::Down,
                     Gle => Direction::Left,
                     _ => unreachable!(),
