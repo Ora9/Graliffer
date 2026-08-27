@@ -2,7 +2,7 @@ use std::convert::Infallible;
 
 use act::{Action, Revert, State};
 use crossterm::event::{MouseEvent, MouseEventKind};
-use grai::{Direction, HorizontalDirection, VerticalDirection, granary::GranaryDigit};
+use grai::{Direction, HorizontalDirection, granary::GranaryDigit};
 use log::debug;
 use ratatui::{
     buffer::Buffer,
@@ -67,8 +67,8 @@ impl GridInput {
         grid_input
     }
 
-    pub fn grid_cursor(&self) -> &grai::Position {
-        &self.grid_cursor
+    pub fn grid_cursor(&self) -> grai::Position {
+        self.grid_cursor
     }
 
     pub fn char_cursor(&self) -> usize {
@@ -205,12 +205,12 @@ impl GridInput {
 
     fn set_grid_position(&mut self, grid_position: GridCursorPosition, grid: &grai::Grid) {
         let position = match grid_position {
-            GridCursorPosition::Unchanged => *self.grid_cursor(),
+            GridCursorPosition::Unchanged => self.grid_cursor(),
             GridCursorPosition::At(position) => position,
             GridCursorPosition::InDirectionByOffset(direction, offset) => self
                 .grid_cursor()
                 .checked_step(direction, offset)
-                .unwrap_or(*self.grid_cursor()),
+                .unwrap_or(self.grid_cursor()),
             GridCursorPosition::InDirectionUntilNonEmpty(direction) => {
                 let mut pos = self.grid_cursor;
                 while let Ok(next) = pos.checked_step(direction, 1) {
@@ -258,8 +258,6 @@ enum DragState {
     Dragging {
         start_pointer_pos: Position,
         start_grid_offset: GridOffset,
-        // start_offset_x: usize,
-        // start_offset_y: usize,
     },
 }
 
@@ -325,31 +323,21 @@ const CELL_BORDER: u16 = 1;
 //     // .ok()
 // }
 
-// fn grid_to_terminal_position(
-//     area: Rect,
-//     grid_position: grai::Position,
-//     offset: Offset,
-// ) -> Position {
-//     // Position::new(
-//     //     area.x
-//     //         .saturating_add(grid_position.x() as u16 * (CELL_WIDTH + CELL_BORDER)),
-//     //     // .saturating_sub(state.offset_x) as u16,
-//     //     area.y
-//     //         .saturating_add(grid_position.y() as u16 * (CELL_HEIGHT + CELL_BORDER)), // .saturating_sub(state.offset_y) as u16,
-//     // )
+fn grid_to_terminal_position(
+    area: Rect,
+    grid_position: grai::Position,
+    offset: GridOffset,
+) -> Position {
+    Position {
+        x: (area.x as u32)
+            .saturating_add(grid_position.x() * (CELL_WIDTH + CELL_BORDER) as u32)
+            .saturating_sub(offset.x as u32) as u16,
 
-//     let term_pos = |cell_x: usize, cell_y: usize| {
-//         let x = (overdraw_area.x as usize)
-//             .saturating_add(cell_x * (cell_width + border))
-//             .saturating_sub(state.offset_x) as u16;
-
-//         let y = (overdraw_area.y as usize)
-//             .saturating_add(cell_y * (cell_height + border))
-//             .saturating_sub(state.offset_y) as u16;
-
-//         (x, y)
-//     };
-// }
+        y: (area.y as u32)
+            .saturating_add(grid_position.y() * (CELL_HEIGHT + CELL_BORDER) as u32)
+            .saturating_sub(offset.y as u32) as u16,
+    }
+}
 
 #[derive(Debug, Default, Clone, Copy)]
 struct GridOffset {
@@ -529,31 +517,20 @@ impl StatefulWidget for GridWidget {
             .saturating_add(overdraw_cells)
             .min(GranaryDigit::MAX_NUMERIC as usize);
 
-        // let frame = state
-        //     .frame
-        //     .try_borrow()
-        //     .expect("could not borrow the frame");
-
-        let term_pos = |cell_x: usize, cell_y: usize| {
-            let x = (overdraw_area.x as usize)
-                .saturating_add(cell_x * (cell_width + border))
-                .saturating_sub(state.grid_offset.x) as u16;
-
-            let y = (overdraw_area.y as usize)
-                .saturating_add(cell_y * (cell_height + border))
-                .saturating_sub(state.grid_offset.y) as u16;
-
-            (x, y)
-        };
-
         for cell_x in in_view_left..=in_view_right {
             for cell_y in in_view_top..=in_view_bottom {
                 let grid_pos = grai::Position::from_numeric(cell_x as u32, cell_y as u32)
                     .expect("should be able to construct a valid position");
 
-                let (x, y) = term_pos(cell_x, cell_y);
+                let term_pos =
+                    grid_to_terminal_position(overdraw_area, grid_pos, state.grid_offset);
 
-                let cell_area = Rect::new(x, y, cell_bordered.width, cell_bordered.height);
+                let cell_area = Rect::new(
+                    term_pos.x,
+                    term_pos.y,
+                    cell_bordered.width,
+                    cell_bordered.height,
+                );
 
                 let cell_content = state.frame.read(|frame| frame.grid.get(grid_pos));
 
@@ -571,9 +548,15 @@ impl StatefulWidget for GridWidget {
             }
         }
 
-        let head_position = state.frame.read(|frame| frame.head.position);
-        let (head_x, head_y) = term_pos(head_position.x() as usize, head_position.y() as usize);
-        let head_area = Rect::new(head_x, head_y, cell_bordered.width, cell_bordered.height);
+        let head_grid_pos = state.frame.read(|frame| frame.head.position);
+        let head_term_pos =
+            grid_to_terminal_position(overdraw_area, head_grid_pos, state.grid_offset);
+        let head_area = Rect::new(
+            head_term_pos.x,
+            head_term_pos.y,
+            cell_bordered.width,
+            cell_bordered.height,
+        );
         Block::bordered()
             .border_type(BorderType::Thick)
             .border_style(Style::default().fg(Color::DarkGray))
@@ -582,8 +565,8 @@ impl StatefulWidget for GridWidget {
 
         let cursor_grid_pos = state.grid_input.grid_cursor();
         let cursor_term_origin =
-            term_pos(cursor_grid_pos.x() as usize, cursor_grid_pos.y() as usize);
-        let cursor_term_pos = Position::new(cursor_term_origin.0, cursor_term_origin.1)
+            grid_to_terminal_position(overdraw_area, cursor_grid_pos, state.grid_offset);
+        let cursor_term_pos = Position::new(cursor_term_origin.x, cursor_term_origin.y)
             .offset(Offset::new(border as i32, border as i32))
             .offset(Offset::new(state.grid_input.char_cursor() as i32, 0));
 
