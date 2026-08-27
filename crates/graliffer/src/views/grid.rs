@@ -155,7 +155,7 @@ impl GridInput {
             },
             CursorMovement::DashUntilBoundsOrNonEmpty(direction) => match direction {
                 Direction::Up | Direction::Down => (
-                    GridCursorPosition::InDirectionByOffset(direction, 1),
+                    GridCursorPosition::InDirectionUntilNonEmpty(direction),
                     CharCursorPosition::AtMost(self.char_cursor()),
                 ),
                 Direction::Left if at_start && grid_at_left => {
