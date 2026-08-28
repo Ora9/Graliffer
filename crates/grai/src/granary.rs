@@ -49,8 +49,10 @@ pub enum GranaryError {
 pub struct GranaryDigit(u8);
 
 impl GranaryDigit {
-    pub const ZERO: Self = Self(0);
+    pub const MIN: Self = Self(0);
     pub const MAX: Self = Self(63);
+
+    pub const ZERO: Self = Self::MIN;
 
     pub const MIN_NUMERIC: u32 = 0;
     pub const MAX_NUMERIC: u32 = 63;

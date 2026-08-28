@@ -1,4 +1,4 @@
-use std::convert::Infallible;
+use std::{convert::Infallible, ops::Neg};
 
 use act::{Action, Revert, State};
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
@@ -291,46 +291,24 @@ const CELL_WIDTH: u16 = 3;
 const CELL_HEIGHT: u16 = 1;
 const CELL_BORDER: u16 = 1;
 
-fn terminal_to_grid_x_axis(terminal_x: u16, area: Rect, offset: GridOffset) -> Option<u32> {
-    Some(
-        terminal_x
-            .checked_add(offset.x as u16)?
-            .saturating_sub(area.x)
-            .saturating_sub(CELL_BORDER)
-            .checked_div(CELL_WIDTH + CELL_BORDER)? as u32,
-    )
-    .and_then(
-        |value| match grai::granary::GranaryDigit::is_valid_numeric(value) {
-            false => None,
-            true => Some(value),
-        },
-    )
-}
-
-fn terminal_to_grid_y_axis(terminal_y: u16, area: Rect, offset: GridOffset) -> Option<u32> {
-    Some(
-        terminal_y
-            .checked_add(offset.y as u16)?
-            .saturating_sub(area.y)
-            .saturating_sub(CELL_BORDER)
-            .checked_div(CELL_HEIGHT + CELL_BORDER)? as u32,
-    )
-    .and_then(
-        |value| match grai::granary::GranaryDigit::is_valid_numeric(value) {
-            false => None,
-            true => Some(value),
-        },
-    )
-}
-
 fn terminal_to_grid_position(
     terminal_position: Position,
     area: Rect,
     offset: GridOffset,
 ) -> Option<grai::Position> {
     grai::Position::new(
-        terminal_to_grid_x_axis(terminal_position.x, area, offset)?,
-        terminal_to_grid_y_axis(terminal_position.y, area, offset)?,
+        terminal_position
+            .x
+            .checked_add(offset.x as u16)?
+            .saturating_sub(area.x)
+            .saturating_sub(CELL_BORDER)
+            .checked_div(CELL_WIDTH + CELL_BORDER)? as u32,
+        terminal_position
+            .y
+            .checked_add(offset.y as u16)?
+            .saturating_sub(area.y)
+            .saturating_sub(CELL_BORDER)
+            .checked_div(CELL_HEIGHT + CELL_BORDER)? as u32,
     )
     .ok()
 }
@@ -341,13 +319,14 @@ fn grid_to_terminal_position(
     offset: GridOffset,
 ) -> Position {
     Position {
-        x: (area.x as u32)
-            .strict_add(grid_position.x() * (CELL_WIDTH + CELL_BORDER) as u32)
-            .saturating_sub(offset.x as u32) as u16,
-
-        y: (area.y as u32)
-            .strict_add(grid_position.y() * (CELL_HEIGHT + CELL_BORDER) as u32)
-            .saturating_sub(offset.y as u32) as u16,
+        x: area
+            .x
+            .strict_add(grid_position.x() as u16 * (CELL_WIDTH + CELL_BORDER))
+            .saturating_sub(offset.x as u16),
+        y: area
+            .y
+            .strict_add(grid_position.y() as u16 * (CELL_HEIGHT + CELL_BORDER))
+            .saturating_sub(offset.y as u16),
     }
 }
 
@@ -358,9 +337,24 @@ struct GridOffset {
 }
 
 impl GridOffset {
-    // pub fn with(&mut ) {
+    pub fn with(&mut self, x: u32, y: u32, area: Rect) {
+        let max = grid_to_terminal_position(grai::Position::MAX, area, GridOffset::default())
+            .offset(Offset {
+                x: (area
+                    .width
+                    .saturating_sub(5)
+                    .saturating_sub(CELL_WIDTH + CELL_BORDER) as i32)
+                    .neg(),
+                y: (area
+                    .height
+                    .saturating_sub(2)
+                    .saturating_sub(CELL_HEIGHT + CELL_BORDER) as i32)
+                    .neg(),
+            });
 
-    // }
+        self.x = x.clamp(0, max.x as u32);
+        self.y = y.clamp(0, max.y as u32);
+    }
 }
 
 #[derive(Debug)]
@@ -404,10 +398,11 @@ impl GridView {
             y: mouse_event.row,
         };
 
-        // debug!(
-        //     "{:?}",
-        //     terminal_to_grid_position(pointer_pos, viewport_area, self.grid_offset)
-        // );
+        debug!(
+            "{:?}, {:?}",
+            pointer_pos,
+            terminal_to_grid_position(pointer_pos, viewport_area, self.grid_offset)
+        );
 
         match mouse_event.kind {
             MouseEventKind::Down(mouse_button) if mouse_button == MouseButton::Left => {
@@ -429,8 +424,11 @@ impl GridView {
                     _ => unreachable!(),
                 };
 
-                self.grid_offset.x = self.grid_offset.x.saturating_add_signed(x_offset);
-                self.grid_offset.y = self.grid_offset.y.saturating_add_signed(y_offset);
+                self.grid_offset.with(
+                    self.grid_offset.x.saturating_add_signed(x_offset),
+                    self.grid_offset.y.saturating_add_signed(y_offset),
+                    viewport_area,
+                );
             }
             MouseEventKind::Drag(button) if button.is_left() => {
                 if self.drag_state.idle() {
@@ -442,11 +440,16 @@ impl GridView {
                     start_grid_offset,
                 } = self.drag_state
                 {
-                    self.grid_offset.x = start_grid_offset.x.saturating_add_signed(
-                        (start_pointer_pos.x as i16).saturating_sub_unsigned(pointer_pos.x) as i32,
-                    );
-                    self.grid_offset.y = start_grid_offset.y.saturating_add_signed(
-                        (start_pointer_pos.y as i16).saturating_sub_unsigned(pointer_pos.y) as i32,
+                    self.grid_offset.with(
+                        start_grid_offset.x.saturating_add_signed(
+                            (start_pointer_pos.x as i16).saturating_sub_unsigned(pointer_pos.x)
+                                as i32,
+                        ),
+                        start_grid_offset.y.saturating_add_signed(
+                            (start_pointer_pos.y as i16).saturating_sub_unsigned(pointer_pos.y)
+                                as i32,
+                        ),
+                        viewport_area,
                     );
                 }
             }
@@ -520,24 +523,22 @@ impl StatefulWidget for GridWidget {
         });
         let overdraw_area = overdraw_buf.area().inner(overdraw_margin);
 
-        let in_view_left =
-            terminal_to_grid_x_axis(overdraw_area.left(), overdraw_area, state.grid_offset)
-                .unwrap_or(grai::granary::GranaryDigit::MIN_NUMERIC);
+        let left_top_cell = terminal_to_grid_position(
+            Position::new(overdraw_area.left(), overdraw_area.top()),
+            overdraw_area,
+            state.grid_offset,
+        )
+        .unwrap_or(grai::Position::MIN);
 
-        let in_view_right =
-            terminal_to_grid_x_axis(overdraw_area.right(), overdraw_area, state.grid_offset)
-                .unwrap_or(grai::granary::GranaryDigit::MAX_NUMERIC);
+        let right_bottom_cell = terminal_to_grid_position(
+            Position::new(overdraw_area.right(), overdraw_area.bottom()),
+            overdraw_area,
+            state.grid_offset,
+        )
+        .unwrap_or(grai::Position::MAX);
 
-        let in_view_top =
-            terminal_to_grid_y_axis(overdraw_area.top(), overdraw_area, state.grid_offset)
-                .unwrap_or(grai::granary::GranaryDigit::MIN_NUMERIC);
-
-        let in_view_bottom =
-            terminal_to_grid_y_axis(overdraw_area.bottom(), overdraw_area, state.grid_offset)
-                .unwrap_or(grai::granary::GranaryDigit::MAX_NUMERIC);
-
-        for cell_x in in_view_left..=in_view_right {
-            for cell_y in in_view_top..=in_view_bottom {
+        for cell_x in left_top_cell.x()..=right_bottom_cell.x() {
+            for cell_y in left_top_cell.y()..=right_bottom_cell.y() {
                 let grid_pos = grai::Position::from_numeric(cell_x as u32, cell_y as u32)
                     .expect("should be able to construct a valid position");
 
@@ -575,7 +576,7 @@ impl StatefulWidget for GridWidget {
         );
         Block::bordered()
             .border_type(BorderType::Thick)
-            .border_style(Style::default().fg(Color::DarkGray))
+            .border_style(Style::default().fg(Color::White))
             .merge_borders(MergeStrategy::Fuzzy)
             .render(head_area, &mut overdraw_buf);
 

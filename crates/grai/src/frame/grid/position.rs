@@ -45,10 +45,17 @@ pub struct Position {
 }
 
 impl Position {
-    pub const ORIGIN: Self = Self {
+    pub const MIN: Self = Self {
         x: GranaryDigit::ZERO,
         y: GranaryDigit::ZERO,
     };
+
+    pub const MAX: Self = Self {
+        x: GranaryDigit::MAX,
+        y: GranaryDigit::MAX,
+    };
+
+    pub const ORIGIN: Self = Self::MIN;
 
     /// Obtain a `Position` given two valid `u32` numbers
     ///
