@@ -7,7 +7,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct ContextInner {
-    pub config: Config,
+    config: Config,
 
     focus: ViewId,
     input_mode: InputMode,
@@ -37,9 +37,9 @@ impl Context {
         context
     }
 
-    // pub fn config<O>(&self, reader: impl FnOnce(&Config) -> O) -> O {
-    //     reader(&self.0.borrow().config)
-    // }
+    pub fn config<O>(&self, reader: impl FnOnce(&Config) -> O) -> O {
+        reader(&self.0.borrow().config)
+    }
 
     pub fn read<O>(&self, reader: impl FnOnce(&ContextInner) -> O) -> O {
         reader(&self.0.borrow())

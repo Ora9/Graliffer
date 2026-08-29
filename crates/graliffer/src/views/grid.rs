@@ -19,6 +19,35 @@ use tui_input::{Input, InputRequest};
 
 use crate::{AppAction, Context, View, ViewType};
 
+#[derive(Debug, Clone, Copy)]
+pub struct FollowCursorStickyMargin {
+    margin: u32,
+}
+
+impl Default for FollowCursorStickyMargin {
+    fn default() -> Self {
+        Self { margin: 5 }
+    }
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+pub enum FollowCursorMode {
+    Centered,
+    #[default]
+    Sticky,
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+pub struct FollowCursorConfig {
+    follow_cursor_mode: FollowCursorMode,
+    follow_cursor_sticky_margin: FollowCursorStickyMargin,
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+pub struct GridConfig {
+    follow_cursor: FollowCursorConfig,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CursorMovement {
     /// The default when pressing an arrow key, either stepping to the next character in a cell, or
@@ -371,7 +400,12 @@ impl GridOffset {
         self.y = y.clamp(0, max.y as u32);
     }
 
-    pub fn follow_cursor(&mut self, grid_input: &GridInput, area: Rect) {
+    pub fn follow_cursor(
+        &mut self,
+        grid_input: &GridInput,
+        area: Rect,
+        config: FollowCursorConfig,
+    ) {
         // use the current offset to determine what side of the screen we should stick to
         // (by calculating least travel)
 
@@ -381,11 +415,16 @@ impl GridOffset {
                 y: (area.y as i32).neg(),
             });
 
-        self.with(
-            cursor_term_pos.x.saturating_sub(area.width.div(2)) as u32,
-            cursor_term_pos.y.saturating_sub(area.height.div(2)) as u32,
-            area,
-        );
+        match config.follow_cursor_mode {
+            FollowCursorMode::Centered => {
+                self.with(
+                    cursor_term_pos.x.saturating_sub(area.width.div(2)) as u32,
+                    cursor_term_pos.y.saturating_sub(area.height.div(2)) as u32,
+                    area,
+                );
+            }
+            FollowCursorMode::Sticky => {}
+        }
     }
 }
 
@@ -494,8 +533,11 @@ impl GridView {
     }
 
     fn follow_cursor(&mut self) {
+        let config = self.context.config(|config| config.grid.follow_cursor);
+
         if let Some(area) = self.layout() {
-            self.grid_offset.follow_cursor(&self.grid_input, area);
+            self.grid_offset
+                .follow_cursor(&self.grid_input, area, config);
         };
     }
 

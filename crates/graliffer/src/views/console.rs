@@ -18,6 +18,17 @@ use tui_scrollbar::{
 
 use crate::{Context, View, ViewType};
 
+#[derive(Debug, Clone, Copy)]
+pub struct ConsoleConfig {
+    pub line_history: usize,
+}
+
+impl Default for ConsoleConfig {
+    fn default() -> Self {
+        Self { line_history: 1000 }
+    }
+}
+
 #[derive(Debug)]
 pub struct ConsoleView {
     context: Context,
@@ -53,10 +64,13 @@ impl ConsoleView {
         self.layouts
     }
 
-    pub fn max_line_history(&self) -> usize {
-        self.context
-            .read(|context| context.config.console.line_history)
+    pub fn config(&self) -> ConsoleConfig {
+        self.context.config(|config| config.console)
     }
+
+    // pub fn max_line_history(&self) -> usize {
+
+    // }
 }
 
 /// # Content
@@ -148,8 +162,12 @@ impl ConsoleView {
     }
 
     fn apply_max_history(&mut self) {
-        self.content
-            .drain(..(self.content.len().saturating_sub(self.max_line_history())));
+        self.content.drain(
+            ..(self
+                .content
+                .len()
+                .saturating_sub(self.config().line_history)),
+        );
     }
 }
 
