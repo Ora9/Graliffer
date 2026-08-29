@@ -117,7 +117,7 @@ impl FrameGuard {
     }
 
     pub fn write<T>(&mut self, writer: impl FnOnce(&mut Frame) -> T) -> T {
-        writer(&mut *self.0.borrow_mut())
+        writer(&mut self.0.borrow_mut())
     }
 }
 

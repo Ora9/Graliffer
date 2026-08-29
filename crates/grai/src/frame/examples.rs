@@ -11,7 +11,7 @@ pub struct Example {
 impl Frame {
     pub fn from_example(file_name: &str) -> Option<Self> {
         ASSETS.iter().find_map(|file| {
-            if PathBuf::from(file_name) == PathBuf::from(file.relative_path).file_stem()? {
+            if file_name == PathBuf::from(file.relative_path).file_stem()? {
                 let frame = serde_json::from_str(file.contents_str).unwrap_or_else(|err| {
                     panic!(
                         "example must contain valid frame, trying to parse `{}`, got error {}",

@@ -32,7 +32,7 @@ pub struct PointerLoopError {
 /// A pointer must be in format : `&XY`, with :
 /// - `&` being a prefix (wich denote a pointer, e.g. a `@` would denote an [`Address`]).
 /// - `X` and `Y` being respectively the horizontal and vertical axis of a [`Position`] in textual
-/// form, see [position representation](Position#representation) for more informations
+///   form, see [position representation](Position#representation) for more informations
 ///
 /// Example : `&AB`, `&Q+` or `&8a`
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]

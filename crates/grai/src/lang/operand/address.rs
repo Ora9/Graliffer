@@ -29,7 +29,7 @@ pub enum AddressParseError {
 /// An address must be in format : `@XY`, with :
 /// - `@` being a prefix (wich denote an address, e.g. a `&` would denote a [`Pointer`])
 /// - `X` and `Y` being respectively the horizontal and vertical axis of a [`Position`] in textual
-/// form, see [position representation](Position#representation) for more informations
+///   form, see [position representation](Position#representation) for more informations
 ///
 /// Example : `@AB`, `@Q+` or `@8a`
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]

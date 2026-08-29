@@ -83,11 +83,11 @@ pub enum Operand {
 impl Operand {
     pub fn from_cell(cell: Cell) -> Self {
         if let Ok(address) = Address::from_ref_cell(&cell) {
-            Self::Address(address.into())
+            Self::Address(address)
         } else if let Ok(pointer) = Pointer::from_ref_cell(&cell) {
-            Self::Pointer(pointer.into())
+            Self::Pointer(pointer)
         } else if let Ok(errored) = Errored::from_ref_cell(&cell) {
-            Self::Errored(errored.into())
+            Self::Errored(errored)
         } else {
             Self::Literal(Literal::from_cell(cell))
         }

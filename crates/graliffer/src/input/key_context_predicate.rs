@@ -125,7 +125,7 @@ impl FromStr for KeyContextPredicate {
             stack
                 .pop()
                 .ok_or(KeyContextPredicateParseError::MissingOperand {
-                    operation: operation,
+                    operation,
                     source: source.to_string(),
                 })
                 .and_then(|flag| Ok(Box::new(flag)))

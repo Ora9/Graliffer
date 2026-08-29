@@ -114,7 +114,7 @@ fn pop_operand(frame: &mut TimelineRef<Frame>) -> Result<Operand, PopOperandErro
 
 fn pop_to_address(frame: &mut TimelineRef<Frame>) -> Result<Address, PopOperandError> {
     pop_operand(frame).and_then(|operand| {
-        Ok(operand
+        operand
             .resolve_to_address(&frame.grid)
             .map_err(|err| match err {
                 ResolveToAddressError::PointerLoop(err) => PopOperandError::PointerLoop(err),
@@ -124,7 +124,7 @@ fn pop_to_address(frame: &mut TimelineRef<Frame>) -> Result<Address, PopOperandE
                         got: Operand::Errored(Errored::new()),
                     })
                 }
-            })?)
+            })
     })
 }
 
@@ -156,7 +156,7 @@ fn pop_as_bool(frame: &mut TimelineRef<Frame>) -> Result<Option<bool>, PopOperan
 
 impl Opcode {
     pub fn from_cell(cell: Cell) -> Result<Opcode, NotAnOpcode> {
-        Opcode::from_str(&cell.as_str()).map_err(|_| NotAnOpcode {
+        Opcode::from_str(cell.as_str()).map_err(|_| NotAnOpcode {
             got: cell.to_string(),
         })
     }

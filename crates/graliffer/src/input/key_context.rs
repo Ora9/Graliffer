@@ -133,10 +133,7 @@ impl KeyContext {
     }
 
     pub fn has_with_key(&self, key: &KeyContextFlagKey, flag: &KeyContextFlag) -> bool {
-        self.0
-            .get(key)
-            .and_then(|value| Some(value == flag))
-            .unwrap_or(false)
+        self.0.get(key).map(|value| value == flag).unwrap_or(false)
     }
 
     pub fn matches(&self, predicate: &KeyContextPredicate) -> bool {
@@ -144,7 +141,7 @@ impl KeyContext {
 
         match predicate {
             None => true,
-            Flag(flag) => self.has(&flag.clone().into()),
+            Flag(flag) => self.has(&flag.clone()),
             Not(predicate) => !self.matches(predicate),
             And(lhs, rhs) => self.matches(lhs) && self.matches(rhs),
             Or(lhs, rhs) => self.matches(lhs) || self.matches(rhs),
