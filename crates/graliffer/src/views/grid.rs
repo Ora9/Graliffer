@@ -1,4 +1,7 @@
-use std::{convert::Infallible, ops::Neg};
+use std::{
+    convert::Infallible,
+    ops::{Div, Neg},
+};
 
 use act::{Action, Revert, State};
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
@@ -313,6 +316,18 @@ fn terminal_to_grid_position(
     .ok()
 }
 
+fn cursor_to_terminal_position(
+    grid_input: &GridInput,
+    area: Rect,
+    grid_offset: GridOffset,
+) -> Position {
+    let cursor_term_origin = grid_to_terminal_position(grid_input.grid_cursor(), area, grid_offset);
+
+    Position::new(cursor_term_origin.x, cursor_term_origin.y)
+        .offset(Offset::new(CELL_BORDER as i32, CELL_BORDER as i32))
+        .offset(Offset::new(grid_input.char_cursor() as i32, 0))
+}
+
 fn grid_to_terminal_position(
     grid_position: grai::Position,
     area: Rect,
@@ -354,6 +369,23 @@ impl GridOffset {
 
         self.x = x.clamp(0, max.x as u32);
         self.y = y.clamp(0, max.y as u32);
+    }
+
+    pub fn follow_cursor(&mut self, grid_input: &GridInput, area: Rect) {
+        // use the current offset to determine what side of the screen we should stick to
+        // (by calculating least travel)
+
+        let cursor_term_pos = cursor_to_terminal_position(grid_input, area, GridOffset::default())
+            .offset(Offset {
+                x: (area.x as i32).neg(),
+                y: (area.y as i32).neg(),
+            });
+
+        self.with(
+            cursor_term_pos.x.saturating_sub(area.width.div(2)) as u32,
+            cursor_term_pos.y.saturating_sub(area.height.div(2)) as u32,
+            area,
+        );
     }
 }
 
@@ -461,10 +493,26 @@ impl GridView {
         }
     }
 
-    pub fn handle_input(&mut self, input_request: InputRequest) {
+    fn follow_cursor(&mut self) {
+        if let Some(area) = self.layout() {
+            self.grid_offset.follow_cursor(&self.grid_input, area);
+        };
+    }
+
+    pub fn handle_insert(&mut self, input: char) {
+        self.frame.write(|frame| {
+            self.grid_input.insert(&mut frame.grid, input);
+        });
+
+        self.follow_cursor();
+    }
+
+    pub fn handle_input_request(&mut self, input_request: InputRequest) {
         self.frame.write(|frame| {
             self.grid_input.handle(&mut frame.grid, input_request);
         });
+
+        self.follow_cursor();
     }
 
     pub fn cursor_movement(&mut self, movement: CursorMovement) {
@@ -472,18 +520,7 @@ impl GridView {
             self.grid_input.with_movement(movement, &frame.grid);
         });
 
-        // let Some(area) = self.layout() else {
-        //     return;
-        // };
-
-        // let grid_pos = self.grid_input.grid_cursor;
-        // let term_pos = grid_to_terminal_position(grid_pos, area, self.grid_offset);
-
-        // if area.left() < term_pos.x {
-        //     debug!("{:?}", term_pos);
-
-        //     self.grid_offset.x = term_pos.x as usize;
-        // }
+        self.follow_cursor();
     }
 
     pub fn layout(&self) -> Option<Rect> {
@@ -580,12 +617,8 @@ impl StatefulWidget for GridWidget {
             .merge_borders(MergeStrategy::Fuzzy)
             .render(head_area, &mut overdraw_buf);
 
-        let cursor_grid_pos = state.grid_input.grid_cursor();
-        let cursor_term_origin =
-            grid_to_terminal_position(cursor_grid_pos, overdraw_area, state.grid_offset);
-        let cursor_term_pos = Position::new(cursor_term_origin.x, cursor_term_origin.y)
-            .offset(Offset::new(CELL_BORDER as i32, CELL_BORDER as i32))
-            .offset(Offset::new(state.grid_input.char_cursor() as i32, 0));
+        let cursor_term_pos =
+            cursor_to_terminal_position(&state.grid_input, overdraw_area, state.grid_offset);
 
         if let Some(cursor_cell) = overdraw_buf.cell_mut(cursor_term_pos) {
             cursor_cell.fg = if state.grid_input.char_at_max() {
@@ -671,8 +704,7 @@ impl State for GridView {
         match action {
             Insert(input) => {
                 for c in input.chars() {
-                    self.frame
-                        .write(|frame| self.grid_input.insert(&mut frame.grid, c));
+                    self.handle_insert(c);
                 }
             }
 
@@ -683,13 +715,14 @@ impl State for GridView {
                     }
 
                     // self.grid_input.insert(&mut frame.grid, c);
-                    self.handle_input(InputRequest::InsertChar(c));
+                    // self.handle_input_request(InputRequest::InsertChar(c));
+                    self.handle_insert(c);
                 }
             }
 
             DeletePrevCharOrStepLeftGrid => {
                 if self.grid_input.char_cursor() != 0 {
-                    self.handle_input(InputRequest::DeletePrevChar);
+                    self.handle_input_request(InputRequest::DeletePrevChar);
                 } else {
                     self.cursor_movement(CursorMovement::StepGrid(Direction::Left));
                 }
@@ -697,23 +730,23 @@ impl State for GridView {
 
             // todo: use the newer DeleteFromStart
             DeleteTillStart => {
-                self.handle_input(InputRequest::DeletePrevWord);
+                self.handle_input_request(InputRequest::DeletePrevWord);
             }
 
             DeleteTillStartOrStepLeftGrid => {
                 if self.grid_input.char_cursor() != 0 {
-                    self.handle_input(InputRequest::DeletePrevWord);
+                    self.handle_input_request(InputRequest::DeletePrevWord);
                 } else {
                     self.cursor_movement(CursorMovement::StepGrid(Direction::Left));
                 }
             }
 
             DeletePrevChar => {
-                self.handle_input(InputRequest::DeletePrevChar);
+                self.handle_input_request(InputRequest::DeletePrevChar);
             }
 
             DeleteNextChar => {
-                self.handle_input(InputRequest::DeleteNextChar);
+                self.handle_input_request(InputRequest::DeleteNextChar);
             }
 
             CursorStepUpGrid | CursorStepDownGrid | CursorStepLeftGrid | CursorStepRightGrid => {
