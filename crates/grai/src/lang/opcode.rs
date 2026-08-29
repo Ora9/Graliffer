@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use act::{Revert, State, TimelineRef};
+use act::{Revert, TimelineRef};
 
 use crate::{
     Address, Cell, Direction, Errored, ErroredEncountered, Frame, FrameError, GridAction,

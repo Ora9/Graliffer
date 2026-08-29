@@ -3,11 +3,9 @@ use std::{
     fmt::Debug,
     hash::Hash,
     sync::{Arc, Mutex},
-    thread,
 };
 
-use egui::{Color32, Context, Id, Stroke, Vec2, Widget};
-use serde::Serialize;
+use egui::{Color32, Context, Id, Vec2, Widget};
 
 use crate::{
     Frame,
@@ -194,14 +192,12 @@ impl Editor {
             }
         });
 
-
         //     println!("Open File!");
 
         //     let frame_arc = self.frame.clone();
 
         //     thread::spawn(async move || {
         //         dbg!("in thread");
-
 
         //         frame.act(Box::new(crate::grid::GridAction::Set(
         //             Position::from_numeric(5, 5).unwrap(),

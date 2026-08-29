@@ -9,5 +9,9 @@ edition.workspace = true
 
 [dependencies]
 
+[lints.rust]
+unused = { level = "allow", priority = -1 }
+# unused = "allow"
+
 [lints]
-workspace = true
+# workspace = true

@@ -38,4 +38,5 @@ etcetera = "0.11.0"
 # workspace = true
 
 [lints.rust]
-unused = "warn"
+# unused = "warn"
+unused = { level = "warn", priority = -1 }
