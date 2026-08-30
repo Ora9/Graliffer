@@ -3,7 +3,7 @@ pub struct FollowCursorStickyMargin(pub u32);
 
 impl Default for FollowCursorStickyMargin {
     fn default() -> Self {
-        Self(5)
+        Self(2)
     }
 }
 
