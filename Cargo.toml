@@ -11,7 +11,7 @@ members = [
     "crates/graliffer",         # Graliffer tui
     "crates/grai",              # Graliffer interpreter
     "crates/act",            # The action system of graliffer, used for grai internal execution, and for editor actions
-    "crates/graliffer_archive", # An archive of the first graliffer impl
+    # "crates/graliffer_archive", # An archive of the first graliffer impl
 ]
 default-members = ["crates/grai"]
 
@@ -23,7 +23,7 @@ default-members = ["crates/grai"]
 
 [workspace.dependencies]
 grai = { path = "crates/grai" }
-graliffer = { path = "crates/graliffer" }
+# graliffer = { path = "crates/graliffer" }
 act = { path = "crates/act"}
 
 # External
