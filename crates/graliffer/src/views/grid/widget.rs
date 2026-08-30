@@ -6,7 +6,6 @@ use std::{
 use act::{Action, Revert, State};
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 use grai::Direction;
-use log::debug;
 use ratatui::{
     buffer::Buffer,
     layout::{Margin, Offset, Position, Rect},

@@ -87,7 +87,7 @@ impl AppState {
     }
 
     pub fn focused(&self) -> ViewId {
-        self.context.get_focus()
+        self.context.focus()
     }
 
     pub fn set_focus(&mut self, focus_id: impl Into<ViewId>) {
@@ -125,7 +125,7 @@ impl AppState {
     }
 
     pub fn input_mode(&self) -> InputMode {
-        self.context.get_input_mode()
+        self.context.input_mode()
     }
 
     pub fn set_input_mode(&mut self, input_mode: InputMode) {
