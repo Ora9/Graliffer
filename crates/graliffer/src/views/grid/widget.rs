@@ -127,41 +127,70 @@ impl GridOffset {
                 );
             }
             FollowCursorMode::Sticky => {
-                let margin_x = ((CELL_WIDTH + CELL_BORDER) as u32)
-                    .saturating_mul(config.follow_cursor_sticky_margin.0);
-                let margin_y = ((CELL_HEIGHT + CELL_BORDER) as u32)
-                    .saturating_mul(config.follow_cursor_sticky_margin.0);
+                let config_margin = config
+                    .follow_cursor_sticky_margin
+                    .0
+                    .try_into()
+                    .unwrap_or(u16::MAX);
 
-                let top = (self.y.saturating_add(margin_y + CELL_BORDER as u32))
-                    .saturating_sub(cursor_term_pos.y as u32);
+                let margin_x = (CELL_WIDTH + CELL_BORDER)
+                    .saturating_mul(config_margin)
+                    .max(1);
 
-                let right = (cursor_term_pos.x as u32).saturating_sub(
+                let margin_y = (CELL_HEIGHT + CELL_BORDER)
+                    .saturating_mul(config_margin)
+                    .max(1);
+
+                let cursor_box = Rect::new(
+                    self.x as u16,
+                    self.y as u16,
+                    area.width.saturating_sub(1),
+                    area.height.saturating_sub(1),
+                )
+                .inner(Margin::new(margin_x, margin_y));
+
+                let offset_x = if cursor_box.width > (CELL_WIDTH + CELL_BORDER * 2) {
+                    let right = cursor_term_pos
+                        .x
+                        .saturating_add(CELL_WIDTH)
+                        .saturating_sub(cursor_box.right());
+
+                    let left = cursor_box
+                        .left()
+                        .saturating_sub(cursor_term_pos.x.saturating_sub(CELL_BORDER));
+
                     self.x
-                        .saturating_add(area.width as u32)
-                        .saturating_sub(margin_x + (CELL_WIDTH + CELL_BORDER) as u32),
-                );
+                        .saturating_add(right as u32)
+                        .saturating_sub(left as u32)
+                } else {
+                    debug!("zen");
+                    cursor_term_pos.x.saturating_sub(area.width.div(2)) as u32
+                };
 
-                let bottom = (cursor_term_pos.y as u32).saturating_sub(
+                let offset_y = if cursor_box.height > (CELL_HEIGHT + CELL_BORDER * 2) {
+                    let top = cursor_box
+                        .top()
+                        .saturating_sub(cursor_term_pos.y.saturating_sub(CELL_BORDER));
+
+                    let bottom = cursor_term_pos
+                        .y
+                        .saturating_add(CELL_HEIGHT)
+                        .saturating_sub(cursor_box.bottom());
+
                     self.y
-                        .saturating_add(area.height as u32)
-                        .saturating_sub(margin_y + (CELL_HEIGHT + CELL_BORDER) as u32),
-                );
-
-                let left = (self.x.saturating_add(margin_x + CELL_BORDER as u32))
-                    .saturating_sub(cursor_term_pos.x as u32);
+                        .saturating_add(bottom as u32)
+                        .saturating_sub(top as u32)
+                } else {
+                    debug!("zen");
+                    cursor_term_pos.y.saturating_sub(area.height.div(2)) as u32
+                };
 
                 debug!(
-                    "cursor {:?}, offset {:?}, margin_x: {}, margin_y: {}",
-                    cursor_term_pos, self, margin_x, margin_y
+                    "area: {area:?} cursor_box: {cursor_box:?}, cursor: {}",
+                    cursor_term_pos
                 );
 
-                self.with(
-                    self.x.saturating_sub(left).saturating_add(right),
-                    self.y.saturating_sub(top).saturating_add(bottom),
-                    area,
-                );
-
-                debug!("{}, {}, {}, {}", top, right, bottom, left);
+                self.with(offset_x, offset_y, area);
             }
         }
     }
