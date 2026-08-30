@@ -110,7 +110,7 @@ impl GridOffset {
         config: FollowCursorConfig,
     ) {
         // use the current offset to determine what side of the screen we should stick to
-        // (by calculating least travel)
+        // by calculating least travel?
 
         let cursor_term_pos = cursor_to_terminal_position(grid_input, area, GridOffset::default())
             .offset(Offset {
@@ -126,7 +126,43 @@ impl GridOffset {
                     area,
                 );
             }
-            FollowCursorMode::Sticky => {}
+            FollowCursorMode::Sticky => {
+                let margin_x = ((CELL_WIDTH + CELL_BORDER) as u32)
+                    .saturating_mul(config.follow_cursor_sticky_margin.0);
+                let margin_y = ((CELL_HEIGHT + CELL_BORDER) as u32)
+                    .saturating_mul(config.follow_cursor_sticky_margin.0);
+
+                let top = (self.y.saturating_add(margin_y + CELL_BORDER as u32))
+                    .saturating_sub(cursor_term_pos.y as u32);
+
+                let right = (cursor_term_pos.x as u32).saturating_sub(
+                    self.x
+                        .saturating_add(area.width as u32)
+                        .saturating_sub(margin_x + (CELL_WIDTH + CELL_BORDER) as u32),
+                );
+
+                let bottom = (cursor_term_pos.y as u32).saturating_sub(
+                    self.y
+                        .saturating_add(area.height as u32)
+                        .saturating_sub(margin_y + (CELL_HEIGHT + CELL_BORDER) as u32),
+                );
+
+                let left = (self.x.saturating_add(margin_x + CELL_BORDER as u32))
+                    .saturating_sub(cursor_term_pos.x as u32);
+
+                debug!(
+                    "cursor {:?}, offset {:?}, margin_x: {}, margin_y: {}",
+                    cursor_term_pos, self, margin_x, margin_y
+                );
+
+                self.with(
+                    self.x.saturating_sub(left).saturating_add(right),
+                    self.y.saturating_sub(top).saturating_add(bottom),
+                    area,
+                );
+
+                debug!("{}, {}, {}, {}", top, right, bottom, left);
+            }
         }
     }
 }
@@ -209,11 +245,11 @@ impl GridView {
             y: mouse_event.row,
         };
 
-        debug!(
-            "{:?}, {:?}",
-            pointer_pos,
-            terminal_to_grid_position(pointer_pos, viewport_area, self.grid_offset)
-        );
+        // debug!(
+        //     "{:?}, {:?}",
+        //     pointer_pos,
+        //     terminal_to_grid_position(pointer_pos, viewport_area, self.grid_offset)
+        // );
 
         match mouse_event.kind {
             MouseEventKind::Down(mouse_button) if mouse_button == MouseButton::Left => {

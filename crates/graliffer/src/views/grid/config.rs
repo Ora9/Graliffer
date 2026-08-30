@@ -1,11 +1,9 @@
 #[derive(Debug, Clone, Copy)]
-pub struct FollowCursorStickyMargin {
-    pub margin: u32,
-}
+pub struct FollowCursorStickyMargin(pub u32);
 
 impl Default for FollowCursorStickyMargin {
     fn default() -> Self {
-        Self { margin: 5 }
+        Self(20)
     }
 }
 
