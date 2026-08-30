@@ -109,9 +109,6 @@ impl GridOffset {
         area: Rect,
         config: FollowCursorConfig,
     ) {
-        // use the current offset to determine what side of the screen we should stick to
-        // by calculating least travel?
-
         let cursor_term_pos = cursor_to_terminal_position(grid_input, area, GridOffset::default())
             .offset(Offset {
                 x: (area.x as i32).neg(),
@@ -149,7 +146,10 @@ impl GridOffset {
                 )
                 .inner(Margin::new(margin_x, margin_y));
 
-                let offset_x = if cursor_box.width > (CELL_WIDTH + CELL_BORDER * 2) {
+                let offset_x = if cursor_box.width <= (CELL_WIDTH + CELL_BORDER * 2) {
+                    // default to Centered mode
+                    cursor_term_pos.x.saturating_sub(area.width.div(2)) as u32
+                } else {
                     let right = cursor_term_pos
                         .x
                         .saturating_add(CELL_WIDTH)
@@ -162,12 +162,12 @@ impl GridOffset {
                     self.x
                         .saturating_add(right as u32)
                         .saturating_sub(left as u32)
-                } else {
-                    debug!("zen");
-                    cursor_term_pos.x.saturating_sub(area.width.div(2)) as u32
                 };
 
-                let offset_y = if cursor_box.height > (CELL_HEIGHT + CELL_BORDER * 2) {
+                let offset_y = if cursor_box.height <= (CELL_HEIGHT + CELL_BORDER * 2) {
+                    // default to Centered mode
+                    cursor_term_pos.y.saturating_sub(area.height.div(2)) as u32
+                } else {
                     let top = cursor_box
                         .top()
                         .saturating_sub(cursor_term_pos.y.saturating_sub(CELL_BORDER));
@@ -180,15 +180,7 @@ impl GridOffset {
                     self.y
                         .saturating_add(bottom as u32)
                         .saturating_sub(top as u32)
-                } else {
-                    debug!("zen");
-                    cursor_term_pos.y.saturating_sub(area.height.div(2)) as u32
                 };
-
-                debug!(
-                    "area: {area:?} cursor_box: {cursor_box:?}, cursor: {}",
-                    cursor_term_pos
-                );
 
                 self.with(offset_x, offset_y, area);
             }
