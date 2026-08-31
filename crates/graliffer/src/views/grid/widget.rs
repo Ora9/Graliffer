@@ -6,7 +6,6 @@ use std::{
 use act::{Action, Revert, State};
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 use grai::Direction;
-use log::debug;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Margin, Offset, Position, Rect, Size},
@@ -20,7 +19,7 @@ use tui_input::InputRequest;
 
 use crate::{
     AppAction, Context, CursorMovement, FollowCursorConfig, FollowCursorMode, GridInput,
-    GutterSizeConfig, View, ViewType, views::grid,
+    GutterSizeConfig, View, ViewType,
 };
 
 const CELL_WIDTH: u16 = 3;
@@ -288,12 +287,6 @@ impl GridView {
             y: mouse_event.row,
         };
 
-        // debug!(
-        //     "{:?}, {:?}",
-        //     pointer_pos,
-        //     terminal_to_grid_position(pointer_pos, viewport_area, self.grid_offset)
-        // );
-
         match mouse_event.kind {
             MouseEventKind::Down(mouse_button) if mouse_button == MouseButton::Left => {
                 if let Some(grid_pos) =
@@ -439,8 +432,6 @@ impl StatefulWidget for GridWidget {
             horizontal_gutter_area,
             vertical_gutter_area,
         });
-
-        // debug!("{view_area:?} {grid_area:?} {horizontal_gutter_area:?} {vertical_gutter_area:?}");
 
         // A separate buffer is used to render the grid,
         // this is used to mask everything that is outside of the grid widget viewport
@@ -611,8 +602,6 @@ impl StatefulWidget for GridWidget {
             cursor_cell.modifier = cursor_cell.modifier.union(Modifier::REVERSED);
         }
 
-        // debug!("{:?}, {grid_position}", overdraw_area);
-
         // our own implementation of Buffer::merge
         buffer_merge_areas(
             &overdraw_buf,
@@ -696,8 +685,6 @@ impl State for GridView {
                         self.cursor_movement(CursorMovement::StepGrid(Direction::Right));
                     }
 
-                    // self.grid_input.insert(&mut frame.grid, c);
-                    // self.handle_input_request(InputRequest::InsertChar(c));
                     self.handle_insert(c);
                 }
             }
