@@ -220,19 +220,29 @@ impl Position {
         self.x.as_numeric()
     }
 
-    /// Returns the textual representation of the `x` (horizontal) component of a `Position`
-    pub fn x_as_textual(&self) -> char {
-        self.x.as_textual()
-    }
-
     /// Returns the numeric representation of the `y` (vertical) component of a `Position`
     pub fn y(&self) -> u32 {
         self.y.as_numeric()
     }
 
+    /// Returns the textual representation of the `x` (horizontal) component of a `Position`
+    pub fn x_as_textual(&self) -> char {
+        self.x.as_textual()
+    }
+
     /// Returns the textual representation of the `y` (vertical) component of a `Position`
     pub fn y_as_textual(&self) -> char {
         self.y.as_textual()
+    }
+
+    /// Returns the `x` (horizontal) component of a `Position` in [`GranaryDigit`]
+    pub fn granary_x(&self) -> GranaryDigit {
+        self.x
+    }
+
+    /// Returns the `y` (vertical) component of a `Position` in [`GranaryDigit`]
+    pub fn granary_y(&self) -> GranaryDigit {
+        self.y
     }
 
     /// Performs an addition on two [`Position`]

@@ -23,27 +23,24 @@ impl AppState {
     }
 
     pub fn handle_mouse_event(&mut self, mouse_event: MouseEvent) {
+        let mouse_pos = Position {
+            x: mouse_event.column,
+            y: mouse_event.row,
+        };
+
         if let Some(console_layouts) = self.console_state.layouts() {
             let contained = console_layouts
                 .viewport_area()
                 .union(console_layouts.vertical_scrollbar_area())
-                .contains(Position {
-                    x: mouse_event.column,
-                    y: mouse_event.row,
-                });
+                .contains(mouse_pos);
 
             if contained {
                 self.console_state.handle_mouse_event(mouse_event);
             }
         }
 
-        if let Some(grid_layout) = self.grid_state.layout() {
-            let contained = grid_layout.contains(Position {
-                x: mouse_event.column,
-                y: mouse_event.row,
-            });
-
-            if contained {
+        if let Some(grid_layout) = self.grid_state.layouts() {
+            if grid_layout.union().contains(mouse_pos) {
                 self.grid_state.handle_mouse_event(mouse_event);
             }
         }

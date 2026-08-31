@@ -6,19 +6,21 @@ use std::{
 use act::{Action, Revert, State};
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 use grai::Direction;
+use log::debug;
 use ratatui::{
     buffer::Buffer,
-    layout::{Margin, Offset, Position, Rect},
+    layout::{Constraint, Layout, Margin, Offset, Position, Rect, Size},
     style::{Color, Modifier, Style, Stylize},
     symbols::merge::MergeStrategy,
+    text::Span,
     widgets::{Block, BorderType, Paragraph, StatefulWidget, Widget},
 };
 use serde::{Deserialize, Serialize};
 use tui_input::InputRequest;
 
 use crate::{
-    AppAction, Context, CursorMovement, FollowCursorConfig, FollowCursorMode, GridInput, View,
-    ViewType,
+    AppAction, Context, CursorMovement, FollowCursorConfig, FollowCursorMode, GridInput,
+    GutterSizeConfig, View, ViewType, views::grid,
 };
 
 const CELL_WIDTH: u16 = 3;
@@ -125,7 +127,6 @@ impl GridOffset {
             FollowCursorMode::Sticky => {
                 let config_margin = config
                     .follow_cursor_sticky_margin
-                    .0
                     .try_into()
                     .unwrap_or(u16::MAX);
 
@@ -226,7 +227,6 @@ impl DragState {
 
 #[derive(Debug)]
 pub struct GridView {
-    #[allow(unused)]
     context: Context,
 
     frame: grai::FrameGuard,
@@ -235,7 +235,30 @@ pub struct GridView {
     grid_offset: GridOffset,
     drag_state: DragState,
 
-    layout: Option<Rect>,
+    layouts: Option<GridLayout>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct GridLayout {
+    pub grid_area: Rect,
+    pub horizontal_gutter_area: Option<Rect>,
+    pub vertical_gutter_area: Option<Rect>,
+}
+
+impl GridLayout {
+    pub fn union(&self) -> Rect {
+        let mut union = self.grid_area;
+
+        if let Some(x_gutter) = self.horizontal_gutter_area {
+            union = union.union(x_gutter);
+        };
+
+        if let Some(y_gutter) = self.vertical_gutter_area {
+            union = union.union(y_gutter);
+        };
+
+        union
+    }
 }
 
 impl GridView {
@@ -249,14 +272,14 @@ impl GridView {
             grid_input,
             grid_offset: GridOffset::default(),
 
-            layout: None,
+            layouts: None,
 
             drag_state: DragState::Idle,
         }
     }
 
     pub fn handle_mouse_event(&mut self, mouse_event: MouseEvent) {
-        let Some(viewport_area) = self.layout() else {
+        let Some(view_layout) = self.layouts() else {
             return;
         };
 
@@ -274,7 +297,7 @@ impl GridView {
         match mouse_event.kind {
             MouseEventKind::Down(mouse_button) if mouse_button == MouseButton::Left => {
                 if let Some(grid_pos) =
-                    terminal_to_grid_position(pointer_pos, viewport_area, self.grid_offset)
+                    terminal_to_grid_position(pointer_pos, view_layout.grid_area, self.grid_offset)
                 {
                     self.cursor_movement(CursorMovement::Jump(grid_pos));
                 }
@@ -294,7 +317,7 @@ impl GridView {
                 self.grid_offset.with(
                     self.grid_offset.x.saturating_add_signed(x_offset),
                     self.grid_offset.y.saturating_add_signed(y_offset),
-                    viewport_area,
+                    view_layout.grid_area,
                 );
             }
             MouseEventKind::Drag(button) if button.is_left() => {
@@ -316,7 +339,7 @@ impl GridView {
                             (start_pointer_pos.y as i16).saturating_sub_unsigned(pointer_pos.y)
                                 as i32,
                         ),
-                        viewport_area,
+                        view_layout.grid_area,
                     );
                 }
             }
@@ -331,9 +354,9 @@ impl GridView {
     fn follow_cursor(&mut self) {
         let config = self.context.config(|config| config.grid.follow_cursor);
 
-        if let Some(area) = self.layout() {
+        if let Some(view_layout) = self.layouts() {
             self.grid_offset
-                .follow_cursor(&self.grid_input, area, config);
+                .follow_cursor(&self.grid_input, view_layout.grid_area, config);
         };
     }
 
@@ -361,8 +384,8 @@ impl GridView {
         self.follow_cursor();
     }
 
-    pub fn layout(&self) -> Option<Rect> {
-        self.layout
+    pub fn layouts(&self) -> Option<GridLayout> {
+        self.layouts
     }
 }
 
@@ -378,36 +401,80 @@ impl GridWidget {
 impl StatefulWidget for GridWidget {
     type State = GridView;
 
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        state.layout = Some(area);
+    fn render(self, view_area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        let gutter_config = state.context.config(|config| config.grid.gutter);
+        let gutter_margin = match gutter_config.size {
+            GutterSizeConfig::Proportional => Margin {
+                horizontal: 2,
+                vertical: 1,
+            },
+            GutterSizeConfig::Minimal => Margin {
+                horizontal: 1,
+                vertical: 1,
+            },
+        };
+
+        let (grid_area, horizontal_gutter_area, vertical_gutter_area) = if gutter_config.show {
+            let [horizontal_gutter_area, horizontal] = view_area.layout(&Layout::vertical(vec![
+                Constraint::Length(gutter_margin.vertical),
+                Constraint::Fill(1),
+            ]));
+
+            let [vertical_gutter_area, grid_area] = horizontal.layout(&Layout::horizontal(vec![
+                Constraint::Length(gutter_margin.horizontal),
+                Constraint::Fill(1),
+            ]));
+
+            (
+                grid_area,
+                Some(horizontal_gutter_area),
+                Some(vertical_gutter_area),
+            )
+        } else {
+            (view_area, None, None)
+        };
+
+        state.layouts = Some(GridLayout {
+            grid_area,
+            horizontal_gutter_area,
+            vertical_gutter_area,
+        });
+
+        // debug!("{view_area:?} {grid_area:?} {horizontal_gutter_area:?} {vertical_gutter_area:?}");
 
         // A separate buffer is used to render the grid,
         // this is used to mask everything that is outside of the grid widget viewport
         // this is because widget drawn outside the buffer are clamped to the border, but we want to
         // have widgets drawn partialy onto the viewport
-        let overdraw_cells: u32 = 1;
+        const OVERDRAW_CELL: u16 = 1;
         let overdraw_margin = Margin::new(
-            (CELL_WIDTH + CELL_BORDER * 2 * overdraw_cells as u16) as u16,
-            (CELL_HEIGHT + CELL_BORDER * 2 * overdraw_cells as u16) as u16,
+            (CELL_WIDTH + CELL_BORDER * 2 * OVERDRAW_CELL) as u16,
+            (CELL_HEIGHT + CELL_BORDER * 2 * OVERDRAW_CELL) as u16,
         );
-        let mut overdraw_buf = Buffer::empty(Rect {
-            x: 0,
-            y: 0,
-            width: area.width + overdraw_margin.horizontal * 2,
-            height: area.height + overdraw_margin.vertical * 2,
-        });
-        let overdraw_area = overdraw_buf.area().inner(overdraw_margin);
+
+        let overdraw_grid_area = Rect {
+            x: grid_area.x.saturating_sub(view_area.x),
+            y: grid_area.y.saturating_sub(view_area.y),
+            width: grid_area.width,
+            height: grid_area.height,
+        }
+        .offset(Offset::new(
+            overdraw_margin.horizontal.into(),
+            overdraw_margin.vertical.into(),
+        ));
+
+        let mut overdraw_buf = Buffer::empty(overdraw_grid_area.outer(overdraw_margin));
 
         let left_top_cell = terminal_to_grid_position(
-            Position::new(overdraw_area.left(), overdraw_area.top()),
-            overdraw_area,
+            Position::new(grid_area.left(), grid_area.top()),
+            grid_area,
             state.grid_offset,
         )
         .unwrap_or(grai::Position::MIN);
 
         let right_bottom_cell = terminal_to_grid_position(
-            Position::new(overdraw_area.right(), overdraw_area.bottom()),
-            overdraw_area,
+            Position::new(grid_area.right(), grid_area.bottom()),
+            grid_area,
             state.grid_offset,
         )
         .unwrap_or(grai::Position::MAX);
@@ -418,14 +485,15 @@ impl StatefulWidget for GridWidget {
                     .expect("should be able to construct a valid position");
 
                 let term_pos =
-                    grid_to_terminal_position(grid_pos, overdraw_area, state.grid_offset);
+                    grid_to_terminal_position(grid_pos, overdraw_grid_area, state.grid_offset);
 
-                let cell_area = Rect::new(
-                    term_pos.x,
-                    term_pos.y,
-                    CELL_WIDTH + CELL_BORDER * 2,
-                    CELL_HEIGHT + CELL_BORDER * 2,
-                );
+                let cell_area = Rect::from((
+                    term_pos,
+                    Size {
+                        width: CELL_WIDTH + CELL_BORDER * 2,
+                        height: CELL_HEIGHT + CELL_BORDER * 2,
+                    },
+                ));
 
                 let cell_content = state.frame.read(|frame| frame.grid.get(grid_pos));
 
@@ -440,15 +508,92 @@ impl StatefulWidget for GridWidget {
             }
         }
 
+        if let Some(horizontal_gutter_area) = horizontal_gutter_area {
+            for cell_x in left_top_cell.x()..=right_bottom_cell.x() {
+                let x_coord = grai::granary::GranaryDigit::from_numeric(cell_x)
+                    .expect("should be able to construct a valid position");
+
+                let term_pos = grid_to_terminal_position(
+                    grai::Position::from_granary_digits(x_coord, grai::granary::GranaryDigit::MIN),
+                    grid_area,
+                    state.grid_offset,
+                )
+                .offset(Offset {
+                    x: (CELL_BORDER + CELL_WIDTH / 2).into(),
+                    y: 1,
+                });
+
+                if term_pos.x < grid_area.left() || term_pos.x >= grid_area.right() {
+                    continue;
+                }
+
+                let area = Rect {
+                    x: term_pos.x,
+                    y: horizontal_gutter_area.y,
+                    width: 1,
+                    height: 1,
+                };
+
+                let fg = if x_coord == state.grid_input.grid_cursor().granary_x() {
+                    Color::White
+                } else {
+                    Color::DarkGray
+                };
+
+                Span::raw(x_coord.as_textual().to_string())
+                    .fg(fg)
+                    .render(area, buf);
+            }
+        }
+
+        if let Some(vertical_gutter_area) = vertical_gutter_area {
+            for cell_y in left_top_cell.y()..=right_bottom_cell.y() {
+                let y_coord = grai::granary::GranaryDigit::from_numeric(cell_y)
+                    .expect("should be able to construct a valid position");
+
+                let term_pos = grid_to_terminal_position(
+                    grai::Position::from_granary_digits(grai::granary::GranaryDigit::MIN, y_coord),
+                    grid_area,
+                    state.grid_offset,
+                )
+                .offset(Offset {
+                    x: 0,
+                    y: (CELL_BORDER).into(),
+                });
+
+                if term_pos.y < grid_area.top() || term_pos.y >= grid_area.bottom() {
+                    continue;
+                }
+
+                let area = Rect {
+                    x: vertical_gutter_area.x,
+                    y: term_pos.y,
+                    width: 1,
+                    height: 1,
+                };
+
+                let fg = if y_coord == state.grid_input.grid_cursor().granary_y() {
+                    Color::White
+                } else {
+                    Color::DarkGray
+                };
+
+                Span::raw(y_coord.as_textual().to_string())
+                    .fg(fg)
+                    .render(area, buf);
+            }
+        }
+
         let head_grid_pos = state.frame.read(|frame| frame.head.position);
         let head_term_pos =
-            grid_to_terminal_position(head_grid_pos, overdraw_area, state.grid_offset);
-        let head_area = Rect::new(
-            head_term_pos.x,
-            head_term_pos.y,
-            CELL_WIDTH + CELL_BORDER * 2,
-            CELL_HEIGHT + CELL_BORDER * 2,
-        );
+            grid_to_terminal_position(head_grid_pos, overdraw_grid_area, state.grid_offset);
+        let head_area = Rect::from((
+            head_term_pos,
+            Size {
+                width: CELL_WIDTH + CELL_BORDER * 2,
+                height: CELL_HEIGHT + CELL_BORDER * 2,
+            },
+        ));
         Block::bordered()
             .border_type(BorderType::Thick)
             .border_style(Style::default().fg(Color::White))
@@ -456,8 +601,7 @@ impl StatefulWidget for GridWidget {
             .render(head_area, &mut overdraw_buf);
 
         let cursor_term_pos =
-            cursor_to_terminal_position(&state.grid_input, overdraw_area, state.grid_offset);
-
+            cursor_to_terminal_position(&state.grid_input, overdraw_grid_area, state.grid_offset);
         if let Some(cursor_cell) = overdraw_buf.cell_mut(cursor_term_pos) {
             cursor_cell.fg = if state.grid_input.char_at_max() {
                 Color::DarkGray
@@ -467,36 +611,36 @@ impl StatefulWidget for GridWidget {
             cursor_cell.modifier = cursor_cell.modifier.union(Modifier::REVERSED);
         }
 
+        // debug!("{:?}, {grid_position}", overdraw_area);
+
         // our own implementation of Buffer::merge
-        buffer_merge_areas(buf, area.as_position(), &overdraw_buf, overdraw_area);
+        buffer_merge_areas(
+            &overdraw_buf,
+            overdraw_grid_area,
+            buf,
+            grid_area.as_position(),
+        );
     }
 }
 
+/// TODO: mabye open a pull request to ratatui to propose this buffer method
 fn buffer_merge_areas(
-    dest_buf: &mut Buffer,
-    dest_pos: Position,
     from_buf: &Buffer,
     from_area: Rect,
+    dest_buf: &mut Buffer,
+    dest_pos: Position,
 ) {
-    // let size = from_area.area();
-    for y in from_area.y..(from_area.y + from_area.height) {
-        for x in from_area.x..(from_area.x + from_area.width) {
-            let from_pos = Position::new(x, y);
-            let from_cell = from_buf.cell(from_pos);
+    for from_pos in from_area.positions() {
+        let dest_pos = dest_pos.offset(Offset::new(
+            from_pos.x.saturating_sub(from_area.x) as i32,
+            from_pos.y.saturating_sub(from_area.y) as i32,
+        ));
 
-            let dest_pos = dest_pos.offset(Offset::new(
-                x.saturating_sub(from_area.left()) as i32,
-                y.saturating_sub(from_area.top()) as i32,
-            ));
-
-            let dest_cell = dest_buf.cell_mut(dest_pos);
-
-            if let Some(dest_cell) = dest_cell
-                && let Some(from_cell) = from_cell
-            {
-                dest_cell.set_symbol(from_cell.symbol());
-                dest_cell.set_style(from_cell.style());
-            }
+        if let Some(from_cell) = from_buf.cell(from_pos)
+            && let Some(dest_cell) = dest_buf.cell_mut(dest_pos)
+        {
+            dest_cell.set_symbol(from_cell.symbol());
+            dest_cell.set_style(from_cell.style());
         }
     }
 }
