@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "act"
-version = "0.1.0"
+version = "0.0.1"
 
 [[package]]
 name = "addr2line"
@@ -646,7 +646,7 @@ dependencies = [
 
 [[package]]
 name = "grai"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "act",
  "iftree",
@@ -661,7 +661,7 @@ dependencies = [
 
 [[package]]
 name = "graliffer"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "act",
  "ahash",
