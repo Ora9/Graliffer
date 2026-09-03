@@ -1,3 +1,4 @@
+use act::{Revert, State};
 use grai::{Direction, HorizontalDirection};
 use tui_input::{Input, InputRequest};
 
@@ -47,7 +48,7 @@ impl GridInput {
             grid_cursor: grai::Position::default(),
         };
 
-        grid_input.sync_input(grid);
+        grid_input.sync_input_from_grid(grid);
         grid_input.set_char_position(CharCursorPosition::AtEnd, grid);
         grid_input
     }
@@ -77,18 +78,34 @@ impl GridInput {
         self.input.value().len() >= 3
     }
 
-    pub fn insert(&mut self, grid: &mut grai::Grid, input: char) {
+    pub fn insert(&mut self, grid: &mut grai::Grid, input: char) -> Revert {
         if !self.input_full() && input != ' ' {
-            self.handle(grid, InputRequest::InsertChar(input));
+            self.handle(grid, InputRequest::InsertChar(input))
+        } else {
+            Revert::None
         }
     }
 
-    pub fn handle(&mut self, grid: &mut grai::Grid, input_request: InputRequest) {
+    pub fn handle(&mut self, grid: &mut grai::Grid, input_request: InputRequest) -> Revert {
         // TODO, BUG: when cursor at right border, inserting when cell full move the cursor back
 
+        let grid_cell = grid.get(self.grid_cursor());
         self.input.handle(input_request);
-        grid.set(self.grid_cursor, grai::Cell::new_trim(self.input.value()));
-        self.sync_input(grid);
+
+        let revert = if self.input.value() != grid_cell.as_str() {
+            grid.act(grai::GridAction::Set(
+                self.grid_cursor,
+                grai::Cell::new_trim(self.input.value()),
+            ))
+        } else {
+            Ok(Revert::None)
+        };
+
+        self.sync_input_from_grid(grid);
+
+        match revert {
+            Ok(revert) => revert,
+        }
     }
 
     pub fn with_movement(&mut self, movement: CursorMovement, grid: &grai::Grid) {
@@ -180,11 +197,11 @@ impl GridInput {
         grid: &grai::Grid,
     ) {
         self.set_grid_position(grid_position, grid);
-        self.sync_input(grid);
+        self.sync_input_from_grid(grid);
         self.set_char_position(char_position, grid);
     }
 
-    fn sync_input(&mut self, grid: &grai::Grid) {
+    fn sync_input_from_grid(&mut self, grid: &grai::Grid) {
         let cursor = self.input.cursor();
         self.input = Input::new(grid.get(self.grid_cursor).to_string());
         self.input.handle(InputRequest::SetCursor(cursor));

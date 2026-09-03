@@ -353,26 +353,27 @@ impl GridView {
         };
     }
 
-    pub fn handle_insert(&mut self, input: char) {
-        self.frame.write(|frame| {
-            self.grid_input.insert(&mut frame.grid, input);
-        });
+    pub fn handle_insert(&mut self, input: char) -> Revert {
+        let revert = self
+            .frame
+            .write(|frame| self.grid_input.insert(&mut frame.grid, input));
 
         self.follow_cursor();
+        revert
     }
 
-    pub fn handle_input_request(&mut self, input_request: InputRequest) {
-        self.frame.write(|frame| {
-            self.grid_input.handle(&mut frame.grid, input_request);
-        });
+    pub fn handle_input_request(&mut self, input_request: InputRequest) -> Revert {
+        let revert = self
+            .frame
+            .write(|frame| self.grid_input.handle(&mut frame.grid, input_request));
 
         self.follow_cursor();
+        revert
     }
 
     pub fn cursor_movement(&mut self, movement: CursorMovement) {
-        self.frame.read(|frame| {
-            self.grid_input.with_movement(movement, &frame.grid);
-        });
+        self.frame
+            .read(|frame| self.grid_input.with_movement(movement, &frame.grid));
 
         self.follow_cursor();
     }
@@ -636,6 +637,8 @@ fn buffer_merge_areas(
 
 #[derive(Debug, Clone, strum::EnumString, Serialize, Deserialize)]
 pub enum GridAction {
+    Set(String),
+
     Insert(String),
 
     InsertOverflow(String),
@@ -672,51 +675,55 @@ impl State for GridView {
         let action = action.into();
         use GridAction::*;
 
-        match action {
+        let revert = match action {
             Insert(input) => {
+                let mut revert = Revert::None;
+
                 for c in input.chars() {
-                    self.handle_insert(c);
+                    revert.extend(self.handle_insert(c));
                 }
+
+                revert
             }
 
             InsertOverflow(input) => {
+                let mut revert = Revert::None;
+
                 for c in input.chars() {
                     if self.grid_input.char_at_max() || c == ' ' {
                         self.cursor_movement(CursorMovement::StepGrid(Direction::Right));
                     }
 
-                    self.handle_insert(c);
+                    revert.extend(self.handle_insert(c));
                 }
+
+                revert
             }
 
             DeletePrevCharOrStepLeftGrid => {
                 if self.grid_input.char_cursor() != 0 {
-                    self.handle_input_request(InputRequest::DeletePrevChar);
+                    self.handle_input_request(InputRequest::DeletePrevChar)
                 } else {
                     self.cursor_movement(CursorMovement::StepGrid(Direction::Left));
+                    Revert::None
                 }
             }
 
             // todo: use the newer DeleteFromStart
-            DeleteTillStart => {
-                self.handle_input_request(InputRequest::DeletePrevWord);
-            }
+            DeleteTillStart => self.handle_input_request(InputRequest::DeletePrevWord),
 
             DeleteTillStartOrStepLeftGrid => {
                 if self.grid_input.char_cursor() != 0 {
-                    self.handle_input_request(InputRequest::DeletePrevWord);
+                    self.handle_input_request(InputRequest::DeletePrevWord)
                 } else {
                     self.cursor_movement(CursorMovement::StepGrid(Direction::Left));
+                    Revert::None
                 }
             }
 
-            DeletePrevChar => {
-                self.handle_input_request(InputRequest::DeletePrevChar);
-            }
+            DeletePrevChar => self.handle_input_request(InputRequest::DeletePrevChar),
 
-            DeleteNextChar => {
-                self.handle_input_request(InputRequest::DeleteNextChar);
-            }
+            DeleteNextChar => self.handle_input_request(InputRequest::DeleteNextChar),
 
             CursorStepUpGrid | CursorStepDownGrid | CursorStepLeftGrid | CursorStepRightGrid => {
                 let direction = match action {
@@ -728,6 +735,8 @@ impl State for GridView {
                 };
 
                 self.cursor_movement(CursorMovement::StepGrid(direction));
+
+                Revert::None
             }
 
             CursorStepLeftCharThenGrid | CursorStepRightCharThenGrid => {
@@ -738,6 +747,8 @@ impl State for GridView {
                 };
 
                 self.cursor_movement(CursorMovement::StepCharThenGrid(direction));
+
+                Revert::None
             }
 
             CursorDashUpCharThenGrid
@@ -753,9 +764,12 @@ impl State for GridView {
                 };
 
                 self.cursor_movement(CursorMovement::DashUntilBoundsOrNonEmpty(direction));
+
+                Revert::None
             }
-        }
-        Ok(Revert::None)
+        };
+
+        Ok(revert)
     }
 }
 

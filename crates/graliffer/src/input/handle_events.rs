@@ -1,45 +1,36 @@
-use act::{Revert, State};
+use act::{Revert, State, Timeline};
 use crossterm::event::{KeyEvent, MouseEvent};
 use log::debug;
 use ratatui::layout::Position;
 
 use crate::{AppState, Context, GridView, Key, Keystroke, Picker, PickerView, View};
 
-impl AppState {
-    pub fn handle_key_events(&mut self, key_event: KeyEvent, app_context: Context) {
-        let revert = if let Ok(keystroke) = Keystroke::try_from(key_event) {
-            if let Some(action) = self.keymap.find(app_context, keystroke) {
-                match self.act(action) {
-                    Ok(revert) => revert,
-                }
-            } else if let Key::Char(char) = keystroke.key {
-                self.handle_input_sink(char.to_string())
-            } else {
-                Revert::None
+pub fn handle_key_events(
+    app_state_timeline: &mut Timeline<AppState>,
+    key_event: KeyEvent,
+    app_context: Context,
+) {
+    if let Ok(keystroke) = Keystroke::try_from(key_event) {
+        let state = app_state_timeline.state();
+
+        if let Some(action) = state.keymap.find(app_context, keystroke) {
+            app_state_timeline.act(action);
+        } else if let Key::Char(char) = keystroke.key {
+            let input = char.to_string();
+            let action = match state.focused().to_string().as_str() {
+                "Grid" => GridView::input_sink_action(input),
+                "Picker" => PickerView::input_sink_action(input),
+                _ => None,
+            };
+
+            if let Some(action) = action {
+                app_state_timeline.act(action);
             }
-        } else {
-            Revert::None
-        };
-
-        debug!("{:?}", revert);
-    }
-
-    pub fn handle_input_sink(&mut self, input: String) -> Revert {
-        let action = match self.focused().to_string().as_str() {
-            "Grid" => GridView::input_sink_action(input),
-            "Picker" => PickerView::input_sink_action(input),
-            _ => None,
-        };
-
-        if let Some(action) = action {
-            match self.act(action) {
-                Ok(revert) => revert,
-            }
-        } else {
-            Revert::None
         }
     }
+}
 
+impl AppState {
     pub fn handle_mouse_event(&mut self, mouse_event: MouseEvent) {
         let mouse_pos = Position {
             x: mouse_event.column,
