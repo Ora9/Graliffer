@@ -64,7 +64,10 @@ impl State for Grid {
     type Action = GridAction;
     type Error = Infallible;
 
-    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
+    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert<Self>, Self::Error>
+    where
+        Self: Sized,
+    {
         match action.into() {
             GridAction::Set(position, cell) => {
                 let last_cell = self.get(position);

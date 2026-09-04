@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use act::{Action, Revert, State};
+use act::{Action, IntoState, Revert, State};
 use serde::{Deserialize, Serialize};
 
 pub mod examples;
@@ -25,7 +25,7 @@ pub struct Frame {
 }
 
 impl Frame {
-    pub fn step(&mut self) -> Result<Revert, <Frame as State>::Error> {
+    pub fn step(&mut self) -> Result<Revert<Frame>, <Frame as State>::Error> {
         let cell = self.grid.get(self.head.position);
 
         if cell.is_empty() {
@@ -91,13 +91,22 @@ impl State for Frame {
     type Action = FrameAction;
     type Error = FrameError;
 
-    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
+    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert<Self>, Self::Error>
+    where
+        Self: Sized,
+    {
         match action.into() {
-            FrameAction::Grid(grid_action) => Ok(self.grid.act(grid_action).unwrap_infallible()),
-            FrameAction::Head(head_action) => Ok(self.head.act(head_action).unwrap_infallible()),
-            FrameAction::Stack(stack_action) => {
-                self.stack.act(stack_action).map_err(|err| err.into())
+            FrameAction::Grid(grid_action) => {
+                Ok(self.grid.act(grid_action).unwrap_infallible().into_state())
             }
+            FrameAction::Head(head_action) => {
+                Ok(self.head.act(head_action).unwrap_infallible().into_state())
+            }
+            FrameAction::Stack(stack_action) => Ok(self
+                .stack
+                .act(stack_action)
+                .map_err(|err| FrameError::Stack(err))?
+                .into_state()),
 
             FrameAction::Step => self.step(),
         }
@@ -125,7 +134,10 @@ impl State for FrameGuard {
     type Action = FrameAction;
     type Error = FrameError;
 
-    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
-        self.write(|frame| frame.act(action))
+    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert<Self>, Self::Error>
+    where
+        Self: Sized,
+    {
+        self.write(|frame| frame.act(action).map(|revert| revert.into_state()))
     }
 }

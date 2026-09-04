@@ -161,7 +161,7 @@ impl Opcode {
         })
     }
 
-    pub fn evaluate(self, frame: &mut Frame) -> Result<Revert, EvaluationError> {
+    pub fn evaluate(self, frame: &mut Frame) -> Result<Revert<Frame>, EvaluationError> {
         use Opcode::*;
         let mut frame = TimelineRef::new(frame);
 
