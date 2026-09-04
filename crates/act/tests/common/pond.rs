@@ -2,8 +2,6 @@ use std::{collections::HashMap, convert::Infallible, error::Error, fmt::Display}
 
 use act::{Action, FromState, IntoState, Revert, State};
 
-// use crate::common::pond::PondAction::BeginPatPatingFrog;
-
 #[derive(Debug)]
 pub struct Camp {
     hamoc: bool,
