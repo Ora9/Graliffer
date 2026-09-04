@@ -1,7 +1,13 @@
-use crate::{FromState, State};
+use crate::{Action, FromState, State};
 
 #[derive(Debug)]
 pub struct Apply<S: State>(Vec<S::Action>);
+
+impl<S: State> Clone for Apply<S> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
 
 impl<S: State> Apply<S> {
     pub fn new(action: S::Action) -> Self {
@@ -10,6 +16,15 @@ impl<S: State> Apply<S> {
 
     pub fn extend(&mut self, other: Self) {
         self.0.extend(other.0);
+    }
+}
+
+impl<S: State> IntoIterator for Apply<S> {
+    type Item = S::Action;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 

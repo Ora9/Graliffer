@@ -9,7 +9,7 @@ mod revert;
 pub use revert::*;
 
 mod undoes;
-pub use undoes::*;
+use undoes::*;
 
 pub trait FromState<T> {
     fn from_state(value: T) -> Self;
@@ -32,6 +32,7 @@ where
 pub enum TimelineError {
     // ActionError(E),
     NothingToUndo,
+    NothingToRedo,
 }
 
 #[derive(Debug)]
@@ -67,12 +68,20 @@ impl<S: State> Timeline<S> {
 
         self.state.act(action.clone()).map(|revert| {
             if let Revert::Apply(revert) = revert {
-                self.append(Undoable {
+                self.truncate_and_push(Undoable {
                     apply: Apply::new(action),
                     revert,
                 });
             }
         })
+    }
+
+    fn act_apply(&mut self, apply: Apply<S>) -> Result<(), S::Error> {
+        for action in apply.into_iter() {
+            self.state.act(action);
+        }
+
+        Ok(())
     }
 
     pub fn state(&self) -> &S {
@@ -83,16 +92,23 @@ impl<S: State> Timeline<S> {
         &mut self.state
     }
 
-    pub fn undoes(&self) -> &Undoes<S> {
-        &self.undoes
-    }
-
-    fn append(&mut self, undoable: Undoable<S>) {
-        self.undoes.append(undoable);
-    }
+    // pub fn undoes(&self) -> &Undoes<S> {
+    //     &self.undoes
+    // }
 
     pub fn into_revert(self) -> Revert<S> {
         self.undoes.into_reverts()
+    }
+
+    pub fn undo(&mut self) -> Result<(), TimelineError> {
+        let apply = self.undoes.undo()?.clone();
+        self.act_apply(apply)
+
+        Ok(())
+    }
+
+    fn truncate_and_push(&mut self, undoable: Undoable<S>) {
+        self.undoes.truncate_and_push(undoable);
     }
 }
 
@@ -134,7 +150,7 @@ impl<'a, S: State> TimelineRef<'a, S> {
     }
 
     fn append(&mut self, undoable: Undoable<S>) {
-        self.undoes.append(undoable);
+        self.undoes.push(undoable);
     }
 
     pub fn into_revert(self) -> Revert<S> {
