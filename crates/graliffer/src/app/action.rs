@@ -6,7 +6,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
-use act::{Action, Revert, State};
+use act::{Action, IntoState, Revert, State};
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum ActionParseError {
@@ -31,6 +31,16 @@ pub enum GralifferAction {
 #[derive(Debug, Clone, strum::EnumString, Serialize, Deserialize)]
 pub enum GraiAction {
     Step,
+
+    #[strum(disabled)]
+    #[serde(skip)]
+    Frame(grai::FrameAction),
+}
+
+impl From<grai::FrameAction> for GraiAction {
+    fn from(value: grai::FrameAction) -> Self {
+        Self::Frame(value)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -48,6 +58,12 @@ impl Action for AppAction {}
 impl From<GraiAction> for AppAction {
     fn from(value: GraiAction) -> Self {
         Self::Grai(value)
+    }
+}
+
+impl From<grai::FrameAction> for AppAction {
+    fn from(value: grai::FrameAction) -> Self {
+        Self::Grai(value.into())
     }
 }
 
@@ -133,19 +149,30 @@ impl State for AppState {
     type Action = AppAction;
     type Error = Infallible;
 
-    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
+    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert<Self>, Self::Error> {
         match action.into() {
-            AppAction::GridAction(grid_action) => self.grid_state.act(grid_action),
-            AppAction::ConsoleAction(console_action) => self.console_state.act(console_action),
-            AppAction::PickerAction(picker_action) => self.command_picker_state.act(picker_action),
+            AppAction::GridAction(grid_action) => match self.grid_state.act(grid_action) {
+                Ok(revert) => Ok(revert.into_state()),
+            },
+            AppAction::ConsoleAction(console_action) => {
+                match self.console_state.act(console_action) {
+                    Ok(revert) => Ok(revert.into_state()),
+                }
+            }
+            AppAction::PickerAction(picker_action) => {
+                match self.command_picker_state.act(picker_action) {
+                    Ok(revert) => Ok(revert.into_state()),
+                }
+            }
             AppAction::Grai(grai_action) => {
                 use GraiAction::*;
                 let revert = match grai_action {
-                    // That unwrap must go away!
+                    // TODO: These unwraps must go away!
                     Step => self.frame.act(grai::FrameAction::Step).unwrap(),
+                    Frame(action) => self.frame.act(action).unwrap(),
                 };
 
-                Ok(revert)
+                Ok(revert.into_state())
             }
             AppAction::GralifferAction(app_action) => {
                 use GralifferAction::*;

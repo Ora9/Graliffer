@@ -3,7 +3,7 @@ use std::{
     ops::{Div, Neg},
 };
 
-use act::{Action, Revert, State};
+use act::{Action, IntoState, Revert, State};
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 use grai::Direction;
 use ratatui::{
@@ -353,7 +353,7 @@ impl GridView {
         };
     }
 
-    pub fn handle_insert(&mut self, input: char) -> Revert {
+    pub fn handle_insert(&mut self, input: char) -> Revert<grai::Grid> {
         let revert = self
             .frame
             .write(|frame| self.grid_input.insert(&mut frame.grid, input));
@@ -362,7 +362,7 @@ impl GridView {
         revert
     }
 
-    pub fn handle_input_request(&mut self, input_request: InputRequest) -> Revert {
+    pub fn handle_input_request(&mut self, input_request: InputRequest) -> Revert<grai::Grid> {
         let revert = self
             .frame
             .write(|frame| self.grid_input.handle(&mut frame.grid, input_request));
@@ -637,7 +637,9 @@ fn buffer_merge_areas(
 
 #[derive(Debug, Clone, strum::EnumString, Serialize, Deserialize)]
 pub enum GridAction {
-    Set(String),
+    #[strum(disabled)]
+    #[serde(skip)]
+    GraiGridAction(grai::GridAction),
 
     Insert(String),
 
@@ -667,15 +669,28 @@ pub enum GridAction {
 
 impl Action for GridAction {}
 
+impl From<grai::GridAction> for GridAction {
+    fn from(value: grai::GridAction) -> Self {
+        Self::GraiGridAction(value)
+    }
+}
+
 impl State for GridView {
     type Action = GridAction;
     type Error = Infallible;
 
-    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
+    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert<Self>, Self::Error> {
         let action = action.into();
         use GridAction::*;
 
-        let revert = match action {
+        let revert: Revert<grai::Grid> = match action {
+            GraiGridAction(grai_grid_action) => {
+                self.frame
+                    .write(|frame| match frame.grid.act(grai_grid_action) {
+                        Ok(revert) => revert,
+                    })
+            }
+
             Insert(input) => {
                 let mut revert = Revert::None;
 
@@ -769,7 +784,7 @@ impl State for GridView {
             }
         };
 
-        Ok(revert)
+        Ok(revert.into_state())
     }
 }
 

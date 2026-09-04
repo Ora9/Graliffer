@@ -161,7 +161,10 @@ impl State for PickerView {
     type Action = PickerAction;
     type Error = Infallible;
 
-    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
+    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert<Self>, Self::Error>
+    where
+        Self: Sized,
+    {
         use PickerAction::*;
         match action.into() {
             SelectionDown => self.selection_down(),
