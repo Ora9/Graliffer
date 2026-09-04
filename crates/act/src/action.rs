@@ -6,12 +6,6 @@ pub trait ActionClone {
     fn dyn_clone(&self) -> Box<dyn Action>;
 }
 
-// impl<T: Action> From<T> for AnyAction {
-//     fn from(value: T) -> Self {
-//         AnyAction::new(value)
-//     }
-// }
-
 impl<T: Clone + Action> ActionClone for T {
     fn dyn_clone(&self) -> Box<dyn Action> {
         Box::new(self.clone())
