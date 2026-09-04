@@ -17,14 +17,14 @@ Graliffer is new ! Still a lot to cover before the v0.1
   - [ ] Good error handling
   - [ ] Paralellisation with multiples heads
   - [ ] Absurd programming
-  - [ ] Operand type in Granary numerical system, to manipulate numbers with an absurdly high base (for counting higher than 999, using the whole unicode set of character)
+  - [ ] Operand type in "Granary" numerical system, to manipulate numbers with an absurdly high base (for counting higher than 999, using the whole unicode set of character)
   - [ ] Differents I/O :
     - [ ] Textual
     - [ ] Graphical
     - [ ] Sound
 - [ ] A terminal user interface ([WIP!](https://github.com/Ora9/Graliffer/tree/master/crates/graliffer))
   - [ ] Ergonomic visual editor
-    - [x] Editing keyboard flow
+    - [x] Keyboard centric editing
     - [ ] Configuration
     - [ ] Undo mechanism,
     - [ ] Copy-pasting,
