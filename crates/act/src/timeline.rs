@@ -54,7 +54,7 @@ pub struct Timeline<S: State> {
 //     }
 // }
 
-impl<S: State + Default> Timeline<S> {
+impl<S: State> Timeline<S> {
     pub fn new(state: S) -> Self {
         Self {
             state,
@@ -112,7 +112,7 @@ impl<S: State> Deref for TimelineRef<'_, S> {
     }
 }
 
-impl<'a, S: State + Default> TimelineRef<'a, S> {
+impl<'a, S: State> TimelineRef<'a, S> {
     pub fn new(state: &'a mut S) -> Self {
         Self {
             state,

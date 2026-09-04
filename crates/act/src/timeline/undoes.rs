@@ -6,10 +6,19 @@ pub struct Undoable<S: State> {
     pub revert: Apply<S>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Undoes<S: State> {
     undoes: Vec<Undoable<S>>,
     cursor: usize,
+}
+
+impl<S: State> Default for Undoes<S> {
+    fn default() -> Self {
+        Self {
+            undoes: Vec::default(),
+            cursor: usize::default(),
+        }
+    }
 }
 
 impl<S: State> Undoes<S> {
