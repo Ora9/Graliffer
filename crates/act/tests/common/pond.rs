@@ -1,6 +1,6 @@
 use std::{collections::HashMap, convert::Infallible, error::Error, fmt::Display};
 
-use act::{Action, ConvertState, Revert, State};
+use act::{Action, FromState, IntoState, Revert, State};
 
 // use crate::common::pond::PondAction::BeginPatPatingFrog;
 
@@ -94,7 +94,7 @@ impl State for Pond {
     fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert<Self>, Self::Error> {
         match action.into() {
             PondAction::CampAction(camp_action) => match self.camp.act(camp_action) {
-                Ok(revert) => Ok(ConvertState::convert_state(revert)),
+                Ok(revert) => Ok(revert.into_state()),
             },
             PondAction::IntroduceFrog(frog_name) => {
                 self.frogs.insert(frog_name.clone(), Frog::default());

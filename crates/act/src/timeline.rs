@@ -2,8 +2,21 @@ use std::ops::{Deref, DerefMut};
 
 use crate::{Action, AnyAction, State};
 
-pub trait ConvertState<T> {
-    fn convert_state(value: T) -> Self;
+pub trait FromState<T> {
+    fn from_state(value: T) -> Self;
+}
+
+pub trait IntoState<T> {
+    fn into_state(self) -> T;
+}
+
+impl<T, U> IntoState<U> for T
+where
+    U: FromState<T>,
+{
+    fn into_state(self) -> U {
+        U::from_state(self)
+    }
 }
 
 #[derive(Debug)]
@@ -54,13 +67,13 @@ impl<S: State> Revert<S> {
     }
 }
 
-impl<S1: State, S2: State> ConvertState<Revert<S1>> for Revert<S2>
+impl<S1: State, S2: State> FromState<Revert<S1>> for Revert<S2>
 where
     <S2 as State>::Action: From<<S1 as State>::Action>,
 {
-    fn convert_state(value: Revert<S1>) -> Self {
+    fn from_state(value: Revert<S1>) -> Self {
         match value {
-            Revert::Apply(apply) => Revert::Apply(ConvertState::convert_state(apply)),
+            Revert::Apply(apply) => Revert::Apply(apply.into_state()),
             Revert::None => Revert::None,
         }
     }
@@ -94,11 +107,11 @@ impl<S: State> Apply<S> {
     }
 }
 
-impl<S1: State, S2: State> ConvertState<Apply<S1>> for Apply<S2>
+impl<S1: State, S2: State> FromState<Apply<S1>> for Apply<S2>
 where
     <S2 as State>::Action: From<<S1 as State>::Action>,
 {
-    fn convert_state(value: Apply<S1>) -> Self {
+    fn from_state(value: Apply<S1>) -> Self {
         Self(value.0.into_iter().map(|action| action.into()).collect())
     }
 }
