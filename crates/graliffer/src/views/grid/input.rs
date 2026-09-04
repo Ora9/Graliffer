@@ -79,7 +79,7 @@ impl GridInput {
         self.input.value().len() >= 3
     }
 
-    pub fn insert(&mut self, grid: &mut grai::Grid, input: char) -> Revert {
+    pub fn insert(&mut self, grid: &mut grai::Grid, input: char) -> Revert<grai::Grid> {
         if !self.input_full() && input != ' ' {
             self.handle(grid, InputRequest::InsertChar(input))
         } else {
@@ -87,7 +87,11 @@ impl GridInput {
         }
     }
 
-    pub fn handle(&mut self, grid: &mut grai::Grid, input_request: InputRequest) -> Revert {
+    pub fn handle(
+        &mut self,
+        grid: &mut grai::Grid,
+        input_request: InputRequest,
+    ) -> Revert<grai::Grid> {
         // TODO, BUG: when cursor at right border, inserting when cell full move the cursor back
 
         let grid_cell = grid.get(self.grid_cursor());

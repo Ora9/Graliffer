@@ -1,4 +1,4 @@
-use act::{Revert, State, Timeline};
+use act::Timeline;
 use crossterm::event::{KeyEvent, MouseEvent};
 use log::debug;
 use ratatui::layout::Position;
