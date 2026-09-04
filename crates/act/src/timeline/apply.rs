@@ -18,6 +18,6 @@ where
     <S2 as State>::Action: From<<S1 as State>::Action>,
 {
     fn from_state(value: Apply<S1>) -> Self {
-        Self(value.0.into_iter().map(|action| action.into()).collect())
+        Self(value.0.into_iter().map(Into::into).collect())
     }
 }
