@@ -8,11 +8,11 @@ edition = "2024"
 [workspace]
 resolver = "2"
 members = [
-    "crates/graliffer",         # Graliffer tui
-    "crates/grai",              # Graliffer interpreter
-    "crates/act",            # The action system of graliffer, used for grai internal execution, and for editor actions
-    # "crates/graliffer_archive", # An archive of the first graliffer impl
+    "crates/graliffer", # Graliffer tui
+    "crates/grai",      # Graliffer interpreter
+    "crates/act",       # The action system of graliffer, used for grai internal execution, and for editor actions
 ]
+
 default-members = ["crates/grai"]
 
 [workspace.lints.rust]
@@ -23,7 +23,6 @@ default-members = ["crates/grai"]
 
 [workspace.dependencies]
 grai = { path = "crates/grai" }
-# graliffer = { path = "crates/graliffer" }
 act = { path = "crates/act"}
 
 # External
