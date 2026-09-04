@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::{Action, AnyAction, State};
+use crate::{Action, State};
 
 pub trait FromState<T> {
     fn from_state(value: T) -> Self;
