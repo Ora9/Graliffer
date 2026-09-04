@@ -26,7 +26,7 @@ impl State for Simple {
     type Action = SimpleAction;
     type Error = TestError;
 
-    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
+    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert<Self>, Self::Error> {
         match action.into() {
             SimpleAction::IncrementFoo => {
                 self.foo = self.foo.wrapping_add(1);
