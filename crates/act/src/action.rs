@@ -1,5 +1,37 @@
 use std::{any::Any, fmt::Debug};
 
+/// Collection of action
+///
+/// # Example
+///
+/// Simple unit-only enum :
+/// ```
+/// # use act::Action;
+/// #[derive(Debug, Clone)]
+/// enum DuckAction {
+///     Play,
+///     Quack,
+///     Walk,
+///     Swim,
+/// }
+///
+/// impl Action for DuckAction {};
+/// ```
+///
+/// Parameterized actions :
+/// ```
+/// # use act::Action;
+/// # #[derive(Debug, Clone)]
+/// # struct Frog;
+/// /// A stack of frogs
+/// #[derive(Debug, Clone)]
+/// enum FrogStackAction {
+///     Push(Frog),
+///     PopLast,
+/// }
+///
+/// impl Action for FrogStackAction {};
+/// ```
 pub trait Action: Any + ActionClone + Debug {}
 
 pub trait ActionClone {
