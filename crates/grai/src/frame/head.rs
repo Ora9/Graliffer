@@ -78,7 +78,10 @@ impl State for Head {
     type Action = HeadAction;
     type Error = Infallible;
 
-    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert, Self::Error> {
+    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert<Self>, Self::Error>
+    where
+        Self: Sized,
+    {
         match action.into() {
             HeadAction::Step => {
                 let last_pos = self.position;
