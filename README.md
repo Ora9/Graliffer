@@ -6,14 +6,28 @@ Each cells in the grid can contain up to 3 chars (unicode graphems).
 
 Heads walk through the grid reading cells, executing opcodes, and pushing operands to their stack.
 
-## Roadmap
+![graliffer tui](./graliffer.gif)
 
-- [x] A interpreter library ([WIP at `grai`](https://github.com/Ora9/Graliffer/tree/master/crates/grai))
+## Roadmap to v0.1
+
+Graliffer is new ! Still a lot to cover before the v0.1
+
+- [ ] An interpreter ([`grai`](https://github.com/Ora9/Graliffer/tree/master/crates/grai))
+  - [x] Minimal working set
+  - [ ] Good error handling
+  - [ ] Paralellisation with multiples heads
+  - [ ] Absurd programming
+  - [ ] Operand type in Granary numerical system, to manipulate numbers with an absurdly high base (for counting higher than 999, using the whole unicode set of character)
+  - [ ] Differents I/O :
+    - [ ] Textual
+    - [ ] Graphical
+    - [ ] Sound
 - [ ] A terminal user interface ([WIP!](https://github.com/Ora9/Graliffer/tree/master/crates/graliffer))
-  - [ ] An visual editor with ergonomics in mind : undo mechanism, copy-pasting, multi-cell selection, address picking et selection..
+  - [ ] Ergonomic visual editor
+    - [x] Editing keyboard flow
+    - [ ] Configuration
+    - [ ] Undo mechanism,
+    - [ ] Copy-pasting,
+    - [ ] Address picking et selection
   - [ ] Examples, templates and snippets
   - [ ] Good debuging utilities, stack visualisation, breakpoints, step-by-step ...
-  - [ ] Differents I/O, textual, graphical, sound...
-- [ ] Paralellisation with multiples heads
-- [ ] New opcodes for absurd programming
-- [ ] A new operand to manipulate numbers with an absurdly high base for counting higher than 999, using the whole unicode set of character
