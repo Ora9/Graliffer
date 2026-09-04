@@ -2,6 +2,15 @@ use std::ops::{Deref, DerefMut};
 
 use crate::{Action, State};
 
+mod apply;
+pub use apply::*;
+
+mod revert;
+pub use revert::*;
+
+mod undoes;
+pub use undoes::*;
+
 pub trait FromState<T> {
     fn from_state(value: T) -> Self;
 }
@@ -16,132 +25,6 @@ where
 {
     fn into_state(self) -> U {
         U::from_state(self)
-    }
-}
-
-#[derive(Debug)]
-#[must_use = "this `Revert` may be an `Apply` variant, which should be handled"]
-pub enum Revert<S: State> {
-    Apply(Apply<S>),
-    None,
-}
-
-impl<S: State> Revert<S> {
-    pub fn new(action: S::Action) -> Self {
-        Self::Apply(Apply::new(action))
-    }
-
-    #[must_use]
-    pub fn is_none(&self) -> bool {
-        matches!(self, Revert::None)
-    }
-
-    #[must_use]
-    pub fn is_apply(&self) -> bool {
-        matches!(self, Revert::Apply(_))
-    }
-
-    pub fn apply(self) -> Option<Apply<S>> {
-        match self {
-            Revert::Apply(apply) => Some(apply),
-            Revert::None => None,
-        }
-    }
-
-    /// Push a `Revert` to `self`
-    ///
-    /// Same as [`Self::extend()`]
-    pub fn push(&mut self, other: Self) {
-        self.extend(other);
-    }
-
-    /// Extend `self` with another `Revert`
-    pub fn extend(&mut self, other: Self) {
-        match other {
-            Self::None => {} // nothing to extend
-            Self::Apply(rhs) => match self {
-                Self::None => *self = Self::Apply(rhs),
-                Self::Apply(lhs) => lhs.extend(rhs),
-            },
-        }
-    }
-}
-
-impl<S1: State, S2: State> FromState<Revert<S1>> for Revert<S2>
-where
-    <S2 as State>::Action: From<<S1 as State>::Action>,
-{
-    fn from_state(value: Revert<S1>) -> Self {
-        match value {
-            Revert::Apply(apply) => Revert::Apply(apply.into_state()),
-            Revert::None => Revert::None,
-        }
-    }
-}
-
-impl<S: State> From<Apply<S>> for Revert<S> {
-    fn from(value: Apply<S>) -> Self {
-        Self::Apply(value)
-    }
-}
-
-impl<S: State> From<Vec<Revert<S>>> for Revert<S> {
-    fn from(reverts: Vec<Revert<S>>) -> Self {
-        reverts.into_iter().fold(Revert::None, |mut acc, revert| {
-            acc.extend(revert);
-            acc
-        })
-    }
-}
-
-#[derive(Debug)]
-pub struct Apply<S: State>(Vec<S::Action>);
-
-impl<S: State> Apply<S> {
-    pub fn new(action: S::Action) -> Self {
-        Self(vec![action])
-    }
-
-    pub fn extend(&mut self, other: Self) {
-        self.0.extend(other.0);
-    }
-}
-
-impl<S1: State, S2: State> FromState<Apply<S1>> for Apply<S2>
-where
-    <S2 as State>::Action: From<<S1 as State>::Action>,
-{
-    fn from_state(value: Apply<S1>) -> Self {
-        Self(value.0.into_iter().map(|action| action.into()).collect())
-    }
-}
-
-#[derive(Debug)]
-pub struct Undoable<S: State> {
-    apply: Apply<S>,
-    revert: Apply<S>,
-}
-
-#[derive(Debug, Default)]
-pub struct Undoes<S: State> {
-    undoes: Vec<Undoable<S>>,
-    cursor: usize,
-}
-
-impl<S: State> Undoes<S> {
-    fn append(&mut self, undoable: Undoable<S>) {
-        self.undoes.truncate(self.cursor);
-        self.undoes.push(undoable);
-        self.cursor = self.cursor.checked_add(1).unwrap();
-    }
-
-    fn into_reverts(self) -> Revert<S> {
-        self.undoes
-            .into_iter()
-            .fold(Revert::None, |mut acc, undoable| {
-                acc.extend(undoable.revert.into());
-                acc
-            })
     }
 }
 
