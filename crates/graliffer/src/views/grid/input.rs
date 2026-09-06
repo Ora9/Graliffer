@@ -1,4 +1,5 @@
 use grai::{Direction, HorizontalDirection};
+use granary::GranaryDigit;
 use tui_input::{Input, InputRequest};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -96,7 +97,7 @@ impl GridInput {
         let at_end = self.char_at_end(grid);
 
         let grid_at_left = self.grid_cursor.x() == 0;
-        let grid_at_right = self.grid_cursor.x() == grai::granary::GranaryDigit::MAX_NUMERIC;
+        let grid_at_right = self.grid_cursor.x() == GranaryDigit::MAX_NUMERIC;
 
         // debug!("at_start: {at_start}, at_end: {at_end}");
 

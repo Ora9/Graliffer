@@ -6,6 +6,7 @@ use std::{
 use act::{Action, Revert, State};
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 use grai::Direction;
+use granary::GranaryDigit;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Margin, Offset, Position, Rect, Size},
@@ -501,11 +502,11 @@ impl StatefulWidget for GridWidget {
 
         if let Some(horizontal_gutter_area) = horizontal_gutter_area {
             for cell_x in left_top_cell.x()..=right_bottom_cell.x() {
-                let x_coord = grai::granary::GranaryDigit::from_numeric(cell_x)
+                let x_coord = GranaryDigit::from_numeric(cell_x)
                     .expect("should be able to construct a valid position");
 
                 let term_pos = grid_to_terminal_position(
-                    grai::Position::from_granary_digits(x_coord, grai::granary::GranaryDigit::MIN),
+                    grai::Position::from_granary_digits(x_coord, GranaryDigit::MIN),
                     grid_area,
                     state.grid_offset,
                 )
@@ -539,11 +540,11 @@ impl StatefulWidget for GridWidget {
 
         if let Some(vertical_gutter_area) = vertical_gutter_area {
             for cell_y in left_top_cell.y()..=right_bottom_cell.y() {
-                let y_coord = grai::granary::GranaryDigit::from_numeric(cell_y)
+                let y_coord = GranaryDigit::from_numeric(cell_y)
                     .expect("should be able to construct a valid position");
 
                 let term_pos = grid_to_terminal_position(
-                    grai::Position::from_granary_digits(grai::granary::GranaryDigit::MIN, y_coord),
+                    grai::Position::from_granary_digits(GranaryDigit::MIN, y_coord),
                     grid_area,
                     state.grid_offset,
                 )

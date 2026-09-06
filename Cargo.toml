@@ -11,6 +11,7 @@ members = [
     "crates/graliffer", # Graliffer tui
     "crates/grai",      # Graliffer interpreter
     "crates/act",       # The action system of graliffer, used for grai internal execution, and for editor actions
+    "crates/granary",   # Granary numerical system
 ]
 
 default-members = ["crates/grai"]
@@ -23,7 +24,8 @@ default-members = ["crates/grai"]
 
 [workspace.dependencies]
 grai = { path = "crates/grai" }
-act = { path = "crates/act"}
+act = { path = "crates/act" }
+granary = { path = "crates/granary" }
 
 # External
 unicode-segmentation = "1.12"

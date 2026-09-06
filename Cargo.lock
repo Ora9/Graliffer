@@ -649,6 +649,7 @@ name = "grai"
 version = "0.0.1"
 dependencies = [
  "act",
+ "granary",
  "iftree",
  "serde",
  "serde_json",
@@ -670,6 +671,7 @@ dependencies = [
  "etcetera",
  "eyre",
  "grai",
+ "granary",
  "lipsum",
  "log",
  "rand 0.10.2",
@@ -683,6 +685,14 @@ dependencies = [
  "tui-input",
  "tui-logger",
  "tui-scrollbar",
+]
+
+[[package]]
+name = "granary"
+version = "0.0.1"
+dependencies = [
+ "serde",
+ "thiserror 2.0.20",
 ]
 
 [[package]]

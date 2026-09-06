@@ -3,12 +3,10 @@ use std::{
     str::FromStr,
 };
 
+use granary::{GranaryDigit, GranaryError};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    Axis, Direction,
-    granary::{GranaryDigit, GranaryError},
-};
+use crate::{Axis, Direction};
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum PositionError {

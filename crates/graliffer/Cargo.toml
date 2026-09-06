@@ -9,6 +9,7 @@ edition.workspace = true
 [dependencies]
 grai.workspace = true
 act.workspace = true
+granary.workspace = true
 
 eyre = "0.6.5"
 thiserror = "2.0.18"
