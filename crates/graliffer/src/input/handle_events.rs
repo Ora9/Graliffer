@@ -1,9 +1,8 @@
 use act::Timeline;
 use crossterm::event::{KeyEvent, MouseEvent};
-use log::debug;
 use ratatui::layout::Position;
 
-use crate::{AppState, Context, GridView, Key, Keystroke, Picker, PickerView, View};
+use crate::{AppState, Context, GridView, Key, Keystroke, PickerView, View};
 
 pub fn handle_key_events(
     app_state_timeline: &mut Timeline<AppState>,
