@@ -27,7 +27,7 @@ impl View for StackView {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct StackWidget;
 
 impl StackWidget {

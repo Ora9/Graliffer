@@ -26,7 +26,7 @@ pub struct AppState {
     pub last_focused_pane: Option<PaneId>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct App;
 
 impl App {

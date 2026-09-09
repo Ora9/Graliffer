@@ -158,7 +158,7 @@ impl ConsoleView {
 
     fn content_area_height(&self) -> Option<usize> {
         self.layouts
-            .and_then(|layouts| Some(layouts.viewport_area.height as usize))
+            .map(|layouts| layouts.viewport_area.height as usize)
     }
 
     fn apply_max_history(&mut self) {
@@ -272,7 +272,7 @@ impl ConsoleLayout {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ConsoleWidget;
 
 impl ConsoleWidget {

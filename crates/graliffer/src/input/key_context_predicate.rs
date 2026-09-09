@@ -128,7 +128,7 @@ impl FromStr for KeyContextPredicate {
                     operation,
                     source: source.to_string(),
                 })
-                .and_then(|flag| Ok(Box::new(flag)))
+                .map(Box::new)
         };
 
         let operate = |operation, stack: &mut Vec<KeyContextPredicate>| {

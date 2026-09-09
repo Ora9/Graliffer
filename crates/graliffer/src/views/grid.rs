@@ -97,7 +97,7 @@ impl GridView {
         };
 
         match mouse_event.kind {
-            MouseEventKind::Down(mouse_button) if mouse_button == MouseButton::Left => {
+            MouseEventKind::Down(MouseButton::Left) => {
                 if let Some(grid_pos) =
                     terminal_to_grid_position(pointer_pos, view_layout.grid_area, self.grid_offset)
                 {
@@ -210,7 +210,7 @@ impl GridView {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct GridWidget;
 
 impl GridWidget {
@@ -267,8 +267,8 @@ impl StatefulWidget for GridWidget {
         // have widgets drawn partialy onto the viewport
         const OVERDRAW_CELL: u16 = 1;
         let overdraw_margin = Margin::new(
-            (CELL_WIDTH + CELL_BORDER * 2 * OVERDRAW_CELL) as u16,
-            (CELL_HEIGHT + CELL_BORDER * 2 * OVERDRAW_CELL) as u16,
+            CELL_WIDTH + CELL_BORDER * 2 * OVERDRAW_CELL,
+            CELL_HEIGHT + CELL_BORDER * 2 * OVERDRAW_CELL,
         );
 
         let overdraw_grid_area = Rect {
@@ -300,7 +300,7 @@ impl StatefulWidget for GridWidget {
 
         for cell_x in left_top_cell.x()..=right_bottom_cell.x() {
             for cell_y in left_top_cell.y()..=right_bottom_cell.y() {
-                let grid_pos = grai::Position::from_numeric(cell_x as u32, cell_y as u32)
+                let grid_pos = grai::Position::from_numeric(cell_x, cell_y)
                     .expect("should be able to construct a valid position");
 
                 let term_pos =

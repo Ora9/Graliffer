@@ -115,7 +115,7 @@ impl TryFrom<crossterm::event::KeyEvent> for Keystroke {
             key: event
                 .code
                 .try_into()
-                .map_err(|err| KeystrokeFromCrosstermError::KeyFromCrosstermError(err))?,
+                .map_err(KeystrokeFromCrosstermError::KeyFromCrosstermError)?,
             modifiers: event.modifiers.into(),
         })
     }
@@ -126,7 +126,7 @@ impl Display for Keystroke {
         let modifiers = self.modifiers.to_string();
         let key = self.key.to_string();
 
-        if modifiers.len() == 0 {
+        if modifiers.is_empty() {
             write!(f, "{key}")?;
         } else {
             write!(f, "{modifiers}-{key}")?;

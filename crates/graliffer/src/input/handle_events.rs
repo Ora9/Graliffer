@@ -66,10 +66,10 @@ impl AppState {
             }
         }
 
-        if let Some(grid_layout) = self.grid_state.layouts() {
-            if grid_layout.union().contains(mouse_pos) {
-                self.grid_state.handle_mouse_event(mouse_event);
-            }
+        if let Some(grid_layout) = self.grid_state.layouts()
+            && grid_layout.union().contains(mouse_pos)
+        {
+            self.grid_state.handle_mouse_event(mouse_event);
         }
     }
 }

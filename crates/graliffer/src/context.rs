@@ -105,7 +105,6 @@ impl Context {
     }
 
     /// Read and write access to [key context](KeyContext)
-
     pub fn key_context_mut<O>(&mut self, writer: impl FnOnce(&mut KeyContext) -> O) -> O {
         self.write(|ctx| writer(&mut ctx.key_context))
     }

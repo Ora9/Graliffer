@@ -53,7 +53,7 @@ impl KeymapBindingGroup {
         self.bindings
             .iter()
             .find(|(entry_keystroke, _)| **entry_keystroke == keystroke)
-            .and_then(|(_, action)| Some(action.clone()))
+            .map(|(_, action)| action.clone())
     }
 }
 
