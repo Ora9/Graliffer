@@ -3,7 +3,7 @@ use std::{
     ops::{Div, Neg},
 };
 
-use act::{Action, IntoState, Revert, State, Timeline};
+use act::{Action, Revert, State, Timeline};
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 use grai::{Direction, FrameGuard};
 use granary::GranaryDigit;

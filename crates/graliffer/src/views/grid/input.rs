@@ -1,4 +1,4 @@
-use act::{Revert, State, Timeline};
+use act::Timeline;
 use grai::{Direction, HorizontalDirection};
 use granary::GranaryDigit;
 use tui_input::{Input, InputRequest};
