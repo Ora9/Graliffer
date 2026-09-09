@@ -30,6 +30,9 @@
   {
     "context": "Grid",
     "bindings": {
+      "ctrl-z": "grid::Undo",
+      "ctrl-y": "grid::Redo",
+
       "up": "grid::CursorStepUpGrid",
       "down": "grid::CursorStepDownGrid",
       "right": "grid::CursorStepRightCharThenGrid",

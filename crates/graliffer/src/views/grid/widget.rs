@@ -3,10 +3,11 @@ use std::{
     ops::{Div, Neg},
 };
 
-use act::{Action, State, Timeline, TimelinedState};
+use act::{Action, Apply, State, Timeline, TimelinedState};
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 use grai::{Direction, FrameGuard};
 use granary::GranaryDigit;
+use log::debug;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Margin, Offset, Position, Rect, Size},
@@ -378,6 +379,30 @@ impl GridView {
     pub fn layouts(&self) -> Option<GridLayout> {
         self.layouts
     }
+
+    fn move_cursor_with_timeline(&mut self, apply: Apply<FrameGuard>) {
+        if let Some(action) = apply.iter().last()
+            && let grai::FrameAction::Grid(grid_action) = action
+            && let grai::GridAction::Set(position, _) = grid_action
+        {
+            self.frame.read(|frame| {
+                self.grid_input
+                    .with_movement(CursorMovement::Jump(*position), &frame.grid);
+            })
+        }
+    }
+
+    fn undo(&mut self) {
+        if let Ok(apply) = self.timeline.undo() {
+            self.move_cursor_with_timeline(apply)
+        }
+    }
+
+    fn redo(&mut self) {
+        if let Ok(apply) = self.timeline.redo() {
+            self.move_cursor_with_timeline(apply)
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -638,6 +663,9 @@ pub enum GridAction {
     #[serde(skip)]
     GraiGridAction(grai::GridAction),
 
+    Undo,
+    Redo,
+
     Insert(String),
 
     InsertOverflow(String),
@@ -684,6 +712,9 @@ impl State for GridView {
             GraiGridAction(grai_grid_action) => {
                 let _ = self.frame.write(|frame| frame.grid.act(grai_grid_action));
             }
+
+            Undo => self.undo(),
+            Redo => self.redo(),
 
             Insert(input) => {
                 for c in input.chars() {

@@ -100,19 +100,18 @@ impl<S: TimelinedState> Timeline<S> {
         self.undoes.into_reverts()
     }
 
-    pub fn undo(&mut self) -> Result<(), TimelineError> {
+    pub fn undo(&mut self) -> Result<Apply<S>, TimelineError> {
         let apply = self.undoes.undo()?.clone();
-        self.act_apply(apply);
+        self.act_apply(apply.clone());
 
-        Ok(())
+        Ok(apply)
     }
 
-    pub fn redo(&mut self) -> Result<(), TimelineError> {
+    pub fn redo(&mut self) -> Result<Apply<S>, TimelineError> {
         let apply = self.undoes.redo()?.clone();
+        self.act_apply(apply.clone());
 
-        self.act_apply(apply);
-
-        Ok(())
+        Ok(apply)
     }
 
     fn truncate_and_push(&mut self, undoable: Undoable<S>) {
