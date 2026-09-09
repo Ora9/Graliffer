@@ -7,7 +7,6 @@ use act::{Action, Apply, State, Timeline, TimelinedState};
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 use grai::{Direction, FrameGuard};
 use granary::GranaryDigit;
-use log::debug;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Margin, Offset, Position, Rect, Size},
