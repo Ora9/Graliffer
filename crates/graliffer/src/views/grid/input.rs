@@ -1,4 +1,4 @@
-use act::{Revert, State};
+use act::{Revert, State, Timeline};
 use grai::{Direction, HorizontalDirection};
 use granary::GranaryDigit;
 use tui_input::{Input, InputRequest};
@@ -79,38 +79,37 @@ impl GridInput {
         self.input.value().len() >= 3
     }
 
-    pub fn insert(&mut self, grid: &mut grai::Grid, input: char) -> Revert<grai::Grid> {
+    pub fn insert(&mut self, frame_timeline: &mut Timeline<grai::FrameGuard>, input: char) {
         if !self.input_full() && input != ' ' {
-            self.handle(grid, InputRequest::InsertChar(input))
-        } else {
-            Revert::None
+            self.handle(frame_timeline, InputRequest::InsertChar(input))
         }
     }
 
     pub fn handle(
         &mut self,
-        grid: &mut grai::Grid,
+        frame_timeline: &mut Timeline<grai::FrameGuard>,
         input_request: InputRequest,
-    ) -> Revert<grai::Grid> {
+    ) {
         // TODO, BUG: when cursor at right border, inserting when cell full move the cursor back
 
-        let grid_cell = grid.get(self.grid_cursor());
+        let grid_cell = frame_timeline
+            .state()
+            .read(|frame| frame.grid.get(self.grid_cursor()));
+
         self.input.handle(input_request);
 
-        let revert = if self.input.value() != grid_cell.as_str() {
-            grid.act(grai::GridAction::Set(
+        let input_cell = grai::Cell::new_trim(self.input.value());
+
+        if input_cell != grid_cell {
+            let _ = frame_timeline.act(grai::FrameAction::Grid(grai::GridAction::Set(
                 self.grid_cursor,
-                grai::Cell::new_trim(self.input.value()),
-            ))
-        } else {
-            Ok(Revert::None)
-        };
-
-        self.sync_input_from_grid(grid);
-
-        match revert {
-            Ok(revert) => revert,
+                input_cell,
+            )));
         }
+
+        frame_timeline
+            .state()
+            .read(|frame| self.sync_input_from_grid(&frame.grid));
     }
 
     pub fn with_movement(&mut self, movement: CursorMovement, grid: &grai::Grid) {
