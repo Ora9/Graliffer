@@ -55,6 +55,16 @@ fn main() -> Result<()> {
             }
             Event::Resize(_, _) => {}
         };
+
+        debug!("{:?}", app_state_timeline.state().timeline_queue);
+
+        if app_state_timeline.state_mut().timeline_queue.take_undo() {
+            app_state_timeline.undo().unwrap();
+        }
+        if app_state_timeline.state_mut().timeline_queue.take_redo() {
+            app_state_timeline.redo().unwrap();
+        }
+
         debug!("{:#?}", app_state_timeline.undoes());
     }
 

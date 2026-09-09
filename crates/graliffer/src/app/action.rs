@@ -26,6 +26,9 @@ pub enum GralifferAction {
     ToggleAbout,
     InsertMode,
     CommandMode,
+
+    Undo,
+    Redo,
 }
 
 #[derive(Debug, Clone, strum::EnumString, Serialize, Deserialize)]
@@ -177,6 +180,12 @@ impl State for AppState {
             AppAction::GralifferAction(app_action) => {
                 use GralifferAction::*;
                 match app_action {
+                    Undo => {
+                        self.timeline_queue.queue_undo();
+                    }
+                    Redo => {
+                        self.timeline_queue.queue_redo();
+                    }
                     Quit => {
                         self.quit();
                     }

@@ -26,7 +26,11 @@ impl<S: State> Undoes<S> {
     pub fn truncate_and_push(&mut self, undoable: Undoable<S>) {
         self.undoes.truncate(self.cursor);
         self.undoes.push(undoable);
-        self.increment_cursor();
+        self.cursor_at_end();
+    }
+
+    fn cursor_at_end(&mut self) {
+        self.cursor = self.undoes.len();
     }
 
     fn decrement_cursor(&mut self) -> Result<(), TimelineError> {

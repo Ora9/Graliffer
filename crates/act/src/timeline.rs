@@ -76,13 +76,13 @@ impl<S: State> Timeline<S> {
         })
     }
 
-    // fn act_apply(&mut self, apply: Apply<S>) -> Result<(), S::Error> {
-    //     for action in apply.into_iter() {
-    //         self.state.act(action);
-    //     }
+    fn act_apply(&mut self, apply: Apply<S>) -> Result<(), S::Error> {
+        for action in apply.into_iter() {
+            self.state.act(action);
+        }
 
-    //     Ok(())
-    // }
+        Ok(())
+    }
 
     pub fn state(&self) -> &S {
         &self.state
@@ -100,12 +100,20 @@ impl<S: State> Timeline<S> {
         self.undoes.into_reverts()
     }
 
-    // pub fn undo(&mut self) -> Result<(), TimelineError> {
-    //     let apply = self.undoes.undo()?.clone();
-    //     self.act_apply(apply)
+    pub fn undo(&mut self) -> Result<(), TimelineError> {
+        let apply = self.undoes.undo()?.clone();
+        self.act_apply(apply);
 
-    //     Ok(())
-    // }
+        Ok(())
+    }
+
+    pub fn redo(&mut self) -> Result<(), TimelineError> {
+        let apply = self.undoes.redo()?.clone();
+
+        self.act_apply(apply);
+
+        Ok(())
+    }
 
     fn truncate_and_push(&mut self, undoable: Undoable<S>) {
         self.undoes.truncate_and_push(undoable);

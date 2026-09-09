@@ -5,7 +5,10 @@
       "ctrl-a": "ToggleAbout",
       "alt-p": "ToggleCommandPicker",
       "ctrl-q": "Quit",
-      "f5": "grai::Step"
+      "f5": "grai::Step",
+
+      "ctrl-z": "Undo",
+      "ctrl-y": "Redo"
     }
   },
   {

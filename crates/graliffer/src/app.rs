@@ -9,8 +9,46 @@ use crate::{
 mod action;
 pub use action::*;
 
+#[derive(Debug, Default)]
+pub struct TimelineQueue {
+    undo: u32,
+    redo: u32,
+}
+
+impl TimelineQueue {
+    pub fn take_undo(&mut self) -> bool {
+        match self.undo.checked_sub(1) {
+            None => false,
+            Some(value) => {
+                self.undo = value;
+                true
+            }
+        }
+    }
+
+    pub fn take_redo(&mut self) -> bool {
+        match self.redo.checked_sub(1) {
+            None => false,
+            Some(value) => {
+                self.redo = value;
+                true
+            }
+        }
+    }
+
+    pub fn queue_undo(&mut self) {
+        self.undo = self.undo.strict_add(1);
+    }
+
+    pub fn queue_redo(&mut self) {
+        self.redo = self.redo.strict_add(1);
+    }
+}
+
 #[derive(Debug)]
 pub struct AppState {
+    pub timeline_queue: TimelineQueue,
+
     pub context: Context,
 
     pub keymap: Keymap,
@@ -46,6 +84,8 @@ impl AppState {
         let context = Context::new(config, default_focus);
 
         let mut app = Self {
+            timeline_queue: TimelineQueue::default(),
+
             frame: frame.clone(),
 
             keymap: Keymap::new(),
