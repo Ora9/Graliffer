@@ -6,8 +6,8 @@ use crate::{
     input::{InputMode, Keymap},
 };
 
-mod action;
-pub use action::*;
+mod impl_state;
+pub use impl_state::*;
 
 #[derive(Debug)]
 pub struct AppState {
@@ -20,6 +20,7 @@ pub struct AppState {
     pub console_state: ConsoleView,
     pub grid_state: GridView,
     pub stack_state: StackView,
+
     pub command_picker_state: PickerView,
 
     pub should_run: bool,
@@ -52,14 +53,13 @@ impl AppState {
 
             context: context.clone(),
 
-            should_run: true,
-
             console_state: ConsoleView::new(context.clone()),
             grid_state: GridView::new(frame.clone(), context.clone()),
             stack_state: StackView::new(frame),
 
             command_picker_state: PickerView::new(context.clone()),
 
+            should_run: true,
             last_focused_pane: None,
         };
 

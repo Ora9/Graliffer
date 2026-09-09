@@ -31,16 +31,9 @@ pub enum GralifferAction {
 #[derive(Debug, Clone, strum::EnumString, Serialize, Deserialize)]
 pub enum GraiAction {
     Step,
-
-    #[strum(disabled)]
-    #[serde(skip)]
-    Frame(grai::FrameAction),
-}
-
-impl From<grai::FrameAction> for GraiAction {
-    fn from(value: grai::FrameAction) -> Self {
-        Self::Frame(value)
-    }
+    // #[strum(disabled)]
+    // #[serde(skip)]
+    // Frame(grai::FrameAction),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -58,12 +51,6 @@ impl Action for AppAction {}
 impl From<GraiAction> for AppAction {
     fn from(value: GraiAction) -> Self {
         Self::Grai(value)
-    }
-}
-
-impl From<grai::FrameAction> for AppAction {
-    fn from(value: grai::FrameAction) -> Self {
-        Self::Grai(value.into())
     }
 }
 
@@ -157,9 +144,7 @@ impl State for AppState {
             AppAction::Grai(grai_action) => {
                 use GraiAction::*;
                 let _ = match grai_action {
-                    // TODO: These unwraps must go away!
-                    Step => self.frame.act(grai::FrameAction::Step).unwrap(),
-                    Frame(action) => self.frame.act(action).unwrap(),
+                    Step => self.grid_state.step(),
                 };
                 Ok(())
             }

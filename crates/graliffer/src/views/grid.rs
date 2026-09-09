@@ -210,6 +210,12 @@ impl GridView {
     }
 }
 
+impl GridView {
+    pub fn step(&mut self) {
+        let _ = self.frame_timeline.act(grai::FrameAction::Step);
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct GridWidget;
 
