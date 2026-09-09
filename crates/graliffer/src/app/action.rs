@@ -6,7 +6,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
-use act::{Action, IntoState, Revert, TimelinedState};
+use act::{Action, State, TimelinedState};
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum ActionParseError {
@@ -145,34 +145,23 @@ impl TryFrom<String> for AppAction {
     }
 }
 
-impl TimelinedState for AppState {
+impl State for AppState {
     type Action = AppAction;
     type Error = Infallible;
 
-    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert<Self>, Self::Error> {
+    fn act(&mut self, action: impl Into<Self::Action>) -> Result<(), Self::Error> {
         match action.into() {
-            AppAction::GridAction(grid_action) => match self.grid_state.act(grid_action) {
-                Ok(revert) => Ok(revert.into_state()),
-            },
-            AppAction::ConsoleAction(console_action) => {
-                match self.console_state.act(console_action) {
-                    Ok(revert) => Ok(revert.into_state()),
-                }
-            }
-            AppAction::PickerAction(picker_action) => {
-                match self.command_picker_state.act(picker_action) {
-                    Ok(revert) => Ok(revert.into_state()),
-                }
-            }
+            AppAction::GridAction(grid_action) => self.grid_state.act(grid_action),
+            AppAction::ConsoleAction(console_action) => self.console_state.act(console_action),
+            AppAction::PickerAction(picker_action) => self.command_picker_state.act(picker_action),
             AppAction::Grai(grai_action) => {
                 use GraiAction::*;
-                let revert = match grai_action {
+                let _ = match grai_action {
                     // TODO: These unwraps must go away!
                     Step => self.frame.act(grai::FrameAction::Step).unwrap(),
                     Frame(action) => self.frame.act(action).unwrap(),
                 };
-
-                Ok(revert.into_state())
+                Ok(())
             }
             AppAction::GralifferAction(app_action) => {
                 use GralifferAction::*;
@@ -199,7 +188,7 @@ impl TimelinedState for AppState {
                         self.set_input_mode(InputMode::Command);
                     }
                 };
-                Ok(Revert::None)
+                Ok(())
             }
         }
     }

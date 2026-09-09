@@ -3,7 +3,7 @@ use std::{
     ops::{Div, Neg},
 };
 
-use act::{Action, Revert, Timeline, TimelinedState};
+use act::{Action, State, Timeline, TimelinedState};
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 use grai::{Direction, FrameGuard};
 use granary::GranaryDigit;
@@ -672,21 +672,17 @@ impl From<grai::GridAction> for GridAction {
     }
 }
 
-impl TimelinedState for GridView {
+impl State for GridView {
     type Action = GridAction;
     type Error = Infallible;
 
-    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert<Self>, Self::Error> {
+    fn act(&mut self, action: impl Into<Self::Action>) -> Result<(), Self::Error> {
         let action = action.into();
         use GridAction::*;
 
         match action {
             GraiGridAction(grai_grid_action) => {
-                let _ = self
-                    .frame
-                    .write(|frame| match frame.grid.act(grai_grid_action) {
-                        Ok(revert) => revert,
-                    });
+                let _ = self.frame.write(|frame| frame.grid.act(grai_grid_action));
             }
 
             Insert(input) => {
@@ -768,7 +764,7 @@ impl TimelinedState for GridView {
             }
         };
 
-        Ok(Revert::None)
+        Ok(())
     }
 }
 

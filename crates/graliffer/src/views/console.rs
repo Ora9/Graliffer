@@ -1,6 +1,6 @@
 use std::convert::Infallible;
 
-use act::{Action, Revert, TimelinedState};
+use act::{Action, State};
 use crossterm::event::MouseEvent;
 use ratatui::{
     buffer::Buffer,
@@ -366,11 +366,11 @@ pub enum ConsoleAction {
 
 impl Action for ConsoleAction {}
 
-impl TimelinedState for ConsoleView {
+impl State for ConsoleView {
     type Action = ConsoleAction;
     type Error = Infallible;
 
-    fn act(&mut self, action: impl Into<Self::Action>) -> Result<Revert<Self>, Self::Error>
+    fn act(&mut self, action: impl Into<Self::Action>) -> Result<(), Self::Error>
     where
         Self: Sized,
     {
@@ -402,7 +402,7 @@ impl TimelinedState for ConsoleView {
                 self.clear_content();
             }
         }
-        Ok(Revert::None)
+        Ok(())
     }
 }
 
