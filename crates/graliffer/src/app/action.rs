@@ -6,7 +6,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
-use act::{Action, IntoState, Revert, State};
+use act::{Action, IntoState, Revert, TimelinedState};
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum ActionParseError {
@@ -145,7 +145,7 @@ impl TryFrom<String> for AppAction {
     }
 }
 
-impl State for AppState {
+impl TimelinedState for AppState {
     type Action = AppAction;
     type Error = Infallible;
 

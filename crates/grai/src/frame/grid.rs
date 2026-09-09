@@ -1,7 +1,7 @@
 use std::{collections::HashMap, convert::Infallible};
 
 mod cell;
-use act::{Action, Revert, State};
+use act::{Action, Revert, TimelinedState};
 pub use cell::*;
 
 mod position;
@@ -60,7 +60,7 @@ pub enum GridAction {
 
 impl Action for GridAction {}
 
-impl State for Grid {
+impl TimelinedState for Grid {
     type Action = GridAction;
     type Error = Infallible;
 

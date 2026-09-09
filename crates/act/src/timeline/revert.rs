@@ -1,13 +1,13 @@
-use crate::{Apply, FromState, IntoState, State};
+use crate::{Apply, FromState, IntoState, TimelinedState};
 
 #[derive(Debug)]
 #[must_use = "this `Revert` may be an `Apply` variant, which should be handled"]
-pub enum Revert<S: State> {
+pub enum Revert<S: TimelinedState> {
     Apply(Apply<S>),
     None,
 }
 
-impl<S: State> Revert<S> {
+impl<S: TimelinedState> Revert<S> {
     pub fn new(action: S::Action) -> Self {
         Self::Apply(Apply::new(action))
     }
@@ -48,9 +48,9 @@ impl<S: State> Revert<S> {
     }
 }
 
-impl<S1: State, S2: State> FromState<Revert<S1>> for Revert<S2>
+impl<S1: TimelinedState, S2: TimelinedState> FromState<Revert<S1>> for Revert<S2>
 where
-    <S2 as State>::Action: From<<S1 as State>::Action>,
+    <S2 as TimelinedState>::Action: From<<S1 as TimelinedState>::Action>,
 {
     fn from_state(value: Revert<S1>) -> Self {
         match value {
@@ -60,13 +60,13 @@ where
     }
 }
 
-impl<S: State> From<Apply<S>> for Revert<S> {
+impl<S: TimelinedState> From<Apply<S>> for Revert<S> {
     fn from(value: Apply<S>) -> Self {
         Self::Apply(value)
     }
 }
 
-impl<S: State> From<Vec<Revert<S>>> for Revert<S> {
+impl<S: TimelinedState> From<Vec<Revert<S>>> for Revert<S> {
     fn from(reverts: Vec<Revert<S>>) -> Self {
         reverts.into_iter().fold(Revert::None, |mut acc, revert| {
             acc.extend(revert);

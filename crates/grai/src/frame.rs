@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use act::{Action, IntoState, Revert, State};
+use act::{Action, IntoState, Revert, TimelinedState};
 use serde::{Deserialize, Serialize};
 
 pub mod examples;
@@ -25,7 +25,7 @@ pub struct Frame {
 }
 
 impl Frame {
-    pub fn step(&mut self) -> Result<Revert<Frame>, <Frame as State>::Error> {
+    pub fn step(&mut self) -> Result<Revert<Frame>, <Frame as TimelinedState>::Error> {
         let cell = self.grid.get(self.head.position);
 
         if cell.is_empty() {
@@ -87,7 +87,7 @@ impl From<HeadAction> for FrameAction {
 
 impl Action for FrameAction {}
 
-impl State for Frame {
+impl TimelinedState for Frame {
     type Action = FrameAction;
     type Error = FrameError;
 
@@ -130,7 +130,7 @@ impl FrameGuard {
     }
 }
 
-impl State for FrameGuard {
+impl TimelinedState for FrameGuard {
     type Action = FrameAction;
     type Error = FrameError;
 

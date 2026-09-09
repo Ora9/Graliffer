@@ -1,15 +1,15 @@
-use crate::{Action, FromState, State};
+use crate::{Action, FromState, TimelinedState};
 
 #[derive(Debug)]
-pub struct Apply<S: State>(Vec<S::Action>);
+pub struct Apply<S: TimelinedState>(Vec<S::Action>);
 
-impl<S: State> Clone for Apply<S> {
+impl<S: TimelinedState> Clone for Apply<S> {
     fn clone(&self) -> Self {
         Self(self.0.clone())
     }
 }
 
-impl<S: State> Apply<S> {
+impl<S: TimelinedState> Apply<S> {
     pub fn new(action: S::Action) -> Self {
         Self(vec![action])
     }
@@ -19,7 +19,7 @@ impl<S: State> Apply<S> {
     }
 }
 
-impl<S: State> IntoIterator for Apply<S> {
+impl<S: TimelinedState> IntoIterator for Apply<S> {
     type Item = S::Action;
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
@@ -28,9 +28,9 @@ impl<S: State> IntoIterator for Apply<S> {
     }
 }
 
-impl<S1: State, S2: State> FromState<Apply<S1>> for Apply<S2>
+impl<S1: TimelinedState, S2: TimelinedState> FromState<Apply<S1>> for Apply<S2>
 where
-    <S2 as State>::Action: From<<S1 as State>::Action>,
+    <S2 as TimelinedState>::Action: From<<S1 as TimelinedState>::Action>,
 {
     fn from_state(value: Apply<S1>) -> Self {
         Self(value.0.into_iter().map(Into::into).collect())

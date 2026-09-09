@@ -1,6 +1,6 @@
 use std::convert::Infallible;
 
-use act::{Action, Revert, State};
+use act::{Action, Revert, TimelinedState};
 use serde::{Deserialize, Serialize};
 
 use crate::{Direction, Position, PositionError};
@@ -74,7 +74,7 @@ pub enum HeadAction {
 
 impl Action for HeadAction {}
 
-impl State for Head {
+impl TimelinedState for Head {
     type Action = HeadAction;
     type Error = Infallible;
 

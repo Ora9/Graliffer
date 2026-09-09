@@ -3,7 +3,7 @@ use std::{
     ops::{Div, Neg},
 };
 
-use act::{Action, Revert, State, Timeline};
+use act::{Action, Revert, Timeline, TimelinedState};
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 use grai::{Direction, FrameGuard};
 use granary::GranaryDigit;
@@ -672,7 +672,7 @@ impl From<grai::GridAction> for GridAction {
     }
 }
 
-impl State for GridView {
+impl TimelinedState for GridView {
     type Action = GridAction;
     type Error = Infallible;
 

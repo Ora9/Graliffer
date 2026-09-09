@@ -1,6 +1,6 @@
 use std::convert::Infallible;
 
-use act::{Action, Revert, State};
+use act::{Action, Revert, TimelinedState};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Margin, Offset, Rect, Size, Spacing},
@@ -157,7 +157,7 @@ pub enum PickerAction {
 
 impl Action for PickerAction {}
 
-impl State for PickerView {
+impl TimelinedState for PickerView {
     type Action = PickerAction;
     type Error = Infallible;
 

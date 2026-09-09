@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::{Action, State};
+use crate::{Action, TimelinedState};
 
 mod apply;
 pub use apply::*;
@@ -36,7 +36,7 @@ pub enum TimelineError {
 }
 
 #[derive(Debug)]
-pub struct Timeline<S: State> {
+pub struct Timeline<S: TimelinedState> {
     state: S,
     undoes: Undoes<S>,
 }
@@ -55,7 +55,7 @@ pub struct Timeline<S: State> {
 //     }
 // }
 
-impl<S: State> Timeline<S> {
+impl<S: TimelinedState> Timeline<S> {
     pub fn new(state: S) -> Self {
         Self {
             state,
@@ -122,13 +122,13 @@ impl<S: State> Timeline<S> {
 
 pub struct TimelineRef<'a, S>
 where
-    S: State,
+    S: TimelinedState,
 {
     state: &'a mut S,
     undoes: Undoes<S>,
 }
 
-impl<S: State> Deref for TimelineRef<'_, S> {
+impl<S: TimelinedState> Deref for TimelineRef<'_, S> {
     type Target = S;
 
     fn deref(&self) -> &Self::Target {
@@ -136,7 +136,7 @@ impl<S: State> Deref for TimelineRef<'_, S> {
     }
 }
 
-impl<'a, S: State> TimelineRef<'a, S> {
+impl<'a, S: TimelinedState> TimelineRef<'a, S> {
     pub fn new(state: &'a mut S) -> Self {
         Self {
             state,

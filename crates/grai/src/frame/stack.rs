@@ -1,4 +1,4 @@
-use act::{Action, Revert, State};
+use act::{Action, Revert, TimelinedState};
 use serde::{Deserialize, Serialize};
 
 use crate::Operand;
@@ -57,7 +57,7 @@ pub enum StackError {
 
 impl Action for StackAction {}
 
-impl State for Stack {
+impl TimelinedState for Stack {
     type Action = StackAction;
     type Error = StackError;
 

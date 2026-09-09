@@ -1,18 +1,18 @@
-use crate::{Apply, Revert, State, TimelineError};
+use crate::{Apply, Revert, TimelineError, TimelinedState};
 
 #[derive(Debug)]
-pub struct Undoable<S: State> {
+pub struct Undoable<S: TimelinedState> {
     pub apply: Apply<S>,
     pub revert: Apply<S>,
 }
 
 #[derive(Debug)]
-pub struct Undoes<S: State> {
+pub struct Undoes<S: TimelinedState> {
     undoes: Vec<Undoable<S>>,
     cursor: usize,
 }
 
-impl<S: State> Default for Undoes<S> {
+impl<S: TimelinedState> Default for Undoes<S> {
     fn default() -> Self {
         Self {
             undoes: Vec::default(),
@@ -21,7 +21,7 @@ impl<S: State> Default for Undoes<S> {
     }
 }
 
-impl<S: State> Undoes<S> {
+impl<S: TimelinedState> Undoes<S> {
     /// Truncate any action after the cursor (the "redo" part), then push and increment cursor
     pub fn truncate_and_push(&mut self, undoable: Undoable<S>) {
         self.undoes.truncate(self.cursor);

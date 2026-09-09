@@ -1,4 +1,4 @@
-use act::State;
+use act::TimelinedState;
 use crossterm::event::{KeyEvent, MouseEvent};
 use ratatui::layout::Position;
 

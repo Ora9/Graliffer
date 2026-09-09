@@ -1,6 +1,6 @@
 use std::{collections::HashMap, convert::Infallible, error::Error, fmt::Display};
 
-use act::{Action, FromState, IntoState, Revert, State};
+use act::{Action, FromState, IntoState, Revert, TimelinedState};
 
 #[derive(Debug)]
 pub struct Camp {
@@ -16,7 +16,7 @@ pub enum CampAction {
 
 impl Action for CampAction {}
 
-impl State for Camp {
+impl TimelinedState for Camp {
     type Action = CampAction;
     type Error = Infallible;
 
@@ -85,7 +85,7 @@ impl From<CampAction> for PondAction {
 
 impl Action for PondAction {}
 
-impl State for Pond {
+impl TimelinedState for Pond {
     type Action = PondAction;
     type Error = PondError;
 

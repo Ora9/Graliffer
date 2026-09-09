@@ -1,6 +1,6 @@
 use std::{mem, ops::Deref};
 
-use act::{Action, Revert, State};
+use act::{Action, Revert, TimelinedState};
 
 #[derive(Debug, Clone)]
 pub enum SimpleAction {
@@ -22,7 +22,7 @@ pub struct Simple {
     pub baz: bool,
 }
 
-impl State for Simple {
+impl TimelinedState for Simple {
     type Action = SimpleAction;
     type Error = TestError;
 

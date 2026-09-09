@@ -1,6 +1,6 @@
 use std::convert::Infallible;
 
-use act::{Action, Revert, State};
+use act::{Action, Revert, TimelinedState};
 use crossterm::event::MouseEvent;
 use ratatui::{
     buffer::Buffer,
@@ -366,7 +366,7 @@ pub enum ConsoleAction {
 
 impl Action for ConsoleAction {}
 
-impl State for ConsoleView {
+impl TimelinedState for ConsoleView {
     type Action = ConsoleAction;
     type Error = Infallible;
 
