@@ -1,35 +1,54 @@
-use act::Timeline;
+use act::State;
 use crossterm::event::{KeyEvent, MouseEvent};
 use ratatui::layout::Position;
 
 use crate::{AppState, Context, GridView, Key, Keystroke, PickerView, View};
 
-pub fn handle_key_events(
-    app_state_timeline: &mut Timeline<AppState>,
-    key_event: KeyEvent,
-    app_context: Context,
-) {
-    if let Ok(keystroke) = Keystroke::try_from(key_event) {
-        let state = app_state_timeline.state();
+// pub fn handle_key_events(
+//     app_state: &mut Timeline<AppState>,
+//     key_event: KeyEvent,
+//     app_context: Context,
+// ) {
+//     if let Ok(keystroke) = Keystroke::try_from(key_event) {
+//         let state = app_state_timeline.state();
 
-        if let Some(action) = state.keymap.find(app_context, keystroke) {
-            app_state_timeline.act(action);
-        } else if let Key::Char(char) = keystroke.key {
-            let input = char.to_string();
-            let action = match state.focused().to_string().as_str() {
-                "Grid" => GridView::input_sink_action(input),
-                "Picker" => PickerView::input_sink_action(input),
-                _ => None,
-            };
+//         if let Some(action) = state.keymap.find(app_context, keystroke) {
+//             app_state_timeline.act(action);
+//         } else if let Key::Char(char) = keystroke.key {
+//             let input = char.to_string();
+//             let action = match state.focused().to_string().as_str() {
+//                 "Grid" => GridView::input_sink_action(input),
+//                 "Picker" => PickerView::input_sink_action(input),
+//                 _ => None,
+//             };
 
-            if let Some(action) = action {
-                app_state_timeline.act(action);
+//             if let Some(action) = action {
+//                 app_state_timeline.act(action);
+//             }
+//         }
+//     }
+// }
+
+impl AppState {
+    pub fn handle_key_events(&mut self, key_event: KeyEvent, app_context: Context) {
+        if let Ok(keystroke) = Keystroke::try_from(key_event) {
+            if let Some(action) = self.keymap.find(app_context, keystroke) {
+                let _ = self.act(action);
+            } else if let Key::Char(char) = keystroke.key {
+                let input = char.to_string();
+                let action = match self.focused().to_string().as_str() {
+                    "Grid" => GridView::input_sink_action(input),
+                    "Picker" => PickerView::input_sink_action(input),
+                    _ => None,
+                };
+
+                if let Some(action) = action {
+                    let _ = self.act(action);
+                }
             }
         }
     }
-}
 
-impl AppState {
     pub fn handle_mouse_event(&mut self, mouse_event: MouseEvent) {
         let mouse_pos = Position {
             x: mouse_event.column,

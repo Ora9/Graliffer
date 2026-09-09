@@ -1,10 +1,9 @@
-use act::Timeline;
 use color_eyre::Result;
 use log::debug;
 use ratatui::{Terminal, backend::CrosstermBackend};
 use std::env;
 
-use graliffer::{App, AppState, Config, Event, EventHandler, Tui, handle_key_events};
+use graliffer::{App, AppState, Config, Event, EventHandler, Tui};
 
 fn main() -> Result<()> {
     let config = Config::default();
@@ -33,39 +32,24 @@ fn main() -> Result<()> {
     let mut tui = Tui::new(terminal, events);
     tui.enter()?;
 
-    // let mut app_state = AppState::new(config);
+    let mut app_state = AppState::new(config);
 
-    let mut app_state_timeline = Timeline::new(AppState::new(config));
-
-    while app_state_timeline.state().should_run {
-        tui.draw(App::new(), app_state_timeline.state_mut())?;
+    while app_state.should_run {
+        tui.draw(App::new(), &mut app_state)?;
 
         match tui.events.next()? {
             Event::Tick => {
-                app_state_timeline.state_mut().tick();
+                app_state.tick();
             }
             Event::Key(key_event) => {
-                let context = app_state_timeline.state().context.clone();
-                handle_key_events(&mut app_state_timeline, key_event, context);
+                let context = app_state.context.clone();
+                app_state.handle_key_events(key_event, context);
             }
             Event::Mouse(mouse_event) => {
-                app_state_timeline
-                    .state_mut()
-                    .handle_mouse_event(mouse_event);
+                app_state.handle_mouse_event(mouse_event);
             }
             Event::Resize(_, _) => {}
         };
-
-        debug!("{:?}", app_state_timeline.state().timeline_queue);
-
-        if app_state_timeline.state_mut().timeline_queue.take_undo() {
-            app_state_timeline.undo().unwrap();
-        }
-        if app_state_timeline.state_mut().timeline_queue.take_redo() {
-            app_state_timeline.redo().unwrap();
-        }
-
-        debug!("{:#?}", app_state_timeline.undoes());
     }
 
     tui.exit()?;
