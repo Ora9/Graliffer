@@ -61,7 +61,10 @@ impl State for GridView {
 
         match action {
             GraiGridAction(grai_grid_action) => {
-                let _ = self.frame.write(|frame| frame.grid.act(grai_grid_action));
+                let _ = self
+                    .frame_timeline
+                    .state_mut()
+                    .write(|frame| frame.grid.act(grai_grid_action));
             }
 
             Undo => self.undo(),

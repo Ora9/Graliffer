@@ -36,9 +36,7 @@ mod impl_view;
 pub struct GridView {
     context: Context,
 
-    timeline: Timeline<FrameGuard>,
-
-    frame: grai::FrameGuard,
+    frame_timeline: Timeline<FrameGuard>,
 
     grid_input: GridInput,
     grid_offset: GridOffset,
@@ -77,8 +75,7 @@ impl GridView {
         GridView {
             context,
 
-            timeline: Timeline::new(frame.clone()),
-            frame,
+            frame_timeline: Timeline::new(frame.clone()),
 
             grid_input,
             grid_offset: GridOffset::default(),
@@ -166,17 +163,19 @@ impl GridView {
     }
 
     pub fn handle_insert(&mut self, input: char) {
-        self.grid_input.insert(&mut self.timeline, input);
+        self.grid_input.insert(&mut self.frame_timeline, input);
         self.follow_cursor();
     }
 
     pub fn handle_input_request(&mut self, input_request: InputRequest) {
-        self.grid_input.handle(&mut self.timeline, input_request);
+        self.grid_input
+            .handle(&mut self.frame_timeline, input_request);
         self.follow_cursor();
     }
 
     pub fn cursor_movement(&mut self, movement: CursorMovement) {
-        self.frame
+        self.frame_timeline
+            .state()
             .read(|frame| self.grid_input.with_movement(movement, &frame.grid));
 
         self.follow_cursor();
@@ -191,7 +190,7 @@ impl GridView {
             && let grai::FrameAction::Grid(grid_action) = action
             && let grai::GridAction::Set(position, _) = grid_action
         {
-            self.frame.read(|frame| {
+            self.frame_timeline.state().read(|frame| {
                 self.grid_input
                     .with_movement(CursorMovement::Jump(*position), &frame.grid);
             })
@@ -199,13 +198,13 @@ impl GridView {
     }
 
     fn undo(&mut self) {
-        if let Ok(apply) = self.timeline.undo() {
+        if let Ok(apply) = self.frame_timeline.undo() {
             self.move_cursor_with_timeline(apply)
         }
     }
 
     fn redo(&mut self) {
-        if let Ok(apply) = self.timeline.redo() {
+        if let Ok(apply) = self.frame_timeline.redo() {
             self.move_cursor_with_timeline(apply)
         }
     }
@@ -315,7 +314,10 @@ impl StatefulWidget for GridWidget {
                     },
                 ));
 
-                let cell_content = state.frame.read(|frame| frame.grid.get(grid_pos));
+                let cell_content = state
+                    .frame_timeline
+                    .state()
+                    .read(|frame| frame.grid.get(grid_pos));
 
                 let block = Block::bordered()
                     .fg(Color::DarkGray)
@@ -404,7 +406,10 @@ impl StatefulWidget for GridWidget {
             }
         }
 
-        let head_grid_pos = state.frame.read(|frame| frame.head.position);
+        let head_grid_pos = state
+            .frame_timeline
+            .state()
+            .read(|frame| frame.head.position);
         let head_term_pos =
             grid_to_terminal_position(head_grid_pos, overdraw_grid_area, state.grid_offset);
         let head_area = Rect::from((
