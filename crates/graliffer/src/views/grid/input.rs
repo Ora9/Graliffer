@@ -1,7 +1,11 @@
+use ratatui::layout::Position;
+use tui_input::{Input, InputRequest};
+
 use act::Timeline;
 use grai::{Direction, HorizontalDirection};
 use granary::GranaryDigit;
-use tui_input::{Input, InputRequest};
+
+use super::GridOffset;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CursorMovement {
@@ -253,5 +257,42 @@ impl GridInput {
         .min(cell.len());
 
         self.input.handle(InputRequest::SetCursor(cursor));
+    }
+}
+
+#[derive(Debug, Default)]
+pub enum DragState {
+    #[default]
+    Idle,
+    Dragging {
+        start_pointer_pos: Position,
+        start_grid_offset: GridOffset,
+    },
+}
+
+impl DragState {
+    pub fn start_drag(&mut self, pointer_position: Position, grid_offset: GridOffset) {
+        *self = Self::Dragging {
+            start_pointer_pos: pointer_position,
+            start_grid_offset: grid_offset,
+        };
+    }
+
+    pub fn stop_drag(&mut self) {
+        *self = Self::Idle;
+    }
+
+    pub fn dragging(&self) -> bool {
+        matches!(
+            self,
+            DragState::Dragging {
+                start_pointer_pos: _,
+                start_grid_offset: _,
+            }
+        )
+    }
+
+    pub fn idle(&self) -> bool {
+        matches!(self, DragState::Idle)
     }
 }
