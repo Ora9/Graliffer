@@ -26,18 +26,19 @@ fn main() -> Result<()> {
     debug!(target:"App", "Logging initialized");
 
     let backend = CrosstermBackend::new(std::io::stderr());
-    let terminal = Terminal::new(backend)?;
-    let events = EventHandler::new(200);
 
-    let mut tui = Tui::new(terminal, events);
+    let terminal = Terminal::new(backend)?;
+    let mut tui = Tui::new(terminal);
     tui.enter()?;
+
+    let events = EventHandler::new(250);
 
     let mut app_state = AppState::new(config);
 
     while app_state.should_run {
         tui.draw(App::new(), &mut app_state)?;
 
-        match tui.events.next()? {
+        match events.next()? {
             Event::Tick => {
                 app_state.tick();
             }

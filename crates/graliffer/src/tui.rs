@@ -12,7 +12,7 @@ use ratatui::{
 };
 use std::{io, panic};
 
-use crate::{App, AppState, EventHandler};
+use crate::{App, AppState};
 
 pub type CrosstermTerminal = ratatui::Terminal<ratatui::backend::CrosstermBackend<std::io::Stderr>>;
 
@@ -23,14 +23,12 @@ pub type CrosstermTerminal = ratatui::Terminal<ratatui::backend::CrosstermBacken
 pub struct Tui {
     /// Interface to the Terminal.
     terminal: CrosstermTerminal,
-    /// Terminal event handler.
-    pub events: EventHandler,
 }
 
 impl Tui {
     /// Constructs a new instance of [`Tui`].
-    pub fn new(terminal: CrosstermTerminal, events: EventHandler) -> Self {
-        Self { terminal, events }
+    pub fn new(terminal: CrosstermTerminal) -> Self {
+        Self { terminal }
     }
 
     /// Initializes the terminal interface.
