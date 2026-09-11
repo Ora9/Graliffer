@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::{AppAction, Context, KeyContextPredicate, Keystroke};
+use crate::{
+    AppAction, Context,
+    input::{KeyContextPredicate, Keystroke},
+};
 
 static DEFAULT_KEYMAP: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),

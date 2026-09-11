@@ -7,7 +7,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::KeyContextPredicate;
+use crate::input::KeyContextPredicate;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct KeyContextFlagKeyHash(u64);
@@ -137,7 +137,7 @@ impl KeyContext {
     }
 
     pub fn matches(&self, predicate: &KeyContextPredicate) -> bool {
-        use crate::KeyContextPredicate::*;
+        use KeyContextPredicate::*;
 
         match predicate {
             None => true,

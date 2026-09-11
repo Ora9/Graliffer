@@ -5,7 +5,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Key, KeyFromCrosstermError, KeyParseError, Modifiers, ModifiersParseError};
+use crate::input::{Key, KeyFromCrosstermError, KeyParseError, Modifiers, ModifiersParseError};
 
 // A single keystroke, with a key press, and currently pressed modifiers
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
@@ -138,7 +138,7 @@ impl Display for Keystroke {
 
 #[cfg(test)]
 mod tests {
-    use crate::UnexpectedDashPlacement;
+    use crate::input::UnexpectedDashPlacement;
 
     use super::*;
 

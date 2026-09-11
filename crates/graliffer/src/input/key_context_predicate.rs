@@ -2,7 +2,7 @@ use std::{fmt::Display, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 
-use crate::KeyContextFlag;
+use crate::input::KeyContextFlag;
 
 #[derive(Debug, Default, Clone, Eq, Hash, Serialize, Deserialize)]
 #[serde(try_from = "String")]

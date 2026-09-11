@@ -1,4 +1,4 @@
-use crate::{AppAction, AppWidget, KeyContextPredicate};
+use crate::{AppAction, AppWidget, input::KeyContextPredicate};
 
 mod grid;
 pub use grid::*;

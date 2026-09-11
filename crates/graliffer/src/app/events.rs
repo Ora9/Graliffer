@@ -2,7 +2,10 @@ use act::State;
 use crossterm::event::{KeyEvent, MouseEvent};
 use ratatui::layout::Position;
 
-use crate::{App, Context, GridView, Key, Keystroke, PickerView, View};
+use crate::{
+    App, Context, GridView, PickerView, View,
+    input::{Key, Keystroke},
+};
 
 impl App {
     pub fn handle_key_events(&mut self, key_event: KeyEvent, app_context: Context) {
