@@ -87,14 +87,14 @@ impl Display for KeyContextPredicate {
 impl PartialEq for KeyContextPredicate {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Self::Flag(lhs), Self::Flag(rhs)) => lhs == rhs,
+            (Self::Flag(lhs), Self::Flag(rhs)) => lhs.eq(rhs),
             (Self::None, Self::None) => true,
-            (Self::Not(lhs), Self::Not(rhs)) => lhs == rhs,
+            (Self::Not(lhs), Self::Not(rhs)) => lhs.eq(rhs),
             (Self::And(l1, l2), Self::And(r1, r2))
             | (Self::Or(l1, l2), Self::Or(r1, r2))
             | (Self::Xor(l1, l2), Self::Xor(r1, r2)) => {
-                // assure symmetry And(a, b) == And(b, a)
-                (l1 == r1) && (l2 == r2) || (l1 == r2) && (l2 == r1)
+                // assure symmetry of operations O(a, b) == O(b, a)
+                l1.eq(r1) && l2.eq(r2) || l1.eq(r2) && l2.eq(r1)
             }
             _ => false,
         }
