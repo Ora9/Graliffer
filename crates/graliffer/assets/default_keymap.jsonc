@@ -4,12 +4,13 @@
     "bindings": {
       "ctrl-a": "ToggleAbout",
       "alt-p": "ToggleCommandPicker",
+      "f1": "ToggleCommandPicker",
       "ctrl-q": "Quit",
       "ctrl-space": "grai::Step"
     }
   },
   {
-    "context": "popuped",
+    "context": "popup_opened",
     "bindings": {
       "escape": "ClosePopup"
 
@@ -18,7 +19,8 @@
   {
     "context": "command",
     "bindings": {
-      "i": "InsertMode"
+      "i": "InsertMode",
+      ":": "ToggleCommandPicker"
     }
   },
   {

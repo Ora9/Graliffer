@@ -1,68 +1,22 @@
-use std::fmt::Display;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PaneId(String);
-
-impl From<&str> for PaneId {
-    fn from(value: &str) -> Self {
-        Self(String::from(value))
-    }
-}
-
-impl Display for PaneId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.0)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PopupId(String);
-
-impl From<&str> for PopupId {
-    fn from(value: &str) -> Self {
-        Self(String::from(value))
-    }
-}
-
-impl Display for PopupId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.0)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ViewId {
-    Pane(PaneId),
-    Popup(PopupId),
+    Grid,
+    Stack,
+    Console,
+
+    Picker,
+    About,
 }
 
-impl Display for ViewId {
+impl std::fmt::Display for ViewId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Pane(pane) => write!(f, "{pane}"),
-            Self::Popup(popup) => write!(f, "{popup}"),
+            Self::Grid => f.write_str("Grid"),
+            Self::Stack => f.write_str("Stack"),
+            Self::Console => f.write_str("Console"),
+
+            Self::Picker => f.write_str("Picker"),
+            Self::About => f.write_str("About"),
         }
-    }
-}
-
-impl ViewId {
-    pub fn is_pane(&self) -> bool {
-        matches!(self, Self::Pane(_))
-    }
-
-    pub fn is_popup(&self) -> bool {
-        matches!(self, Self::Popup(_))
-    }
-}
-
-impl From<PaneId> for ViewId {
-    fn from(value: PaneId) -> Self {
-        Self::Pane(value)
-    }
-}
-
-impl From<PopupId> for ViewId {
-    fn from(value: PopupId) -> Self {
-        Self::Popup(value)
     }
 }

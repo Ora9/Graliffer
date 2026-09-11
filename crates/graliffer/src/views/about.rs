@@ -8,7 +8,7 @@ use ratatui::{
     widgets::Widget,
 };
 
-use crate::{View, ViewType, widgets::Popup};
+use crate::{View, ViewId, widgets::Popup};
 
 pub struct AboutView;
 
@@ -71,11 +71,7 @@ impl Widget for About {
 }
 
 impl View for AboutView {
-    fn title() -> String {
-        String::from("About")
-    }
-
-    fn view_type() -> ViewType {
-        ViewType::Popup
+    fn view_id() -> ViewId {
+        ViewId::About
     }
 }

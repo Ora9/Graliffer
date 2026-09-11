@@ -1,12 +1,8 @@
-use crate::{AppAction, GridAction, GridView, View, ViewType};
+use crate::{AppAction, GridAction, GridView, View, ViewId};
 
 impl View for GridView {
-    fn title() -> String {
-        String::from("Grid")
-    }
-
-    fn view_type() -> ViewType {
-        ViewType::Pane
+    fn view_id() -> ViewId {
+        ViewId::Grid
     }
 
     fn input_sink_action(input: String) -> Option<AppAction> {

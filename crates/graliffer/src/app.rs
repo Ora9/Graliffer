@@ -2,7 +2,7 @@ use grai::FrameGuard;
 use rand::seq::SliceRandom;
 
 use crate::{
-    ConsoleView, GridView, PaneId, PickerView, PopupId, StackView, View, ViewId,
+    ConsoleView, GridView, PickerView, StackView, View, ViewId,
     config::Config,
     input::{InputMode, Keymap},
 };
@@ -32,7 +32,7 @@ pub struct App {
     pub command_picker_state: PickerView,
 
     pub should_run: bool,
-    pub last_focused_pane: Option<PaneId>,
+    pub last_focused_pane: Option<ViewId>,
 }
 
 #[derive(Debug, Default)]
@@ -87,11 +87,10 @@ impl App {
         app
     }
 
-    /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {}
 
-    pub fn is_focused(&self, focus_id: impl Into<ViewId>) -> bool {
-        self.focused() == focus_id.into()
+    pub fn focusing(&self, view_id: impl Into<ViewId>) -> bool {
+        self.focused() == view_id.into()
     }
 
     pub fn focused(&self) -> ViewId {
@@ -103,32 +102,33 @@ impl App {
     }
 
     pub fn popup_opened(&self) -> bool {
-        matches!(self.focused(), ViewId::Popup(_))
+        self.context.has_flag("popup_opened")
     }
 
     pub fn close_popup(&mut self) {
-        if let Some(last_focus) = self.last_focused_pane.clone() {
+        self.context.remove_flag("popup_opened");
+
+        if let Some(last_focus) = self.last_focused_pane {
             self.set_focus(last_focus);
         }
-
-        self.context.remove_flag("popuped");
     }
 
-    pub fn open_popup(&mut self, popup_id: PopupId) {
-        if let ViewId::Pane(pane_id) = self.focused() {
-            self.last_focused_pane = Some(pane_id);
+    pub fn open_popup(&mut self, view_id: impl Into<ViewId>) {
+        if !self.context.has_flag("popup_opened") {
+            self.last_focused_pane = Some(self.focused());
         }
 
-        self.context.insert_flag("popuped".to_string());
-
-        self.set_focus(popup_id);
+        self.context.insert_flag("popup_opened");
+        self.set_focus(view_id.into());
     }
 
-    pub fn toggle_popup(&mut self, popup_id: PopupId) {
-        if self.is_focused(popup_id.clone()) {
+    pub fn toggle_popup(&mut self, view_id: impl Into<ViewId>) {
+        let view_id = view_id.into();
+
+        if self.focusing(view_id) {
             self.close_popup();
         } else {
-            self.open_popup(popup_id);
+            self.open_popup(view_id);
         }
     }
 
@@ -140,7 +140,6 @@ impl App {
         self.context.set_input_mode(input_mode);
     }
 
-    /// Set should_quit to true to quit the application.
     pub fn quit(&mut self) {
         self.should_run = false;
     }

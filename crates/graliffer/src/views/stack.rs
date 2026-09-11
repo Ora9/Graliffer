@@ -4,7 +4,7 @@ use ratatui::{
     widgets::{List, StatefulWidget, Widget},
 };
 
-use crate::{View, ViewType};
+use crate::{View, ViewId};
 
 #[derive(Debug)]
 pub struct StackView {
@@ -18,12 +18,8 @@ impl StackView {
 }
 
 impl View for StackView {
-    fn title() -> String {
-        String::from("Stack")
-    }
-
-    fn view_type() -> ViewType {
-        ViewType::Pane
+    fn view_id() -> ViewId {
+        ViewId::Stack
     }
 }
 

@@ -4,16 +4,12 @@ use crate::{
     ViewId,
     config::Config,
     input::{InputMode, KeyContext},
-    input::{KeyContextFlag, KeyContextFlagKey, KeyContextPredicate},
+    input::{KeyContextFlag, KeyContextPredicate},
 };
 
 #[derive(Debug)]
 struct ContextInner {
     config: Config,
-
-    focus: ViewId,
-    input_mode: InputMode,
-
     key_context: KeyContext,
 }
 
@@ -27,22 +23,12 @@ pub struct Context(Rc<RefCell<ContextInner>>);
 
 impl Context {
     /// Create a `Context`
-    pub(crate) fn new(config: Config, default_focus: ViewId) -> Self {
-        let input_mode = InputMode::default();
-
-        let mut context = Self(Rc::new(RefCell::new(ContextInner {
-            focus: default_focus.clone(),
-            input_mode,
-
+    pub(crate) fn new(config: Config, focus: ViewId) -> Self {
+        Self(Rc::new(RefCell::new(ContextInner {
             config,
 
-            key_context: KeyContext::default(),
-        })));
-
-        context.set_focus_flag(default_focus);
-        context.set_input_mode_flag(input_mode);
-
-        context
+            key_context: KeyContext::new(focus, InputMode::default()),
+        })))
     }
 
     /// Read only access to the config
@@ -65,17 +51,12 @@ impl Context {
 impl Context {
     /// Current [`InputMode`]
     pub fn input_mode(&self) -> InputMode {
-        self.read(|ctx| ctx.input_mode)
+        self.read(|ctx| ctx.key_context.input_mode())
     }
 
     /// Set the [`InputMode`]
     pub fn set_input_mode(&mut self, input_mode: InputMode) {
-        self.write(|ctx| ctx.input_mode = input_mode);
-        self.set_input_mode_flag(input_mode);
-    }
-
-    fn set_input_mode_flag(&mut self, input_mode: InputMode) {
-        self.insert_flag_with_key(KeyContextFlagKey::InputMode, input_mode.to_string());
+        self.write(|ctx| ctx.key_context.set_input_mode(input_mode));
     }
 }
 
@@ -83,23 +64,16 @@ impl Context {
 impl Context {
     /// Currently focused [`ViewId`]
     pub fn focus(&self) -> ViewId {
-        self.read(|ctx| ctx.focus.clone())
+        self.read(|ctx| ctx.key_context.focus())
     }
 
     /// Set the focused [`ViewId`]
     pub fn set_focus(&mut self, focus: impl Into<ViewId>) {
-        let focus = focus.into();
-
-        self.write(|ctx| ctx.focus = focus.clone());
-        self.set_focus_flag(focus);
-    }
-
-    fn set_focus_flag(&mut self, focus: ViewId) {
-        self.insert_flag_with_key(KeyContextFlagKey::Focus, focus.to_string());
+        self.write(|ctx| ctx.key_context.set_focus(focus.into()));
     }
 }
 
-/// # Key context flag
+/// # Key context
 impl Context {
     /// Read only access to [key context](KeyContext)
     pub fn key_context<O>(&self, reader: impl FnOnce(&KeyContext) -> O) -> O {
@@ -117,6 +91,8 @@ impl Context {
     }
 
     /// Insert the given `flag` in the key context
+    ///
+    /// Note: see [`KeyContextFlag`] for flag naming guidelines
     pub fn insert_flag(&mut self, flag: impl Into<KeyContextFlag>) {
         self.key_context_mut(|key_context| key_context.insert(flag.into()));
     }
@@ -129,28 +105,5 @@ impl Context {
     /// Does the current key context contains the given `flag`
     pub fn has_flag(&self, flag: impl Into<KeyContextFlag>) -> bool {
         self.key_context(|key_context| key_context.has(&flag.into()))
-    }
-
-    /// Insert the given `flag` in the key context with `key`
-    pub fn insert_flag_with_key(
-        &mut self,
-        key: impl Into<KeyContextFlagKey>,
-        flag: impl Into<KeyContextFlag>,
-    ) {
-        self.key_context_mut(|key_context| key_context.insert_with_key(key.into(), flag.into()));
-    }
-
-    /// Remove the flag associated to `key` from the key context
-    pub fn remove_flag_with_key(&mut self, key: impl Into<KeyContextFlagKey>) {
-        self.key_context_mut(|key_context| key_context.remove_with_key(&key.into()));
-    }
-
-    /// Does the key context contains the given `key` and `flag` association
-    pub fn has_flag_with_key(
-        &self,
-        key: impl Into<KeyContextFlagKey>,
-        flag: impl Into<KeyContextFlag>,
-    ) -> bool {
-        self.key_context(|key_context| key_context.has_with_key(&key.into(), &flag.into()))
     }
 }

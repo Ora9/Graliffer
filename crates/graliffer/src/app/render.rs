@@ -59,7 +59,7 @@ impl StatefulWidget for AppWidget {
         let grid_pane_title = MenuTitle::NumberPrefix {
             title: "Grid".to_span(),
             prefix: NumberPrefix::Num1,
-            focused: app.is_focused(GridView::view_id()),
+            focused: app.focusing(GridView::view_id()),
         };
 
         let grid_menu_bar = MenuLine::default().push_title_in_new_group(grid_pane_title);
@@ -74,7 +74,7 @@ impl StatefulWidget for AppWidget {
         let console_menu_bar = MenuLine::from_title(MenuTitle::NumberPrefix {
             title: "Console".to_span(),
             prefix: NumberPrefix::Num2,
-            focused: app.is_focused(ConsoleView::view_id()),
+            focused: app.focusing(ConsoleView::view_id()),
         });
 
         let input_mode = MenuLine::from_title(MenuTitle::Info(app.input_mode().formated()))
@@ -95,7 +95,7 @@ impl StatefulWidget for AppWidget {
         let stack_menu_bar = MenuLine::from_title(MenuTitle::NumberPrefix {
             title: "Stack".to_span(),
             prefix: NumberPrefix::Num3,
-            focused: app.is_focused(StackView::view_id()),
+            focused: app.focusing(StackView::view_id()),
         });
         Pane::new()
             .add_menu_line(stack_menu_bar)
@@ -107,11 +107,11 @@ impl StatefulWidget for AppWidget {
             &mut app.stack_view,
         );
 
-        if app.is_focused(AboutView::view_id()) {
+        if app.focusing(AboutView::view_id()) {
             About.render(area, buf);
         }
 
-        if app.is_focused(PickerView::view_id()) {
+        if app.focusing(PickerView::view_id()) {
             Picker.render(area, buf, &mut app.command_picker_state);
         }
     }

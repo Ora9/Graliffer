@@ -53,21 +53,12 @@ pub struct InputSinkBinding {
     pub context: KeyContextPredicate,
 }
 
-pub enum ViewType {
-    Pane,
-    Popup,
-}
-
 pub trait View {
-    fn title() -> String;
-    fn view_type() -> ViewType;
-
-    fn view_id() -> ViewId {
-        match Self::view_type() {
-            ViewType::Pane => PaneId::from(Self::title().as_str()).into(),
-            ViewType::Popup => PopupId::from(Self::title().as_str()).into(),
-        }
+    fn title() -> String {
+        Self::view_id().to_string()
     }
+
+    fn view_id() -> ViewId;
 
     #[allow(unused)]
     fn input_sink_action(input: String) -> Option<AppAction> {

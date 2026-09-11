@@ -16,7 +16,7 @@ use tui_scrollbar::{
     ScrollMetrics,
 };
 
-use crate::{Context, View, ViewType};
+use crate::{Context, View, ViewId};
 
 #[derive(Debug, Clone, Copy)]
 pub struct ConsoleConfig {
@@ -407,11 +407,7 @@ impl State for ConsoleView {
 }
 
 impl View for ConsoleView {
-    fn title() -> String {
-        String::from("Console")
-    }
-
-    fn view_type() -> ViewType {
-        ViewType::Pane
+    fn view_id() -> ViewId {
+        ViewId::Console
     }
 }

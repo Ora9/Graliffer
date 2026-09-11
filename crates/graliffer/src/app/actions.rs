@@ -1,7 +1,7 @@
 use std::{convert::Infallible, str::FromStr};
 
 use crate::{
-    AboutView, App, ConsoleAction, GridAction, PickerAction, PickerView, PopupId, StackView, View,
+    AboutView, App, ConsoleAction, GridAction, PickerAction, PickerView, StackView, View,
     input::InputMode,
 };
 use serde::{Deserialize, Serialize};
@@ -152,10 +152,10 @@ impl State for App {
                         self.quit();
                     }
                     ToggleAbout => {
-                        self.toggle_popup(PopupId::from(AboutView::title().as_str()));
+                        self.toggle_popup(AboutView::view_id());
                     }
                     ToggleCommandPicker => {
-                        self.toggle_popup(PopupId::from(PickerView::title().as_str()));
+                        self.toggle_popup(PickerView::view_id());
                     }
                     ClosePopup => {
                         self.close_popup();

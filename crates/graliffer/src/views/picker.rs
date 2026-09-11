@@ -15,7 +15,7 @@ use ratatui::{
 use serde::{Deserialize, Serialize};
 use tui_input::{Input, InputRequest};
 
-use crate::{AppAction, Context, View, ViewType, widgets::Popup};
+use crate::{AppAction, Context, View, ViewId, widgets::Popup};
 
 #[derive(Debug, Clone)]
 pub struct PickerItem {
@@ -201,12 +201,8 @@ impl State for PickerView {
 }
 
 impl View for PickerView {
-    fn title() -> String {
-        String::from("Picker")
-    }
-
-    fn view_type() -> ViewType {
-        ViewType::Popup
+    fn view_id() -> ViewId {
+        ViewId::Picker
     }
 
     fn input_sink_action(input: String) -> Option<AppAction> {

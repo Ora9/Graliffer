@@ -1,83 +1,31 @@
-use std::{
-    collections::HashMap,
-    fmt::Display,
-    hash::{DefaultHasher, Hash, Hasher},
-    num::Wrapping,
-};
+use std::{collections::HashSet, fmt::Display, hash::Hash};
 
 use serde::{Deserialize, Serialize};
 
-use crate::input::KeyContextPredicate;
+use crate::{
+    ViewId,
+    input::{InputMode, KeyContextPredicate},
+};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct KeyContextFlagKeyHash(u64);
-
-impl KeyContextFlagKeyHash {
-    pub fn new() -> Self {
-        Self(rand::random::<u64>())
-    }
-}
-
-impl From<&str> for KeyContextFlagKeyHash {
-    fn from(value: &str) -> Self {
-        let mut hasher = DefaultHasher::new();
-        Hash::hash(value, &mut hasher);
-        Self(hasher.finish())
-    }
-}
-
-impl From<String> for KeyContextFlagKeyHash {
-    fn from(value: String) -> Self {
-        value.as_str().into()
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum KeyContextFlagKey {
-    Focus,
-    InputMode,
-    Hash(KeyContextFlagKeyHash),
-}
-
-impl From<&str> for KeyContextFlagKey {
-    fn from(value: &str) -> Self {
-        Self::Hash(KeyContextFlagKeyHash::from(value))
-    }
-}
-
-impl Default for KeyContextFlagKey {
-    fn default() -> Self {
-        Self::Hash(KeyContextFlagKeyHash::new())
-    }
-}
-
-// pub type KeyContextFlag = String;
+/// A flag that can be matched by a predicate (eg. in keymap, when specifying a context)
+///
+/// # Flag naming guideline
+/// Technically any string is valid, but some pattern can lead to erroneous
+/// behavior :
+/// - Whitespace or empty strings like `` or ` ` ..
+/// - [`KeyContextPredicate`] operators like `&&`, `^^` or `!` ..
+/// - [`ViewId`]s like `Grid` or `Picker`
+/// - [`InputMode`] like `command` and `insert`
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct KeyContextFlag(String);
 
 impl From<&str> for KeyContextFlag {
-    /// Get Self from a `&str`
-    ///
-    /// # Validity
-    /// There are some "invalid" inputs, some examples :
-    /// - "&&", "!" .. (predicate operators)
-    /// - "", " " (whitespace or empty)
-    ///
-    /// But it would be annoying to validate it with `TryFrom`, so idk just avoid using these string..
     fn from(value: &str) -> Self {
         KeyContextFlag(value.to_string())
     }
 }
 
 impl From<String> for KeyContextFlag {
-    /// Get Self from a `&str`
-    ///
-    /// # Validity
-    /// There are some "invalid" inputs, some examples :
-    /// - "&&", "!" .. (predicate operators)
-    /// - "", " " (whitespace or empty)
-    ///
-    /// But it would be annoying to validate it with `TryFrom`, so idk just avoid using these string..
     fn from(value: String) -> Self {
         KeyContextFlag(value)
     }
@@ -89,51 +37,73 @@ impl Display for KeyContextFlag {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct KeyContext(HashMap<KeyContextFlagKey, KeyContextFlag>);
-
-impl Hash for KeyContext {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        let mut sum: Wrapping<u64> = Wrapping::default();
-
-        for (key, flag) in &self.0 {
-            let mut hasher = DefaultHasher::new();
-            Hash::hash(key, &mut hasher);
-            Hash::hash(flag, &mut hasher);
-            sum += hasher.finish()
-        }
-
-        state.write_u64(sum.0);
-    }
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KeyContext {
+    input_mode: InputMode,
+    focus: ViewId,
+    flags: HashSet<KeyContextFlag>,
 }
 
+// impl Hash for KeyContext {
+//     fn hash<H: Hasher>(&self, state: &mut H) {
+//         let mut sum: Wrapping<u64> = Wrapping::default();
+
+//         for (key, flag) in &self.0 {
+//             let mut hasher = DefaultHasher::new();
+//             Hash::hash(key, &mut hasher);
+//             Hash::hash(flag, &mut hasher);
+//             sum += hasher.finish()
+//         }
+
+//         state.write_u64(sum.0);
+//     }
+// }
+
 impl KeyContext {
-    pub fn empty() -> Self {
-        Self::default()
+    pub fn new(focus: ViewId, input_mode: InputMode) -> Self {
+        Self {
+            focus,
+            input_mode,
+            flags: HashSet::default(),
+        }
     }
 
     pub fn insert(&mut self, flag: KeyContextFlag) {
-        self.0.insert(KeyContextFlagKey::default(), flag);
+        self.flags.insert(flag);
     }
 
     pub fn remove(&mut self, flag: &KeyContextFlag) {
-        self.0.retain(|_, value| value != flag);
+        self.flags.remove(flag);
     }
 
     pub fn has(&self, flag: &KeyContextFlag) -> bool {
-        self.0.iter().find(|(_, value)| *value == flag).is_some()
+        // if we insert a flag with a ViewId name like `Grid`, the predicate "Console Grid &&" can
+        // be true, we should avoid having these kind of flags in self.flags
+
+        // TODO: this is kinda ugly
+        if self.focus.to_string() == flag.to_string()
+            || self.input_mode.to_string() == flag.to_string()
+        {
+            true
+        } else {
+            self.flags.contains(flag)
+        }
     }
 
-    pub fn insert_with_key(&mut self, key: KeyContextFlagKey, flag: KeyContextFlag) {
-        self.0.insert(key, flag);
+    pub fn set_focus(&mut self, focus: ViewId) {
+        self.focus = focus;
     }
 
-    pub fn remove_with_key(&mut self, key: &KeyContextFlagKey) {
-        self.0.remove(key);
+    pub fn focus(&self) -> ViewId {
+        self.focus
     }
 
-    pub fn has_with_key(&self, key: &KeyContextFlagKey, flag: &KeyContextFlag) -> bool {
-        self.0.get(key).map(|value| value == flag).unwrap_or(false)
+    pub fn set_input_mode(&mut self, input_mode: InputMode) {
+        self.input_mode = input_mode;
+    }
+
+    pub fn input_mode(&self) -> InputMode {
+        self.input_mode
     }
 
     pub fn matches(&self, predicate: &KeyContextPredicate) -> bool {
