@@ -233,6 +233,26 @@ mod tests {
     }
 
     #[test]
+    fn parse_space() -> Result<(), KeystrokeParseError> {
+        assert_eq!(
+            Keystroke::from_str("alt- "),
+            Err(KeystrokeParseError::KeyParseError {
+                got: "alt- ".to_string(),
+                source_error: KeyParseError::UnknownKey {
+                    got: " ".to_string()
+                }
+            })
+        );
+
+        assert_eq!(
+            Keystroke::from_str("alt-space")?,
+            Keystroke::new(Key::Space, Modifiers::ALT),
+        );
+
+        Ok(())
+    }
+
+    #[test]
     fn parse_dash_as_key() -> Result<(), KeystrokeParseError> {
         assert_eq!(
             Keystroke::from_str("-")?,

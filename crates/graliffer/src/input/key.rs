@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum Key {
     Char(char),
+    Space,
     Backspace,
     Enter,
     Left,
@@ -51,6 +52,7 @@ impl Display for Key {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let string = match self {
             Key::Char(char) => &char.to_string(),
+            Key::Space => "space",
             Key::Backspace => "backspace",
             Key::Enter => "enter",
             Key::Left => "left",
@@ -108,6 +110,7 @@ impl FromStr for Key {
     /// ```
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         match value.to_ascii_lowercase().as_str() {
+            "space" => Ok(Key::Space),
             "backspace" => Ok(Key::Backspace),
             "enter" => Ok(Key::Enter),
             "left" => Ok(Key::Left),
@@ -139,7 +142,7 @@ impl FromStr for Key {
                 let mut chars = value.chars();
                 match (chars.next(), chars.next()) {
                     (None, _) => Err(KeyParseError::EmptyKey),
-                    (Some(c), None) => Ok(Key::Char(c)),
+                    (Some(c), None) if c != ' ' => Ok(Key::Char(c)),
                     _ => Err(KeyParseError::UnknownKey {
                         got: value.to_string(),
                     }),
@@ -164,6 +167,7 @@ impl TryFrom<crossterm::event::KeyCode> for Key {
     fn try_from(value: crossterm::event::KeyCode) -> Result<Key, Self::Error> {
         use crossterm::event::KeyCode;
         match value {
+            KeyCode::Char(char) if char == ' ' => Ok(Key::Space),
             KeyCode::Char(char) => Ok(Key::Char(char)),
             KeyCode::Backspace => Ok(Key::Backspace),
             KeyCode::Enter => Ok(Key::Enter),
@@ -219,6 +223,7 @@ mod tests {
     #[test]
     fn display_special() {
         assert_display(Key::Backspace, "backspace");
+        assert_display(Key::Space, "space");
         assert_display(Key::Enter, "enter");
         assert_display(Key::Left, "left");
         assert_display(Key::Right, "right");
@@ -265,6 +270,18 @@ mod tests {
         assert_parse("æ", Key::Char('æ'));
 
         assert_parse("-", Key::Char('-'));
+    }
+
+    #[test]
+    fn parse_space() {
+        assert_parse("space", Key::Space);
+
+        assert_eq!(
+            Key::from_str(" "),
+            Err(KeyParseError::UnknownKey {
+                got: " ".to_string()
+            })
+        );
     }
 
     #[test]
@@ -342,6 +359,11 @@ mod tests {
     fn from_crossterm_char() {
         assert_from_ct(KeyCode::Char('a'), Key::Char('a'));
         assert_from_ct(KeyCode::Char('ß'), Key::Char('ß'));
+    }
+
+    #[test]
+    fn from_crossterm_space() {
+        assert_from_ct(KeyCode::Char(' '), Key::Space);
     }
 
     #[test]

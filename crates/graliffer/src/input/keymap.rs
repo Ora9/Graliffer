@@ -29,6 +29,8 @@ impl Keymap {
             .filter(|binding_group| app_context.matches_key_context(&binding_group.context))
             .find_map(|binding_group| binding_group.find_keystroke(keystroke))
     }
+
+    // pub fn find_application_keybind(action: AppAction, key_context: KeyContext) -> Keystroke {}
 }
 
 impl Default for Keymap {

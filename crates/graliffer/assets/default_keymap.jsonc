@@ -5,7 +5,7 @@
       "ctrl-a": "ToggleAbout",
       "alt-p": "ToggleCommandPicker",
       "ctrl-q": "Quit",
-      "ctrl- ": "grai::Step"
+      "ctrl-space": "grai::Step"
     }
   },
   {
