@@ -37,27 +37,19 @@ impl Display for KeyContextFlag {
     }
 }
 
+/// Stores information about the context in which a key is pressed (but more broadly any input)
+///
+/// It can give context about :
+/// - Our focus, which view are we focusing right now (via [`ViewId`])
+/// - The current [`InputMode`], either `insert` or `command` mode
+/// - And arbitrary [`KeyContextFlag`]s, defined and set by multiples parts of the app, giving
+/// information about the app's context (eg. if a popup is opened, if we are in zen mode ..)
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KeyContext {
     input_mode: InputMode,
     focus: ViewId,
     flags: HashSet<KeyContextFlag>,
 }
-
-// impl Hash for KeyContext {
-//     fn hash<H: Hasher>(&self, state: &mut H) {
-//         let mut sum: Wrapping<u64> = Wrapping::default();
-
-//         for (key, flag) in &self.0 {
-//             let mut hasher = DefaultHasher::new();
-//             Hash::hash(key, &mut hasher);
-//             Hash::hash(flag, &mut hasher);
-//             sum += hasher.finish()
-//         }
-
-//         state.write_u64(sum.0);
-//     }
-// }
 
 impl KeyContext {
     pub fn new(focus: ViewId, input_mode: InputMode) -> Self {
@@ -68,14 +60,19 @@ impl KeyContext {
         }
     }
 
+    /// Insert a flag into the context
+    ///
+    /// Note: see [`KeyContextFlag`] for flag naming guidelines
     pub fn insert(&mut self, flag: KeyContextFlag) {
         self.flags.insert(flag);
     }
 
+    /// Remove the given `flag` from the key context
     pub fn remove(&mut self, flag: &KeyContextFlag) {
         self.flags.remove(flag);
     }
 
+    /// Does the current key context contains the given `flag`
     pub fn has(&self, flag: &KeyContextFlag) -> bool {
         // if we insert a flag with a ViewId name like `Grid`, the predicate "Console Grid &&" can
         // be true, we should avoid having these kind of flags in self.flags
@@ -90,22 +87,27 @@ impl KeyContext {
         }
     }
 
+    /// Set the focused [`ViewId`]
     pub fn set_focus(&mut self, focus: ViewId) {
         self.focus = focus;
     }
 
+    /// Currently focused [`ViewId`]
     pub fn focus(&self) -> ViewId {
         self.focus
     }
 
+    /// Set the [`InputMode`]
     pub fn set_input_mode(&mut self, input_mode: InputMode) {
         self.input_mode = input_mode;
     }
 
+    /// Current [`InputMode`]
     pub fn input_mode(&self) -> InputMode {
         self.input_mode
     }
 
+    /// Does the given [`KeyContextPredicate`] matches [`KeyContext`]
     pub fn matches(&self, predicate: &KeyContextPredicate) -> bool {
         use KeyContextPredicate::*;
 
