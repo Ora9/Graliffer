@@ -6,7 +6,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
-use act::{Action, State, TimelinedState};
+use act::{Action, State};
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum ActionParseError {
@@ -31,9 +31,6 @@ pub enum GralifferAction {
 #[derive(Debug, Clone, strum::EnumString, Serialize, Deserialize)]
 pub enum GraiAction {
     Step,
-    // #[strum(disabled)]
-    // #[serde(skip)]
-    // Frame(grai::FrameAction),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
