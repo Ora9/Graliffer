@@ -1,4 +1,4 @@
-use crate::{AppWidget, AppAction, KeyContextPredicate};
+use crate::{AppAction, AppWidget, KeyContextPredicate};
 
 mod grid;
 pub use grid::*;
@@ -17,8 +17,6 @@ pub use about::*;
 
 mod view_id;
 pub use view_id::*;
-
-mod app_render;
 
 impl AppWidget {
     pub fn register_views(&mut self) {}

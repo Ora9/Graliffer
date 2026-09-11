@@ -2,12 +2,17 @@ use grai::FrameGuard;
 use rand::seq::SliceRandom;
 
 use crate::{
-    Config, ConsoleView, Context, GridView, PaneId, PickerView, PopupId, StackView, View, ViewId,
+    Config, ConsoleView, GridView, PaneId, PickerView, PopupId, StackView, View, ViewId,
     input::{InputMode, Keymap},
 };
 
-mod impl_state;
-pub use impl_state::*;
+mod render;
+
+mod actions;
+pub use actions::*;
+
+mod context;
+pub use context::*;
 
 #[derive(Debug)]
 pub struct App {
