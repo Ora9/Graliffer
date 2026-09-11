@@ -23,25 +23,10 @@ impl KeyContextPredicate {
             Self::And(_, _) => Some(KeyContextPredicateOperation::And),
             Self::Or(_, _) => Some(KeyContextPredicateOperation::Or),
             Self::Xor(_, _) => Some(KeyContextPredicateOperation::Xor),
-            KeyContextPredicate::Not(_) => Some(KeyContextPredicateOperation::Not),
+            Self::Not(_) => Some(KeyContextPredicateOperation::Not),
         }
     }
 
-    // fn operands(&self) -> Option<(&KeyContextPredicate, &KeyContextPredicate)> {
-    //     match self {
-    //         Self::Flag(_) | Self::Not(_) | Self::None => None,
-    //         Self::And(lhs, rhs) | Self::Or(lhs, rhs) | Self::Xor(lhs, rhs) => {
-    //             Some((lhs.deref(), rhs.deref()))
-    //         }
-    //     }
-    // }
-
-    // fn lhs(&self) -> KeyContextPredicate {
-    //     // use KeyContextPredicate::*;
-    //     // match self {
-    //     //     Self::Flag(_) =>
-    //     // }
-    // }
     pub fn from_flag(flag: impl Into<KeyContextFlag>) -> Self {
         Self::Flag(flag.into())
     }
@@ -104,7 +89,8 @@ impl PartialEq for KeyContextPredicate {
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum KeyContextPredicateParseError {
     #[error(
-        "missing operand for `{operation}` ({operation:#}) operation in `{source}`, expected {}", operation.arity()
+        "missing an operand for `{operation}` ({operation:#}) operation in `{source}`, expected {}",
+        operation.arity()
     )]
     MissingOperand {
         r#source: String,
@@ -205,22 +191,22 @@ impl KeyContextPredicateOperation {
         }
     }
 
-    pub fn name(&self) -> String {
-        match self {
-            Self::And => "And",
-            Self::Or => "Or",
-            Self::Xor => "Xor",
-            Self::Not => "Not",
-        }
-        .to_string()
-    }
-
     pub fn symbol(&self) -> String {
         match self {
             Self::And => "&&",
             Self::Or => "||",
             Self::Xor => "^^",
             Self::Not => "!",
+        }
+        .to_string()
+    }
+
+    pub fn name(&self) -> String {
+        match self {
+            Self::And => "And",
+            Self::Or => "Or",
+            Self::Xor => "Xor",
+            Self::Not => "Not",
         }
         .to_string()
     }
@@ -264,10 +250,6 @@ mod tests {
             "A B ! && C &&"
         );
     }
-
-    // fn parse(s: &str) -> KeyContextPredicate {
-    //     KeyContextPredicate::from_str(s).unwrap()
-    // }
 
     #[test]
     fn parse_flag() -> Result<(), KeyContextPredicateParseError> {
