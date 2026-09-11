@@ -2,7 +2,8 @@ use grai::FrameGuard;
 use rand::seq::SliceRandom;
 
 use crate::{
-    Config, ConsoleView, GridView, PaneId, PickerView, PopupId, StackView, View, ViewId,
+    ConsoleView, GridView, PaneId, PickerView, PopupId, StackView, View, ViewId,
+    config::Config,
     input::{InputMode, Keymap},
 };
 

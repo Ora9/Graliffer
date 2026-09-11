@@ -3,7 +3,7 @@ use log::debug;
 use ratatui::{Terminal, backend::CrosstermBackend};
 use std::env;
 
-use graliffer::{App, AppWidget, Config, Event, EventHandler, Tui};
+use graliffer::{App, AppWidget, Event, EventHandler, Tui, config::Config};
 
 fn main() -> Result<()> {
     let config = Config::default();

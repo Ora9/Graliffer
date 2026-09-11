@@ -1,7 +1,8 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-    Config, ViewId,
+    ViewId,
+    config::Config,
     input::{InputMode, KeyContext},
     input::{KeyContextFlag, KeyContextFlagKey, KeyContextPredicate},
 };
