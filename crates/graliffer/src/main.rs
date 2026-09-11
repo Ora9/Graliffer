@@ -33,21 +33,21 @@ fn main() -> Result<()> {
 
     let events = EventHandler::new(250);
 
-    let mut app_state = App::new(config);
+    let mut app = App::new(config);
 
-    while app_state.should_run {
-        tui.draw(AppWidget::new(), &mut app_state)?;
+    while app.should_run {
+        tui.draw(AppWidget::new(), &mut app)?;
 
         match events.next()? {
             Event::Tick => {
-                app_state.tick();
+                app.tick();
             }
             Event::Key(key_event) => {
-                let context = app_state.context.clone();
-                app_state.handle_key_events(key_event, context);
+                let context = app.context.clone();
+                app.handle_key_events(key_event, context);
             }
             Event::Mouse(mouse_event) => {
-                app_state.handle_mouse_event(mouse_event);
+                app.handle_mouse_event(mouse_event);
             }
             Event::Resize(_, _) => {}
         };
