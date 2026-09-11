@@ -22,9 +22,9 @@ pub struct App {
 
     pub frame: FrameGuard,
 
-    pub console_state: ConsoleView,
-    pub grid_state: GridView,
-    pub stack_state: StackView,
+    pub grid_view: GridView,
+    pub stack_view: StackView,
+    pub console_view: ConsoleView,
 
     pub command_picker_state: PickerView,
 
@@ -58,9 +58,9 @@ impl App {
 
             context: context.clone(),
 
-            console_state: ConsoleView::new(context.clone()),
-            grid_state: GridView::new(frame.clone(), context.clone()),
-            stack_state: StackView::new(frame),
+            console_view: ConsoleView::new(context.clone()),
+            grid_view: GridView::new(frame.clone(), context.clone()),
+            stack_view: StackView::new(frame),
 
             command_picker_state: PickerView::new(context.clone()),
 
@@ -78,7 +78,7 @@ impl App {
         };
 
         for _ in 0..100 {
-            app.console_state.append_line(shuffler());
+            app.console_view.append_line(shuffler());
         }
 
         app

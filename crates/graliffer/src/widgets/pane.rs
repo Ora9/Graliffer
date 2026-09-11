@@ -8,13 +8,13 @@ use ratatui::{
 use crate::widgets::{MenuLine, MenuLinePosition};
 
 #[derive(Debug)]
-pub struct PaneBorder<'a> {
+pub struct Pane<'a> {
     menu_lines: Vec<MenuLine<'a>>,
 }
 
-impl<'a> PaneBorder<'a> {
+impl<'a> Pane<'a> {
     pub fn new() -> Self {
-        PaneBorder {
+        Pane {
             menu_lines: Vec::default(),
         }
     }
@@ -25,7 +25,7 @@ impl<'a> PaneBorder<'a> {
     }
 }
 
-impl<'a> Widget for PaneBorder<'a> {
+impl<'a> Widget for Pane<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let mut block = Block::bordered()
             .border_type(BorderType::Rounded)

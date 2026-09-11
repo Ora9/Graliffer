@@ -135,13 +135,13 @@ impl State for App {
 
     fn act(&mut self, action: impl Into<Self::Action>) -> Result<(), Self::Error> {
         match action.into() {
-            AppAction::GridAction(grid_action) => self.grid_state.act(grid_action),
-            AppAction::ConsoleAction(console_action) => self.console_state.act(console_action),
+            AppAction::GridAction(grid_action) => self.grid_view.act(grid_action),
+            AppAction::ConsoleAction(console_action) => self.console_view.act(console_action),
             AppAction::PickerAction(picker_action) => self.command_picker_state.act(picker_action),
             AppAction::Grai(grai_action) => {
                 use GraiAction::*;
                 let _ = match grai_action {
-                    Step => self.grid_state.step(),
+                    Step => self.grid_view.step(),
                 };
                 Ok(())
             }

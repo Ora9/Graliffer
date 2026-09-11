@@ -53,19 +53,6 @@ pub struct InputSinkBinding {
     pub context: KeyContextPredicate,
 }
 
-// pub struct ViewRegistery(HashMap<ViewId, ViewInfo>);
-
-// impl ViewRegistery {
-//     pub fn new() -> Self {
-//         Self(HashMap::default())
-//     }
-// }
-
-// pub struct ViewInfo {
-//     title: String,
-//     insert_binding_list: InsertBindingList,
-// }
-
 pub enum ViewType {
     Pane,
     Popup,

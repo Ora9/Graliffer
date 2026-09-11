@@ -79,7 +79,7 @@ impl<'content> Popup<'content> {
                 side: Align2::TOP_CENTER,
                 margin: Margin {
                     horizontal: 5,
-                    vertical: 2,
+                    vertical: 1,
                 },
             },
 

@@ -6,7 +6,7 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct ContextInner {
+struct ContextInner {
     config: Config,
 
     focus: ViewId,
