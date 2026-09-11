@@ -2,7 +2,7 @@ use act::State;
 use crossterm::event::{KeyEvent, MouseEvent};
 use ratatui::layout::Position;
 
-use crate::{AppState, Context, GridView, Key, Keystroke, PickerView, View};
+use crate::{App, Context, GridView, Key, Keystroke, PickerView, View};
 
 // pub fn handle_key_events(
 //     app_state: &mut Timeline<AppState>,
@@ -29,7 +29,7 @@ use crate::{AppState, Context, GridView, Key, Keystroke, PickerView, View};
 //     }
 // }
 
-impl AppState {
+impl App {
     pub fn handle_key_events(&mut self, key_event: KeyEvent, app_context: Context) {
         if let Ok(keystroke) = Keystroke::try_from(key_event) {
             if let Some(action) = self.keymap.find(app_context, keystroke) {

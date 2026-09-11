@@ -1,7 +1,7 @@
 use std::{convert::Infallible, str::FromStr};
 
 use crate::{
-    AboutView, AppState, ConsoleAction, GridAction, InputMode, PickerAction, PickerView, PopupId,
+    AboutView, App, ConsoleAction, GridAction, InputMode, PickerAction, PickerView, PopupId,
     StackView, View,
 };
 use serde::{Deserialize, Serialize};
@@ -132,7 +132,7 @@ impl TryFrom<String> for AppAction {
     }
 }
 
-impl State for AppState {
+impl State for App {
     type Action = AppAction;
     type Error = Infallible;
 

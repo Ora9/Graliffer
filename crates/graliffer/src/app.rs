@@ -10,7 +10,7 @@ mod impl_state;
 pub use impl_state::*;
 
 #[derive(Debug)]
-pub struct AppState {
+pub struct App {
     pub context: Context,
 
     pub keymap: Keymap,
@@ -28,15 +28,15 @@ pub struct AppState {
 }
 
 #[derive(Debug, Default)]
-pub struct App;
+pub struct AppWidget;
 
-impl App {
+impl AppWidget {
     pub fn new() -> Self {
         Self
     }
 }
 
-impl AppState {
+impl App {
     pub fn new(config: Config) -> Self {
         let frame = grai::FrameGuard::new(
             grai::Frame::from_example("getting_started").expect("should be a valid example"),

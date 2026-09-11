@@ -12,7 +12,7 @@ use ratatui::{
 };
 use std::{io, panic};
 
-use crate::{App, AppState};
+use crate::{App, AppWidget};
 
 pub type CrosstermTerminal = ratatui::Terminal<ratatui::backend::CrosstermBackend<std::io::Stderr>>;
 
@@ -58,7 +58,7 @@ impl Tui {
     ///
     /// [`Draw`]: tui::Terminal::draw
     /// [`rendering`]: crate::ui:render
-    pub fn draw(&mut self, app: App, app_state: &mut AppState) -> Result<()> {
+    pub fn draw(&mut self, app: AppWidget, app_state: &mut App) -> Result<()> {
         self.terminal
             .draw(|frame| app.render(frame.area(), frame.buffer_mut(), app_state))?;
 

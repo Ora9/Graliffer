@@ -6,13 +6,13 @@ use ratatui::{
 };
 
 use crate::{
-    About, AboutView, App, AppState, ConsoleView, GridView, MenuGroup, MenuLine, MenuTitle,
+    About, AboutView, App, AppWidget, ConsoleView, GridView, MenuGroup, MenuLine, MenuTitle,
     NumberPrefix, PaneBorder, Picker, PickerView, StackView, StackWidget, View,
 };
 use crate::{ConsoleWidget, GridWidget};
 
-impl StatefulWidget for App {
-    type State = AppState;
+impl StatefulWidget for AppWidget {
+    type State = App;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let [top_area, output_area] = area.layout(

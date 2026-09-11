@@ -3,7 +3,7 @@ use log::debug;
 use ratatui::{Terminal, backend::CrosstermBackend};
 use std::env;
 
-use graliffer::{App, AppState, Config, Event, EventHandler, Tui};
+use graliffer::{App, AppWidget, Config, Event, EventHandler, Tui};
 
 fn main() -> Result<()> {
     let config = Config::default();
@@ -33,10 +33,10 @@ fn main() -> Result<()> {
 
     let events = EventHandler::new(250);
 
-    let mut app_state = AppState::new(config);
+    let mut app_state = App::new(config);
 
     while app_state.should_run {
-        tui.draw(App::new(), &mut app_state)?;
+        tui.draw(AppWidget::new(), &mut app_state)?;
 
         match events.next()? {
             Event::Tick => {
