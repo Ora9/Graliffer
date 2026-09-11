@@ -421,15 +421,10 @@ mod tests {
 
     #[test]
     fn parse_display_roundtrip() -> Result<(), KeyContextPredicateParseError> {
-        let a = "just watch && the ! || sky ||";
+        let source = "just watch && the ! || sky ||";
+        let predicate = KeyContextPredicate::from_str(source)?;
 
-        assert_eq!(KeyContextPredicate::from_str(a)?.to_string(), a);
-
-        assert_eq!(
-            KeyContextPredicate::from_str(&KeyContextPredicate::from_str(a)?.to_string())?
-                .to_string(),
-            a
-        );
+        assert_eq!(predicate.to_string(), source);
 
         Ok(())
     }
@@ -444,11 +439,17 @@ mod tests {
     }
 
     #[test]
-    fn eq_symmetry() -> Result<(), KeyContextPredicateParseError> {
+    fn operation_symmetry() -> Result<(), KeyContextPredicateParseError> {
         assert_eq!(
             KeyContextPredicate::from_str("A B &&")?,
             KeyContextPredicate::from_str("B A &&")?,
         );
+
+        assert_eq!(
+            KeyContextPredicate::from_str("A B ! &&")?,
+            KeyContextPredicate::from_str("B ! A &&")?,
+        );
+
         Ok(())
     }
 }
