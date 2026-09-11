@@ -18,5 +18,3 @@ pub use keymap::*;
 
 mod input_mode;
 pub use input_mode::*;
-
-mod handle_events;
