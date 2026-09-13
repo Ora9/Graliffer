@@ -24,24 +24,57 @@ impl Keymap {
     }
 
     /// Find an [`AppAction`] tied to a [`Keystroke`] depending on the given [`Context`]
+    ///
+    /// # Precedence
+    /// When a keystroke leads to multiples keybind, precedence is resolved with two rules :
+    /// - [`Context`] that are more "specific" takes precedence (simply meaning having more operations)
+    /// - Declaration order with latest declared taking precedence. User defined keymap are loaded
+    ///   after default ones, allowing user bindings to take overwrite defaults
     pub fn find_action(&self, keystroke: Keystroke, in_context: &KeyContext) -> Option<AppAction> {
-        // todo: make more specific context predicate have a higher priorities
-        // or maybe just by order of declaration?
-
-        let mut potential_action: Option<AppAction> = None;
+        let mut selected_action: Option<AppAction> = None;
+        let mut highest_score = 0;
 
         self.0
             .iter()
             .filter(|binding_group| in_context.matches(&binding_group.context))
-            .find_map(|binding_group| binding_group.find_action(keystroke))
+            .for_each(|binding_group| {
+                let score = binding_group.context.specificity_score();
+                if score >= highest_score
+                    && let Some(action) = binding_group.find_action(keystroke)
+                {
+                    highest_score = score;
+                    selected_action = Some(action);
+                }
+            });
+
+        selected_action
     }
 
     /// Find a [`Keystroke`] tied to an [`AppAction`] depending on the given [`Context`]
+    ///
+    /// # Precedence
+    /// When an action is used in multiple bindings, precedence is resolved with two rules :
+    /// - [`Context`] that are more "specific" takes precedence (simply meaning having more operations)
+    /// - Declaration order with latest declared taking precedence. User defined keymap are loaded
+    ///   after default ones, allowing user bindings to take overwrite defaults
     pub fn find_keystroke(&self, action: AppAction, in_context: &KeyContext) -> Option<Keystroke> {
+        let mut selected_keystroke: Option<Keystroke> = None;
+        let mut highest_score = 0;
+
         self.0
             .iter()
             .filter(|binding_group| in_context.matches(&binding_group.context))
-            .find_map(|binding_group| binding_group.find_keystroke(&action))
+            .for_each(|binding_group| {
+                let score = binding_group.context.specificity_score();
+                if score >= highest_score
+                    && let Some(keystroke) = binding_group.find_keystroke(&action)
+                {
+                    highest_score = score;
+                    selected_keystroke = Some(keystroke);
+                }
+            });
+
+        selected_keystroke
     }
 }
 
@@ -94,14 +127,31 @@ mod tests {
     use serde_json::json;
 
     use crate::{
-        GralifferAction::{self, FocusGrid},
-        input::{Key, KeyContext, key},
+        ConsoleAction,
+        GralifferAction::{self},
+        GridAction,
+        input::{Key, KeyContext},
     };
 
     use super::*;
 
-    fn test_keymap() -> Keymap {
-        let keymap = json!([
+    // fn test_keymap() -> Keymap {
+    //     let keymap =
+    // }
+
+    // #[test]
+    // fn parse_test_keymap() {
+    //     test_keymap();
+    // }
+
+    #[test]
+    fn parse_default_keymap() {
+        Keymap::default();
+    }
+
+    #[test]
+    fn find() {
+        let keymap_json = json!([
             {
                 "context": "",
                 "bindings": {
@@ -111,91 +161,90 @@ mod tests {
                 }
             },
             {
+                "context": "A B &&",
+                "bindings": {
+                    "1": "console::ScrollUp",
+                    "2": "console::ScrollDown",
+                    "3": "console::ScrollBottom"
+                }
+            },
+            {
                 "context": "A",
                 "bindings": {
-                    "1": "ToggleCommandPicker",
-                    "2": "ToggleAbout"
+                    "1": "grid::Undo",
+                    "2": "grid::Redo"
                 }
             },
             {
                 "context": "B",
                 "bindings": {
-                    "1": "InsertMode",
-                    "2": "CommandMode"
+                    "1": "picker::SelectionUp",
+                    "2": "picker::SelectionDown"
                 }
             }
         ]);
 
-        serde_json::from_value(keymap).expect("test_keymap must be valid")
-    }
-
-    #[test]
-    fn parse_test_keymap() {
-        test_keymap();
-    }
-
-    #[test]
-    fn parse_default_keymap() {
-        Keymap::default();
-    }
-
-    #[test]
-    fn find_action() {
-        let keymap = test_keymap();
+        let keymap: Keymap = serde_json::from_value(keymap_json).unwrap();
 
         let mut context = KeyContext::default();
 
-        // context.insert("A".into());
-        assert_eq!(
-            keymap.find_action(Keystroke::from_key(Key::Char('1')), &context),
-            Some(AppAction::GralifferAction(GralifferAction::FocusGrid))
+        let find =
+            |in_context: &KeyContext, keystroke: Option<Keystroke>, action: Option<AppAction>| {
+                if let Some(keystroke) = keystroke {
+                    assert_eq!(keymap.find_action(keystroke, in_context), action);
+                }
+
+                if let Some(action) = action {
+                    assert_eq!(keymap.find_keystroke(action, in_context), keystroke);
+                }
+            };
+
+        find(&context, Some(Keystroke::from_key(Key::Up)), None);
+
+        find(
+            &context,
+            Some(Keystroke::from_key(Key::Char('1'))),
+            Some(AppAction::GralifferAction(GralifferAction::FocusGrid)),
         );
 
-        assert_eq!(
-            keymap.find_action(Keystroke::from_key(Key::Char('2')), &context),
-            Some(AppAction::GralifferAction(GralifferAction::FocusStack))
+        find(
+            &context,
+            Some(Keystroke::from_key(Key::Char('1'))),
+            Some(AppAction::GralifferAction(GralifferAction::FocusGrid)),
         );
 
-        assert_eq!(
-            keymap.find_action(Keystroke::from_key(Key::Char('3')), &context),
-            Some(AppAction::GralifferAction(GralifferAction::FocusConsole))
-        );
-
-        assert_eq!(
-            keymap.find_action(Keystroke::from_key(Key::Char('4')), &context),
-            None
+        find(
+            &context,
+            Some(Keystroke::from_key(Key::Char('3'))),
+            Some(AppAction::GralifferAction(GralifferAction::FocusConsole)),
         );
 
         context.insert("A".into());
 
-        assert_eq!(
-            keymap.find_action(Keystroke::from_key(Key::Char('1')), &context),
-            Some(AppAction::GralifferAction(
-                GralifferAction::ToggleCommandPicker
-            ))
+        find(
+            &context,
+            Some(Keystroke::from_key(Key::Char('1'))),
+            Some(AppAction::GridAction(GridAction::Undo)),
         );
 
-        assert_eq!(
-            keymap.find_action(Keystroke::from_key(Key::Char('2')), &context),
-            Some(AppAction::GralifferAction(GralifferAction::ToggleAbout))
+        find(
+            &context,
+            Some(Keystroke::from_key(Key::Char('3'))),
+            Some(AppAction::GralifferAction(GralifferAction::FocusConsole)),
         );
 
-        assert_eq!(
-            keymap.find_action(Keystroke::from_key(Key::Char('3')), &context),
-            None
+        context.insert("B".into());
+
+        find(
+            &context,
+            Some(Keystroke::from_key(Key::Char('1'))),
+            Some(AppAction::ConsoleAction(ConsoleAction::ScrollUp)),
         );
-    }
 
-    #[test]
-    fn find_keystroke() {
-        let keymap = test_keymap();
-
-        let mut context = KeyContext::default();
-
-        context.insert("A".into());
-        assert_eq!(
-            keymap.find_keystroke(AppAction::GralifferAction(FocusGrid), &context),
-            Some(Keystroke::from_key(Key::Char('1')))
+        find(
+            &context,
+            Some(Keystroke::from_key(Key::Char('3'))),
+            Some(AppAction::ConsoleAction(ConsoleAction::ScrollBottom)),
         );
     }
 }
