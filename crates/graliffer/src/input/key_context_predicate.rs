@@ -27,6 +27,17 @@ impl KeyContextPredicate {
         }
     }
 
+    pub fn specificity_score(&self) -> u32 {
+        match self {
+            Self::None => 0,
+            Self::Flag(_) => 1,
+            Self::Not(predicate) => predicate.specificity_score(),
+            Self::And(lhs, rhs) | Self::Or(lhs, rhs) | Self::Xor(lhs, rhs) => {
+                lhs.specificity_score() + rhs.specificity_score()
+            }
+        }
+    }
+
     pub fn from_flag(flag: impl Into<KeyContextFlag>) -> Self {
         Self::Flag(flag.into())
     }
@@ -430,6 +441,25 @@ mod tests {
         assert_eq!(
             KeyContextPredicate::from_str("A B ! &&")?,
             KeyContextPredicate::from_str("B ! A &&")?,
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn specificity_score() -> Result<(), KeyContextPredicateParseError> {
+        assert_eq!(KeyContextPredicate::from_str("")?.specificity_score(), 0);
+
+        assert_eq!(KeyContextPredicate::from_str("A")?.specificity_score(), 1);
+
+        assert_eq!(
+            KeyContextPredicate::from_str("A B &&")?.specificity_score(),
+            2
+        );
+
+        assert_eq!(
+            KeyContextPredicate::from_str("A B ! && C ^^")?.specificity_score(),
+            3
         );
 
         Ok(())
