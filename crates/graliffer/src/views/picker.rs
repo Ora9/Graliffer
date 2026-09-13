@@ -139,7 +139,7 @@ impl StatefulWidget for Picker {
     }
 }
 
-#[derive(Debug, Clone, strum::EnumString, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::EnumString, Serialize, Deserialize)]
 pub enum PickerAction {
     SelectionUp,
     SelectionDown,

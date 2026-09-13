@@ -53,7 +53,7 @@ impl Default for Grid {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum GridAction {
     Set(Position, Cell),
 }

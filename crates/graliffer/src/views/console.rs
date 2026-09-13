@@ -352,7 +352,7 @@ impl StatefulWidget for ConsoleWidget {
 // #[error("console action error")]
 // pub struct ConsoleActionError;
 
-#[derive(Debug, Clone, strum::EnumString, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::EnumString, Serialize, Deserialize)]
 pub enum ConsoleAction {
     ScrollUp,
     ScrollDown,

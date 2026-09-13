@@ -44,7 +44,7 @@ impl Display for KeyContextFlag {
 /// - The current [`InputMode`], either `insert` or `command` mode
 /// - And arbitrary [`KeyContextFlag`]s, defined and set by multiples parts of the app, giving
 /// information about the app's context (eg. if a popup is opened, if we are in zen mode ..)
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct KeyContext {
     input_mode: InputMode,
     focus: ViewId,

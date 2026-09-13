@@ -8,7 +8,7 @@ use grai::Direction;
 
 use crate::{CursorMovement, GridView};
 
-#[derive(Debug, Clone, strum::EnumString, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::EnumString, Serialize, Deserialize)]
 pub enum GridAction {
     #[strum(disabled)]
     #[serde(skip)]

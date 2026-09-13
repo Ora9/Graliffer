@@ -10,20 +10,22 @@ use crate::{
 impl App {
     pub fn handle_key_events(&mut self, key_event: KeyEvent, app_context: Context) {
         if let Ok(keystroke) = Keystroke::try_from(key_event) {
-            if let Some(action) = self.keymap.find(app_context, keystroke) {
-                let _ = self.act(action);
-            } else if let Key::Char(char) = keystroke.key {
-                let input = char.to_string();
-                let action = match self.focused().to_string().as_str() {
-                    "Grid" => GridView::input_sink_action(input),
-                    "Picker" => PickerView::input_sink_action(input),
-                    _ => None,
-                };
-
-                if let Some(action) = action {
+            app_context.key_context(|key_context| {
+                if let Some(action) = self.keymap.find_action(keystroke, key_context) {
                     let _ = self.act(action);
+                } else if let Key::Char(char) = keystroke.key {
+                    let input = char.to_string();
+                    let action = match self.focused().to_string().as_str() {
+                        "Grid" => GridView::input_sink_action(input),
+                        "Picker" => PickerView::input_sink_action(input),
+                        _ => None,
+                    };
+
+                    if let Some(action) = action {
+                        let _ = self.act(action);
+                    }
                 }
-            }
+            })
         }
     }
 

@@ -1,8 +1,8 @@
 use std::{convert::Infallible, str::FromStr};
 
 use crate::{
-    AboutView, App, ConsoleAction, GridAction, PickerAction, PickerView, StackView, View,
-    input::InputMode,
+    AboutView, App, ConsoleAction, GridAction, GridView, PickerAction, PickerView, StackView, View,
+    ViewId, input::InputMode,
 };
 use serde::{Deserialize, Serialize};
 
@@ -17,23 +17,28 @@ pub enum ActionParseError {
     UnknownAction { action: String, r#source: String },
 }
 
-#[derive(Debug, Clone, strum::EnumString, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::EnumString, Serialize, Deserialize)]
 pub enum GralifferAction {
     Quit,
     ClosePopup,
+
     FocusStack,
+    FocusGrid,
+    FocusConsole,
+
     ToggleCommandPicker,
     ToggleAbout,
+
     InsertMode,
     CommandMode,
 }
 
-#[derive(Debug, Clone, strum::EnumString, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::EnumString, Serialize, Deserialize)]
 pub enum GraiAction {
     Step,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "String")]
 pub enum AppAction {
     GralifferAction(GralifferAction),
@@ -151,18 +156,28 @@ impl State for App {
                     Quit => {
                         self.quit();
                     }
+
                     ToggleAbout => {
                         self.toggle_popup(AboutView::view_id());
                     }
                     ToggleCommandPicker => {
                         self.toggle_popup(PickerView::view_id());
                     }
+
                     ClosePopup => {
                         self.close_popup();
                     }
-                    FocusStack => {
-                        self.set_focus(StackView::view_id());
+
+                    FocusGrid => {
+                        self.set_focus(ViewId::Grid);
                     }
+                    FocusStack => {
+                        self.set_focus(ViewId::Stack);
+                    }
+                    FocusConsole => {
+                        self.set_focus(ViewId::Console);
+                    }
+
                     InsertMode => {
                         self.set_input_mode(InputMode::Insert);
                     }
