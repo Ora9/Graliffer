@@ -135,15 +135,6 @@ mod tests {
 
     use super::*;
 
-    // fn test_keymap() -> Keymap {
-    //     let keymap =
-    // }
-
-    // #[test]
-    // fn parse_test_keymap() {
-    //     test_keymap();
-    // }
-
     #[test]
     fn parse_default_keymap() {
         Keymap::default();
