@@ -1,8 +1,8 @@
 use std::{convert::Infallible, str::FromStr};
 
 use crate::{
-    AboutView, App, ConsoleAction, GridAction, GridView, PickerAction, PickerView, StackView, View,
-    ViewId, input::InputMode,
+    AboutView, App, ConsoleAction, GridAction, PickerAction, PickerView, View, ViewId,
+    input::InputMode,
 };
 use serde::{Deserialize, Serialize};
 
