@@ -3,29 +3,30 @@ use crossterm::event::{KeyEvent, MouseEvent};
 use ratatui::layout::Position;
 
 use crate::{
-    App, Context, GridView, PickerView, View,
+    App, GridView, PickerView, View,
     input::{Key, Keystroke},
 };
 
 impl App {
-    pub fn handle_key_events(&mut self, key_event: KeyEvent, app_context: Context) {
+    pub fn handle_key_events(&mut self, key_event: KeyEvent) {
         if let Ok(keystroke) = Keystroke::try_from(key_event) {
-            app_context.key_context(|key_context| {
-                if let Some(action) = self.keymap.find_action(keystroke, key_context) {
-                    let _ = self.act(action);
-                } else if let Key::Char(char) = keystroke.key {
-                    let input = char.to_string();
-                    let action = match self.focused().to_string().as_str() {
-                        "Grid" => GridView::input_sink_action(input),
-                        "Picker" => PickerView::input_sink_action(input),
-                        _ => None,
-                    };
+            if let Some(action) = self
+                .context
+                .key_context(|key_context| self.keymap.find_action(keystroke, key_context))
+            {
+                let _ = self.act(action);
+            } else if let Key::Char(char) = keystroke.key {
+                let input = char.to_string();
+                let action = match self.focused().to_string().as_str() {
+                    "Grid" => GridView::input_sink_action(input),
+                    "Picker" => PickerView::input_sink_action(input),
+                    _ => None,
+                };
 
-                    if let Some(action) = action {
-                        let _ = self.act(action);
-                    }
+                if let Some(action) = action {
+                    let _ = self.act(action);
                 }
-            })
+            }
         }
     }
 
