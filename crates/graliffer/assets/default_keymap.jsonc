@@ -19,6 +19,7 @@
   {
     "context": "command",
     "bindings": {
+      "space": "grai::Step",
       "i": "InsertMode",
       ":": "ToggleCommandPicker"
     }

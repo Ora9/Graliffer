@@ -4,7 +4,7 @@ use ratatui::layout::Position;
 
 use crate::{
     App, GridView, PickerView, View,
-    input::{Key, Keystroke},
+    input::{InputMode, Key, Keystroke},
 };
 
 impl App {
@@ -15,7 +15,9 @@ impl App {
                 .key_context(|key_context| self.keymap.find_action(keystroke, key_context))
             {
                 let _ = self.act(action);
-            } else if let Key::Char(char) = keystroke.key {
+            } else if let Key::Char(char) = keystroke.key
+                && self.input_mode() == InputMode::Insert
+            {
                 let input = char.to_string();
                 let action = match self.focused().to_string().as_str() {
                     "Grid" => GridView::input_sink_action(input),
