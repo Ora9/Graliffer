@@ -7,7 +7,11 @@ license.workspace = true
 version.workspace = true
 edition.workspace = true
 
+[features]
+derive = ["dep:act_macros"]
+
 [dependencies]
+act_macros = { path = "../act_macros", optional = true }
 
 [lints.rust]
 unused = { level = "allow", priority = -1 }
