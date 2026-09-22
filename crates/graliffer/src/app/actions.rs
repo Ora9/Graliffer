@@ -17,28 +17,54 @@ pub enum ActionParseError {
     UnknownAction { action: String, r#source: String },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, strum::EnumString, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, strum::EnumString, act::ActionDisplay, Serialize, Deserialize,
+)]
 pub enum GralifferAction {
+    #[act(human_name = "quit graliffer")]
     Quit,
+
+    #[act(human_name = "close popup")]
     ClosePopup,
 
+    #[act(human_name = "focus stack pane")]
     FocusStack,
+    #[act(human_name = "focus grid pane")]
     FocusGrid,
+    #[act(human_name = "focus console pane")]
     FocusConsole,
 
+    #[act(human_name = "toggle command picker")]
     ToggleCommandPicker,
+    #[act(human_name = "toggle about view")]
     ToggleAbout,
 
+    #[act(human_name = "switch to insert mode")]
     InsertMode,
+    #[act(human_name = "switch to command mode")]
     CommandMode,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, strum::EnumString, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, strum::EnumString, act::ActionDisplay, Serialize, Deserialize,
+)]
 pub enum GraiAction {
     Step,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+// impl ActionDisplay for GraiAction {
+//     fn namespace() -> &'static str {
+//         "grai"
+//     }
+
+//     fn human_name(&self) -> &'static str {
+//         match self {
+//             Self::Step => "step interpreter",
+//         }
+//     }
+// }
+
+#[derive(Debug, Clone, PartialEq, strum::Display, Eq, Serialize, Deserialize)]
 #[serde(try_from = "String")]
 pub enum AppAction {
     GralifferAction(GralifferAction),

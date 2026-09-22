@@ -5,6 +5,18 @@ version = 4
 [[package]]
 name = "act"
 version = "0.0.1"
+dependencies = [
+ "act_macros",
+]
+
+[[package]]
+name = "act_macros"
+version = "0.0.1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.5",
+]
 
 [[package]]
 name = "addr2line"

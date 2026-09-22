@@ -8,7 +8,8 @@ edition.workspace = true
 
 [dependencies]
 grai.workspace = true
-act.workspace = true
+act = { path = "../act/", features = ["derive"]}
+# act.workspace = true
 granary.workspace = true
 
 eyre = "0.6.5"

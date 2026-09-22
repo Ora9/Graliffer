@@ -8,10 +8,11 @@ edition = "2024"
 [workspace]
 resolver = "2"
 members = [
-    "crates/graliffer", # Graliffer tui
-    "crates/grai",      # Graliffer interpreter
-    "crates/act",       # The action system of graliffer, used for grai internal execution, and for editor actions
-    "crates/granary",   # Granary numerical system
+    "crates/graliffer",     # Graliffer tui
+    "crates/grai",          # Graliffer interpreter
+    "crates/act",           # The action system of graliffer, used for grai internal execution, and for editor actions
+    "crates/act_macros",    # Macros for the act crate
+    "crates/granary",       # Granary numerical system
 ]
 
 default-members = ["crates/grai"]
