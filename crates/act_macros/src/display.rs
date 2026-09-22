@@ -1,4 +1,3 @@
-use proc_macro2::Span;
 use quote::quote;
 use syn::LitStr;
 use syn::{Data, DeriveInput, Fields, spanned::Spanned};
@@ -19,7 +18,7 @@ pub fn derive_action_display(ast: DeriveInput) -> syn::Result<proc_macro2::Token
 
     let mut machine_arms: Vec<proc_macro2::TokenStream> = Vec::new();
     let mut human_arms: Vec<proc_macro2::TokenStream> = Vec::new();
-    let namespace = LitStr::new(&item_ident.to_string(), Span::call_site());
+    // let namespace = LitStr::new(&item_ident.to_string(), Span::call_site());
 
     for variant in variants {
         let variant_ident = &variant.ident;
@@ -37,6 +36,8 @@ pub fn derive_action_display(ast: DeriveInput) -> syn::Result<proc_macro2::Token
 
         let machine_name = variant_attr.machine_name.unwrap_or(variant_name);
         let human_name = variant_attr.human_name.unwrap_or(LitStr::new(
+            // TODO: use a better to_lowercase, currently TwoWords results in twowords
+            // we should insert space at each word boudaries, see crate heck
             &machine_name.clone().value().to_lowercase(),
             machine_name.span(),
         ));
@@ -64,9 +65,9 @@ pub fn derive_action_display(ast: DeriveInput) -> syn::Result<proc_macro2::Token
     let expanded = quote! {
         #[automatically_derived]
         impl #impl_generics ::act::ActionDisplay for #item_ident #ty_generics #where_clause {
-            fn namespace() -> &'static str {
-                #namespace
-            }
+            // fn namespace() -> &'static str {
+            //     #namespace
+            // }
 
             fn machine_name(&self) -> &'static str {
                 match *self {

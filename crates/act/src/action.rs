@@ -60,7 +60,7 @@ pub trait ActionDisplay {
     /// - all lowercase
     ///
     /// E.g. : `frog`, `pond`, `campfire`..
-    fn namespace() -> &'static str;
+    // fn namespace() -> &'static str;
 
     /// The "machine" name of an action, as in : used primarly by and for machine
     ///
