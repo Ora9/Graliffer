@@ -77,7 +77,7 @@ impl<S: TimelinedState> Timeline<S> {
     }
 
     fn act_apply(&mut self, apply: Apply<S>) -> Result<(), S::Error> {
-        for action in apply.into_iter() {
+        for action in apply {
             self.state.act(action);
         }
 

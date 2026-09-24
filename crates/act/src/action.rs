@@ -53,20 +53,20 @@ impl Clone for Box<dyn Action> {
 }
 
 pub trait ActionDisplay {
-    /// The namespace of an action
-    ///
-    /// # Naming convention
-    /// - short
-    /// - all lowercase
-    ///
-    /// E.g. : `frog`, `pond`, `campfire`..
+    // /// The namespace of an action
+    // ///
+    // /// # Naming convention
+    // /// - short
+    // /// - all lowercase
+    // ///
+    // /// E.g. : `frog`, `pond`, `campfire`..
     // fn namespace() -> &'static str;
 
     /// The "machine" name of an action, as in : used primarly by and for machine
     ///
     /// # Naming convention
     /// - short
-    /// - UpperCamelCase
+    /// - `UpperCamelCase`
     ///
     /// E.g. : `Swim`, `PatPatFrog`, `LitFire`
     fn machine_name(&self) -> &'static str;
