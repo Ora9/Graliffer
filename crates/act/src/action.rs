@@ -1,12 +1,11 @@
 use std::{any::Any, fmt::Debug};
 
-/// An action, that can be passed to a [`State`]
+/// An action that can be passed to a [`State`]
 ///
 /// # Example
 ///
 /// Simple unit-only enum :
 /// ```
-/// # use act::Action;
 /// #[derive(Debug, Clone)]
 /// enum DuckAction {
 ///     Play,
@@ -15,12 +14,11 @@ use std::{any::Any, fmt::Debug};
 ///     Swim,
 /// }
 ///
-/// impl Action for DuckAction {};
+/// impl act::Action for DuckAction {};
 /// ```
 ///
 /// Parameterized actions :
 /// ```
-/// # use act::Action;
 /// # #[derive(Debug, Clone)]
 /// # struct Frog;
 /// /// A stack of frogs
@@ -30,27 +28,9 @@ use std::{any::Any, fmt::Debug};
 ///     PopLast,
 /// }
 ///
-/// impl Action for FrogStackAction {};
+/// impl act::Action for FrogStackAction {};
 /// ```
 pub trait Action: Clone + Debug {}
-
-// pub trait ActionClone {
-//     fn dyn_clone(&self) -> Box<dyn Action>;
-// }
-
-// impl<T: Clone + Action> ActionClone for T {
-//     fn dyn_clone(&self) -> Box<dyn Action> {
-//         Box::new(self.clone())
-//     }
-// }
-
-// impl Action for Box<dyn Action> {}
-
-// impl Clone for Box<dyn Action> {
-//     fn clone(&self) -> Self {
-//         (**self).dyn_clone()
-//     }
-// }
 
 pub trait ActionDisplay {
     // /// The namespace of an action
