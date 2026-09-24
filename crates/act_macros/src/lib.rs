@@ -1,10 +1,21 @@
 use proc_macro2::Span;
 use syn::{DeriveInput, parse_macro_input};
 
-mod attributes;
+mod action;
 mod display;
 
-use crate::display::derive_action_display;
+mod attributes;
+
+use crate::{action::derive_action, display::derive_action_display};
+
+#[proc_macro_derive(Action)]
+pub fn action_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let ast = parse_macro_input!(input as DeriveInput);
+
+    derive_action(ast)
+        .unwrap_or_else(|err| err.to_compile_error())
+        .into()
+}
 
 /// Convert actions to string
 ///
