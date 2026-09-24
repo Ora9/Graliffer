@@ -1,5 +1,5 @@
 mod action;
-pub use action::{Action, ActionClone, ActionDisplay};
+pub use action::{Action, ActionDisplay};
 
 mod state;
 pub use state::{State, TimelinedState};
