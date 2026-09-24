@@ -1,6 +1,9 @@
 use std::{cell::RefCell, rc::Rc};
 
-use act::{Action, IntoState, Revert, TimelinedState};
+use act::{
+    Action, TimelinedState,
+    timeline::{IntoState, Revert},
+};
 use serde::{Deserialize, Serialize};
 
 pub mod examples;

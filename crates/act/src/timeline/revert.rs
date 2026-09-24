@@ -1,4 +1,7 @@
-use crate::{Apply, FromState, IntoState, TimelinedState};
+use crate::{
+    TimelinedState,
+    timeline::{Apply, FromState, IntoState},
+};
 
 #[derive(Debug)]
 #[must_use = "this `Revert` may be an `Apply` variant, which should be handled"]

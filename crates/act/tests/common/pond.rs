@@ -1,6 +1,9 @@
 use std::{collections::HashMap, convert::Infallible, error::Error, fmt::Display};
 
-use act::{Action, FromState, IntoState, Revert, TimelinedState};
+use act::{
+    Action, TimelinedState,
+    timeline::{FromState, IntoState, Revert},
+};
 
 #[derive(Debug)]
 pub struct Camp {

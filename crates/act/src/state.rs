@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::{Action, Revert};
+use crate::{Action, timeline::Revert};
 
 pub trait State: Debug {
     type Action: Action + Clone;

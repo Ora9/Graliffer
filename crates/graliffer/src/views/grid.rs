@@ -9,7 +9,7 @@ use ratatui::{
 };
 use tui_input::InputRequest;
 
-use act::{Apply, Timeline};
+use act::timeline::{Apply, Timeline};
 use grai::FrameGuard;
 use granary::GranaryDigit;
 

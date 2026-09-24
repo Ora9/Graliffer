@@ -1,6 +1,6 @@
 use std::slice::Iter;
 
-use crate::{Action, FromState, TimelinedState};
+use crate::{Action, TimelinedState, timeline::FromState};
 
 #[derive(Debug)]
 pub struct Apply<S: TimelinedState>(Vec<S::Action>);

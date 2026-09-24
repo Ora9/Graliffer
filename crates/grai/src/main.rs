@@ -1,4 +1,4 @@
-use act::Timeline;
+use act::timeline::Timeline;
 use grai::{Frame, FrameAction, FrameGuard, PositionError};
 
 fn dbg_frame(frame: &FrameGuard) {

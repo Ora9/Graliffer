@@ -3,13 +3,13 @@ use std::ops::{Deref, DerefMut};
 use crate::{Action, TimelinedState};
 
 mod apply;
-pub use apply::*;
+pub use apply::Apply;
 
 mod revert;
-pub use revert::*;
+pub use revert::Revert;
 
 mod undoes;
-use undoes::*;
+use undoes::{Undoable, Undoes};
 
 pub trait FromState<T> {
     fn from_state(value: T) -> Self;

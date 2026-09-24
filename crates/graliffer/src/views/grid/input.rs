@@ -1,7 +1,7 @@
 use ratatui::layout::Position;
 use tui_input::{Input, InputRequest};
 
-use act::Timeline;
+use act::timeline::Timeline;
 use grai::{Direction, HorizontalDirection};
 use granary::GranaryDigit;
 
