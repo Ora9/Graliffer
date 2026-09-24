@@ -26,14 +26,6 @@ pub fn derive_action_display(ast: DeriveInput) -> syn::Result<proc_macro2::Token
 
         let variant_attr = parse_variant_attrs(&variant.attrs)?;
 
-        // machine name priority : (UpperCamelCase convention)
-        //  - attribute `name`
-        //  - variant identifier
-        //
-        // human name priority : (lower case with spaces)
-        //  - attribute `human_name`
-        //  - machine name (in lowercase)
-
         let machine_name = variant_attr.machine_name.unwrap_or(variant_name);
         let human_name = variant_attr.human_name.unwrap_or(LitStr::new(
             // TODO: use a better to_lowercase, currently TwoWords results in twowords

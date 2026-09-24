@@ -13,6 +13,7 @@ dependencies = [
 name = "act_macros"
 version = "0.0.1"
 dependencies = [
+ "act",
  "proc-macro2",
  "quote",
  "syn 3.0.5",
