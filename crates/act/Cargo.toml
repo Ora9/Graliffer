@@ -9,6 +9,7 @@ edition.workspace = true
 
 [features]
 derive = ["dep:act_macros"]
+timeline = []
 
 [dependencies]
 act_macros = { path = "../act_macros", optional = true }

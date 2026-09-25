@@ -1,4 +1,7 @@
-use act::{Action, TimelinedState, timeline::Revert};
+use act::{
+    Action,
+    timeline::{Revert, TimelinedState},
+};
 use serde::{Deserialize, Serialize};
 
 use crate::Operand;

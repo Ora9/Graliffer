@@ -1,6 +1,9 @@
 use std::{mem, ops::Deref};
 
-use act::{Action, TimelinedState, timeline::Revert};
+use act::{
+    Action,
+    timeline::{Revert, TimelinedState},
+};
 
 #[derive(Debug, Clone)]
 pub enum SimpleAction {

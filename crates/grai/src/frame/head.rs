@@ -1,6 +1,9 @@
 use std::convert::Infallible;
 
-use act::{Action, TimelinedState, timeline::Revert};
+use act::{
+    Action,
+    timeline::{Revert, TimelinedState},
+};
 use serde::{Deserialize, Serialize};
 
 use crate::{Direction, Position, PositionError};

@@ -3,7 +3,7 @@ use std::convert::Infallible;
 use serde::{Deserialize, Serialize};
 use tui_input::InputRequest;
 
-use act::{Action, State, TimelinedState};
+use act::{Action, State, timeline::TimelinedState};
 use grai::Direction;
 
 use crate::{CursorMovement, GridView};

@@ -10,15 +10,3 @@ pub trait State: Debug {
     where
         Self: Sized;
 }
-
-pub trait TimelinedState: Debug {
-    type Action: Action + Clone;
-    type Error;
-
-    fn act(
-        &mut self,
-        action: impl Into<Self::Action>,
-    ) -> Result<crate::timeline::Revert<Self>, Self::Error>
-    where
-        Self: Sized;
-}

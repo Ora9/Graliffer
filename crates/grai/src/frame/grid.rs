@@ -1,7 +1,10 @@
 use std::{collections::HashMap, convert::Infallible};
 
 mod cell;
-use act::{Action, TimelinedState, timeline::Revert};
+use act::{
+    Action,
+    timeline::{Revert, TimelinedState},
+};
 pub use cell::*;
 
 mod position;

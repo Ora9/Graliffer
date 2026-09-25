@@ -1,8 +1,8 @@
 use std::{collections::HashMap, convert::Infallible, error::Error, fmt::Display};
 
 use act::{
-    Action, TimelinedState,
-    timeline::{FromState, IntoState, Revert},
+    Action,
+    timeline::{FromState, IntoState, Revert, TimelinedState},
 };
 
 #[derive(Debug)]

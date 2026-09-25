@@ -1,7 +1,4 @@
-use crate::{
-    TimelinedState,
-    timeline::{Apply, Revert, TimelineError},
-};
+use crate::timeline::{Apply, Revert, TimelineError, TimelinedState};
 
 #[derive(Debug)]
 pub struct Undoable<S: TimelinedState> {

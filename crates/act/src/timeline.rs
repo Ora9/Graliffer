@@ -1,6 +1,9 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::{Action, TimelinedState};
+use crate::Action;
+
+mod state;
+pub use state::TimelinedState;
 
 mod apply;
 pub use apply::Apply;

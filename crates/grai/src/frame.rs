@@ -1,8 +1,8 @@
 use std::{cell::RefCell, rc::Rc};
 
 use act::{
-    Action, TimelinedState,
-    timeline::{IntoState, Revert},
+    Action,
+    timeline::{IntoState, Revert, TimelinedState},
 };
 use serde::{Deserialize, Serialize};
 

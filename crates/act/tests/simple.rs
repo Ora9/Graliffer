@@ -1,4 +1,4 @@
-use act::TimelinedState;
+use act::timeline::TimelinedState;
 
 mod common;
 use common::{Simple, SimpleAction};
