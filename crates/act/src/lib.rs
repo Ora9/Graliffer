@@ -12,7 +12,7 @@
 //!     - Undo/redo possibilities (with [`Timeline`](timeline::Timeline))
 //!     - Each action can have a reciprocal (action that can undo what has been done)
 //!
-//! ## Few use cases
+//! ## Use cases
 //! In a user interface :
 //!  - Actions can be exposed to users in a command picker
 //!  - A keymap can bind keystroke to actions
@@ -25,15 +25,15 @@
 //!
 //! ## This crate exposes :
 //!  - The [`Action`] trait, implemented on items that represent an action performed on a state
-//!  - Two similar state traits, for items that can be mutated by passing an action to an `act`
-//!    method, how the state is changed is defined in this method :
+//!  - Two similar state traits, with one method `act` defining how actions affect the underlying state
 //!     - [`State`], where [`act`](State::act) performs the action and returns no value
 //!     - [`TimelinedState`](timeline::TimelinedState), where [`act`](timeline::TimelinedState::act)
-//!       performs the action then return a reciprocal of that action ([`Revert`](timeline::Revert),
+//!       performs the action then returns a reciprocal of that action ([`Revert`](timeline::Revert),
 //!       that is, an other action that would serve as an undo if performed)
-//!  - The [`Timeline`](timeline::Timeline) struct with a [`Timeline::act`](timeline::Timeline::act)
-//!    method, holding both a [`TimelinedState`](timeline::TimelinedState) and an history of all
-//!    actions performed on it
+//!  - The [`Timeline`](timeline::Timeline) struct holding both a
+//!    [`TimelinedState`](timeline::TimelinedState) and an history of all actions performed on it.
+//!    It can be used to hold any [state](timeline::TimelinedState) that
+//!    would need undo/redo capabilities, and act through this struct to register actions
 //!
 //! [`timeline`] module is gated behind the `timeline` crate feature
 //!
