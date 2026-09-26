@@ -79,14 +79,6 @@ impl<S: TimelinedState> Timeline<S> {
         })
     }
 
-    fn act_apply(&mut self, apply: Apply<S>) -> Result<(), S::Error> {
-        for action in apply {
-            self.state.act(action);
-        }
-
-        Ok(())
-    }
-
     pub fn state(&self) -> &S {
         &self.state
     }
@@ -94,15 +86,9 @@ impl<S: TimelinedState> Timeline<S> {
     pub fn state_mut(&mut self) -> &mut S {
         &mut self.state
     }
+}
 
-    pub fn undoes(&self) -> &Undoes<S> {
-        &self.undoes
-    }
-
-    pub fn into_revert(self) -> Revert<S> {
-        self.undoes.into_reverts()
-    }
-
+impl<S: TimelinedState> Timeline<S> {
     pub fn undo(&mut self) -> Result<Apply<S>, TimelineError> {
         let apply = self.undoes.undo()?.clone();
         self.act_apply(apply.clone());
@@ -115,6 +101,16 @@ impl<S: TimelinedState> Timeline<S> {
         self.act_apply(apply.clone());
 
         Ok(apply)
+    }
+}
+
+impl<S: TimelinedState> Timeline<S> {
+    fn act_apply(&mut self, apply: Apply<S>) -> Result<(), S::Error> {
+        for action in apply {
+            self.state.act(action);
+        }
+
+        Ok(())
     }
 
     fn truncate_and_push(&mut self, undoable: Undoable<S>) {
