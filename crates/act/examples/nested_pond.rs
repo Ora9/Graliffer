@@ -124,3 +124,8 @@ impl TimelinedState for Pond {
         }
     }
 }
+
+fn main() {}
+
+#[test]
+fn ouais() {}
