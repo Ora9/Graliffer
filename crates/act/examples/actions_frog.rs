@@ -96,9 +96,9 @@ fn set_name() {
 }
 
 #[test]
-fn toggle_quackiness() {
+fn toggle_hide() {
     let mut simple = Frog::default();
-    simple.act(FrogAction::ToggleFrogginess);
+    simple.act(FrogAction::ToggleHide);
 
     assert_eq!(simple.hidden, true);
 }
