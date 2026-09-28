@@ -1,6 +1,5 @@
-use log::debug;
 use ratatui::{
-    style::{Modifier, Style, Stylize},
+    style::{Style, Stylize},
     symbols,
     text::{Line, Span, ToSpan},
 };
