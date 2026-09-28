@@ -2,10 +2,14 @@ use ratatui::{
     buffer::Buffer,
     layout::Rect,
     symbols::merge::MergeStrategy,
+    text::Line,
     widgets::{Block, BorderType, Widget},
 };
 
-use crate::widgets::{MenuLine, MenuLinePosition};
+use crate::{
+    MenuLineAlignement,
+    widgets::{MenuLine, MenuLinePosition},
+};
 
 #[derive(Debug)]
 pub struct Pane {
@@ -32,9 +36,17 @@ impl Widget for Pane {
             .merge_borders(MergeStrategy::Fuzzy);
 
         for menu_line in &self.menu_lines {
+            let mut line = Line::from(menu_line.as_border());
+
+            match menu_line.alignement {
+                MenuLineAlignement::Left => line = line.left_aligned(),
+                MenuLineAlignement::Center => line = line.centered(),
+                MenuLineAlignement::Right => line = line.right_aligned(),
+            };
+
             match menu_line.position {
-                MenuLinePosition::Top => block = block.title_top(menu_line.as_border()),
-                MenuLinePosition::Bottom => block = block.title_bottom(menu_line.as_border()),
+                MenuLinePosition::Top => block = block.title_top(line),
+                MenuLinePosition::Bottom => block = block.title_bottom(line),
             }
         }
 

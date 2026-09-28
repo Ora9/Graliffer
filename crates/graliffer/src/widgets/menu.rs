@@ -1,7 +1,7 @@
 use ratatui::{
     style::{Style, Stylize},
     symbols,
-    text::{Line, Span, ToSpan},
+    text::{Span, ToSpan},
 };
 
 #[derive(Debug, Clone, Default)]
@@ -60,24 +60,15 @@ impl<'a> MenuLine {
         self
     }
 
-    pub fn as_border(&'a self) -> Line<'a> {
-        let line = self
-            .groups
-            .iter()
-            .fold(Line::default(), |mut line, groups| {
-                if !line.spans.is_empty() {
-                    line.spans.push(Span::raw(symbols::line::HORIZONTAL));
-                }
+    pub fn as_border(&'a self) -> Vec<Span<'a>> {
+        self.groups.iter().fold(Vec::new(), |mut spans, groups| {
+            if !spans.is_empty() {
+                spans.push(Span::raw(symbols::line::HORIZONTAL));
+            }
 
-                line.spans.extend(groups.as_border());
-                line
-            });
-
-        match self.alignement {
-            MenuLineAlignement::Left => line.left_aligned(),
-            MenuLineAlignement::Center => line.centered(),
-            MenuLineAlignement::Right => line.right_aligned(),
-        }
+            spans.extend(groups.as_border());
+            spans
+        })
     }
 
     pub fn top(mut self) -> Self {
@@ -182,7 +173,7 @@ impl<'a> MenuTitle {
                 let mut title = title.to_span().style(*style);
 
                 if *highlighted {
-                    title = title.bold().blue();
+                    title = title.bold();
                 }
 
                 vec![prefix, title]
