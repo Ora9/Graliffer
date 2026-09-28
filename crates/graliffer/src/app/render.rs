@@ -80,6 +80,7 @@ impl StatefulWidget for AppWidget {
         });
 
         let input_mode = MenuLine::from_title(MenuTitle::Info {
+            highlighted: false,
             title: app.input_mode().to_string().to_ascii_uppercase(),
             style: match app.input_mode() {
                 InputMode::Command => Style::new().red(),
