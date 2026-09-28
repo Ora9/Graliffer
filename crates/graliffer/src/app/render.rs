@@ -6,8 +6,8 @@ use ratatui::{
 };
 
 use crate::{
-    About, AboutView, App, AppWidget, ConsoleView, GridView, MenuLine, MenuTitle, NumberPrefix,
-    Pane, Picker, PickerView, StackView, StackWidget, View, input::InputMode,
+    About, AboutView, App, AppWidget, MenuGroup, MenuLine, MenuTitle, Pane, Picker, PickerView,
+    StackWidget, View, ViewId, input::InputMode,
 };
 use crate::{ConsoleWidget, GridWidget};
 
@@ -40,12 +40,6 @@ impl StatefulWidget for AppWidget {
         // - calling it app_menu_bar instead of main_menu_bar
         // - use a keymap aware menu display
 
-        // let file_title = MenuTitle::Inline {
-        //     title: "Files".to_span(),
-        //     highlight_char: "F".to_string(),
-        //     focused: false,
-        // };
-
         // let edit_title = MenuTitle::Inline {
         //     title: "Edit".to_span(),
         //     highlight_char: "E".to_string(),
@@ -56,28 +50,39 @@ impl StatefulWidget for AppWidget {
         //     .push_title(file_title.clone())
         //     .push_title(edit_title);
 
-        let grid_pane_title = MenuTitle::NumberPrefix {
+        //         let grid_pane_title = MenuTitle::NumberPrefix {
+        //             style: Style::new(),
+        //             title: "Grid".to_string(),
+        //             prefix: NumberPrefix::Num1,
+        //             highlighted: app.focusing(GridView::view_id()),
+        //         };
+        //
+        //         let grid_menu_bar = MenuLine::default().push_title_in_new_group(grid_pane_title);
+        //         // .push_group(main_menu_bar);
+
+        let file_title = MenuTitle::Inline {
             style: Style::new(),
-            title: "Grid".to_string(),
-            prefix: NumberPrefix::Num1,
-            highlighted: app.focusing(GridView::view_id()),
+            title: "File".to_string(),
+            highlight_char: "F".to_string(),
+            highlighted: false,
         };
 
-        let grid_menu_bar = MenuLine::default().push_title_in_new_group(grid_pane_title);
-        // .push_group(main_menu_bar);
+        let edit_title = MenuTitle::Inline {
+            style: Style::new(),
+            title: "Edit".to_string(),
+            highlight_char: "E".to_string(),
+            highlighted: false,
+        };
 
-        Pane::new()
-            .add_menu_line(grid_menu_bar)
+        let main_menu_bar = MenuGroup::default()
+            .push_title(file_title)
+            .push_title(edit_title);
+
+        Pane::new(ViewId::Grid, app.context.clone())
+            .add_menu_line(MenuLine::from_group(main_menu_bar))
             .render(grid_area, buf);
 
         GridWidget::new().render(grid_area.inner(Margin::from(1)), buf, &mut app.grid_view);
-
-        let console_menu_bar = MenuLine::from_title(MenuTitle::NumberPrefix {
-            title: "Console".to_string(),
-            style: Style::new(),
-            prefix: NumberPrefix::Num2,
-            highlighted: app.focusing(ConsoleView::view_id()),
-        });
 
         let input_mode = MenuLine::from_title(MenuTitle::Info {
             highlighted: false,
@@ -90,8 +95,8 @@ impl StatefulWidget for AppWidget {
         .bottom()
         .right();
 
-        Pane::new()
-            .add_menu_line(console_menu_bar)
+        Pane::new(ViewId::Console, app.context.clone())
+            // .add_title_menu(app.context)
             .add_menu_line(input_mode)
             .render(output_area, buf);
 
@@ -101,14 +106,8 @@ impl StatefulWidget for AppWidget {
             &mut app.console_view,
         );
 
-        let stack_menu_bar = MenuLine::from_title(MenuTitle::NumberPrefix {
-            title: "Stack".to_string(),
-            style: Style::new(),
-            prefix: NumberPrefix::Num3,
-            highlighted: app.focusing(StackView::view_id()),
-        });
-        Pane::new()
-            .add_menu_line(stack_menu_bar)
+        Pane::new(ViewId::Stack, app.context.clone())
+            // .add_menu_line(stack_menu_bar)
             .render(inspect_area, buf);
 
         StackWidget::new().render(

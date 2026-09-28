@@ -1,25 +1,37 @@
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
+    style::Style,
     symbols::merge::MergeStrategy,
     text::Line,
     widgets::{Block, BorderType, Widget},
 };
 
 use crate::{
-    MenuLineAlignement,
+    Context, MenuLineAlignement, MenuTitle, NumberPrefix, ViewId,
     widgets::{MenuLine, MenuLinePosition},
 };
 
 #[derive(Debug)]
 pub struct Pane {
+    view_id: ViewId,
     menu_lines: Vec<MenuLine>,
 }
 
 impl Pane {
-    pub fn new() -> Self {
+    pub fn new(view_id: ViewId, context: Context) -> Self {
+        // TODO: determine numberprefix based on keymap
+
+        let menu_line = MenuLine::from_title(MenuTitle::NumberPrefix {
+            title: view_id.to_string(),
+            style: Style::new(),
+            prefix: NumberPrefix::Num2,
+            highlighted: context.focus() == view_id,
+        });
+
         Pane {
-            menu_lines: Vec::default(),
+            view_id,
+            menu_lines: vec![menu_line],
         }
     }
 
@@ -27,6 +39,10 @@ impl Pane {
         self.menu_lines.push(menu_line);
         self
     }
+    //
+    //     pub fn add_title_menu(self, context: Context) -> Self {
+    //         self.add_menu_line(menu_line)
+    //     }
 }
 
 impl Widget for Pane {
