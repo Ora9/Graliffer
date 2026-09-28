@@ -1,13 +1,13 @@
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Margin, Rect, Spacing},
-    text::ToSpan,
+    style::Style,
     widgets::{StatefulWidget, Widget},
 };
 
 use crate::{
     About, AboutView, App, AppWidget, ConsoleView, GridView, MenuLine, MenuTitle, NumberPrefix,
-    Pane, Picker, PickerView, StackView, StackWidget, View,
+    Pane, Picker, PickerView, StackView, StackWidget, View, input::InputMode,
 };
 use crate::{ConsoleWidget, GridWidget};
 
@@ -39,7 +39,7 @@ impl StatefulWidget for AppWidget {
         // TODO: restore this :
         // - calling it app_menu_bar instead of main_menu_bar
         // - use a keymap aware menu display
-        //
+
         // let file_title = MenuTitle::Inline {
         //     title: "Files".to_span(),
         //     highlight_char: "F".to_string(),
@@ -57,9 +57,10 @@ impl StatefulWidget for AppWidget {
         //     .push_title(edit_title);
 
         let grid_pane_title = MenuTitle::NumberPrefix {
-            title: "Grid".to_span(),
+            style: Style::new(),
+            title: "Grid".to_string(),
             prefix: NumberPrefix::Num1,
-            focused: app.focusing(GridView::view_id()),
+            highlighted: app.focusing(GridView::view_id()),
         };
 
         let grid_menu_bar = MenuLine::default().push_title_in_new_group(grid_pane_title);
@@ -72,14 +73,21 @@ impl StatefulWidget for AppWidget {
         GridWidget::new().render(grid_area.inner(Margin::from(1)), buf, &mut app.grid_view);
 
         let console_menu_bar = MenuLine::from_title(MenuTitle::NumberPrefix {
-            title: "Console".to_span(),
+            title: "Console".to_string(),
+            style: Style::new(),
             prefix: NumberPrefix::Num2,
-            focused: app.focusing(ConsoleView::view_id()),
+            highlighted: app.focusing(ConsoleView::view_id()),
         });
 
-        let input_mode = MenuLine::from_title(MenuTitle::Info(app.input_mode().formated()))
-            .bottom()
-            .right();
+        let input_mode = MenuLine::from_title(MenuTitle::Info {
+            title: app.input_mode().to_string().to_ascii_uppercase(),
+            style: match app.input_mode() {
+                InputMode::Command => Style::new().red(),
+                InputMode::Insert => Style::new(),
+            },
+        })
+        .bottom()
+        .right();
 
         Pane::new()
             .add_menu_line(console_menu_bar)
@@ -93,9 +101,10 @@ impl StatefulWidget for AppWidget {
         );
 
         let stack_menu_bar = MenuLine::from_title(MenuTitle::NumberPrefix {
-            title: "Stack".to_span(),
+            title: "Stack".to_string(),
+            style: Style::new(),
             prefix: NumberPrefix::Num3,
-            focused: app.focusing(StackView::view_id()),
+            highlighted: app.focusing(StackView::view_id()),
         });
         Pane::new()
             .add_menu_line(stack_menu_bar)

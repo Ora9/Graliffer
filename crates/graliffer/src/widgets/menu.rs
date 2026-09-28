@@ -1,7 +1,7 @@
 use ratatui::{
-    style::Stylize,
+    style::{Style, Stylize},
     symbols,
-    text::{Line, Span},
+    text::{Line, Span, ToSpan},
 };
 
 #[derive(Debug, Clone, Default)]
@@ -20,28 +20,28 @@ pub enum MenuLineAlignement {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct MenuLine<'a> {
-    pub groups: Vec<MenuGroup<'a>>,
+pub struct MenuLine {
+    pub groups: Vec<MenuGroup>,
     pub position: MenuLinePosition,
     pub alignement: MenuLineAlignement,
 }
 
-impl<'a> MenuLine<'a> {
-    pub fn from_title(title: MenuTitle<'a>) -> Self {
+impl<'a> MenuLine {
+    pub fn from_title(title: MenuTitle) -> Self {
         Self {
             groups: vec![MenuGroup::from_title(title)],
             ..Default::default()
         }
     }
 
-    pub fn from_group(group: MenuGroup<'a>) -> Self {
+    pub fn from_group(group: MenuGroup) -> Self {
         Self {
             groups: vec![group],
             ..Default::default()
         }
     }
 
-    pub fn push_title(mut self, title: MenuTitle<'a>) -> Self {
+    pub fn push_title(mut self, title: MenuTitle) -> Self {
         if let Some(last) = self.groups.last_mut() {
             *last = last.clone().push_title(title);
             self
@@ -50,19 +50,19 @@ impl<'a> MenuLine<'a> {
         }
     }
 
-    pub fn push_title_in_new_group(self, title: MenuTitle<'a>) -> Self {
+    pub fn push_title_in_new_group(self, title: MenuTitle) -> Self {
         self.push_group(MenuGroup::from_title(title))
     }
 
-    pub fn push_group(mut self, group: MenuGroup<'a>) -> Self {
+    pub fn push_group(mut self, group: MenuGroup) -> Self {
         self.groups.push(group);
         self
     }
 
-    pub fn as_border(self) -> Line<'a> {
+    pub fn as_border(&'a self) -> Line<'a> {
         let line = self
             .groups
-            .into_iter()
+            .iter()
             .fold(Line::default(), |mut line, groups| {
                 if !line.spans.is_empty() {
                     line.spans.push(Span::raw(symbols::line::HORIZONTAL));
@@ -105,69 +105,77 @@ impl<'a> MenuLine<'a> {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct MenuGroup<'a> {
-    titles: Vec<MenuTitle<'a>>,
+pub struct MenuGroup {
+    titles: Vec<MenuTitle>,
 }
 
-impl<'a> MenuGroup<'a> {
-    pub fn from_title(title: MenuTitle<'a>) -> Self {
+impl<'a> MenuGroup {
+    pub fn from_title(title: MenuTitle) -> Self {
         Self {
             titles: vec![title],
         }
     }
 
-    pub fn push_title(mut self, title: MenuTitle<'a>) -> Self {
+    pub fn push_title(mut self, title: MenuTitle) -> Self {
         self.titles.push(title);
         self
     }
 
-    pub fn as_border(self) -> Vec<Span<'a>> {
-        self.titles
-            .into_iter()
-            .fold(Vec::new(), |mut spans, title| {
-                spans.extend(title.as_border());
-                spans
-            })
+    pub fn as_border(&'a self) -> Vec<Span<'a>> {
+        self.titles.iter().fold(Vec::new(), |mut spans, title| {
+            spans.extend(title.as_border());
+            spans
+        })
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum MenuTitle<'a> {
-    Info(Span<'a>),
-    Inline {
-        title: Span<'a>,
-        highlight_char: String,
-        focused: bool,
+pub enum MenuTitle {
+    Info {
+        title: String,
+        style: Style,
     },
     NumberPrefix {
-        title: Span<'a>,
+        title: String,
+        style: Style,
         prefix: NumberPrefix,
-        focused: bool,
+        highlighted: bool,
+    },
+    Inline {
+        title: String,
+        style: Style,
+        highlight_char: String,
+        highlighted: bool,
     },
 }
 
-impl<'a> MenuTitle<'a> {
-    pub fn formated(self) -> Line<'a> {
+impl<'a> MenuTitle {
+    pub fn formated(&'a self) -> Line<'a> {
         match self {
-            Self::Info(title) => Line::from(title),
+            Self::Info { title, style } => Line::raw(title).style(*style),
             Self::NumberPrefix {
-                mut title,
+                title,
+                style,
                 prefix,
-                focused,
+                highlighted,
             } => {
                 let prefix = prefix.superscript().blue();
-                if focused {
-                    title = title.bold()
+
+                let title = if *highlighted {
+                    title.to_span().bold().blue()
+                } else {
+                    title.to_span().clone()
                 };
 
-                Line::from(vec![prefix, title])
+                Line::from(vec![prefix, title]).style(*style)
             }
             Self::Inline {
                 title,
+                style,
                 highlight_char,
-                focused,
+                highlighted,
             } => {
-                let mut split = title.content.splitn(2, &highlight_char);
+                let mut split = title.splitn(2, highlight_char);
                 let start = split.next().unwrap_or("");
                 let highlight = highlight_char.to_owned().blue();
                 let end = split.next().unwrap_or("");
@@ -178,8 +186,8 @@ impl<'a> MenuTitle<'a> {
                     end.to_owned().into(),
                 ];
 
-                if focused {
-                    spans = spans.into_iter().map(|e| e.bold()).collect();
+                if *highlighted {
+                    spans = spans.into_iter().map(|e| e.bold().blue()).collect();
                 }
 
                 Line::from(spans)
@@ -187,7 +195,7 @@ impl<'a> MenuTitle<'a> {
         }
     }
 
-    pub fn as_border(self) -> Line<'a> {
+    pub fn as_border(&'a self) -> Line<'a> {
         let mut spans = self.formated().spans;
 
         spans.insert(0, symbols::line::VERTICAL_LEFT.into());
