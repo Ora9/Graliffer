@@ -4,6 +4,11 @@ use ratatui::{
     text::{Span, ToSpan},
 };
 
+use crate::{
+    AppAction, Context, ViewId,
+    input::{Key, Keystroke, Modifiers},
+};
+
 #[derive(Debug, Clone, Default)]
 pub enum MenuLinePosition {
     #[default]
@@ -148,6 +153,47 @@ pub enum MenuTitle {
 }
 
 impl<'a> MenuTitle {
+    pub fn from_pane_title(view_id: ViewId, action: AppAction, context: &Context) -> Self {
+        let focused = context.focus() == view_id;
+        Self::from_context(view_id.to_string(), context, action, focused)
+    }
+
+    pub fn from_context(
+        title: String,
+        context: &Context,
+        action: AppAction,
+        highlighted: bool,
+    ) -> Self {
+        let keystroke =
+            context.keys(|keymap, key_context| keymap.find_keystroke(action.into(), key_context));
+
+        let style = Style::new();
+
+        match keystroke {
+            Some(Keystroke {
+                modifiers: Modifiers::NONE,
+                key: Key::Char(char),
+            }) => {
+                if let Some(prefix) = NumberPrefix::from_str(&char.to_string()) {
+                    MenuTitle::NumberPrefix {
+                        title,
+                        style,
+                        highlighted,
+                        prefix,
+                    }
+                } else {
+                    unimplemented!()
+                    // MenuTitle::Inline { title, style, highlighted, highlight_char: () }
+                }
+            }
+            _ => MenuTitle::Info {
+                title,
+                style,
+                highlighted,
+            },
+        }
+    }
+
     pub fn formated(&'a self) -> Vec<Span<'a>> {
         match self {
             Self::Info {
@@ -228,7 +274,11 @@ pub enum NumberPrefix {
 }
 
 impl NumberPrefix {
-    pub fn from(number: u32) -> Option<Self> {
+    pub fn from_str(s: &str) -> Option<Self> {
+        Self::from_number(s.parse().ok()?)
+    }
+
+    pub fn from_number(number: u32) -> Option<Self> {
         use NumberPrefix::*;
 
         match number {

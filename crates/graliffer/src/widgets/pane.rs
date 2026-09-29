@@ -1,14 +1,13 @@
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::Style,
     symbols::merge::MergeStrategy,
     text::Line,
     widgets::{Block, BorderType, Widget},
 };
 
 use crate::{
-    Context, MenuLineAlignement, MenuTitle, NumberPrefix, ViewId,
+    AppAction, Context, MenuLineAlignement, MenuTitle, ViewId,
     widgets::{MenuLine, MenuLinePosition},
 };
 
@@ -19,17 +18,11 @@ pub struct Pane {
 }
 
 impl Pane {
-    pub fn new(view_ids: Vec<ViewId>, context: Context) -> Self {
-        let mut titles = MenuLine::default().right();
+    pub fn new(views: Vec<(ViewId, AppAction)>, context: &Context) -> Self {
+        let mut titles = MenuLine::default();
 
-        for view_id in view_ids {
-            // TODO: determine numberprefix based on keymap
-            titles = titles.push_title(MenuTitle::NumberPrefix {
-                title: view_id.to_string(),
-                style: Style::new(),
-                prefix: NumberPrefix::Num2,
-                highlighted: context.focus() == view_id,
-            });
+        for view in views {
+            titles = titles.push_title(MenuTitle::from_pane_title(view.0, view.1, context))
         }
 
         Pane {

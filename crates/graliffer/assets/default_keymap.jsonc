@@ -19,6 +19,9 @@
   {
     "context": "command",
     "bindings": {
+      "1": "FocusGrid",
+      "2": "FocusStack",
+      "3": "FocusConsole",
       "space": "grai::Step",
       "i": "InsertMode",
       ":": "ToggleCommandPicker"

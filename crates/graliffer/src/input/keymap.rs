@@ -33,7 +33,7 @@ impl Keymap {
     ///   [specificity rule](KeyContext::specificity_score))
     /// - Declaration order, with the latest declared taking precedence. User defined keymap are
     ///   loaded after default ones, allowing user bindings to take overwrite defaults
-    pub fn find_binding(
+    fn find_binding(
         &self,
         mut predicate: impl FnMut(&Binding) -> bool,
         key_context: &KeyContext,

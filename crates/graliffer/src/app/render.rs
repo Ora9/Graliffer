@@ -6,8 +6,8 @@ use ratatui::{
 };
 
 use crate::{
-    About, AboutView, App, AppWidget, MenuGroup, MenuLine, MenuTitle, Pane, Picker, PickerView,
-    StackWidget, View, ViewId, input::InputMode,
+    About, AboutView, App, AppWidget, GralifferAction, MenuGroup, MenuLine, MenuTitle, Pane,
+    Picker, PickerView, StackWidget, View, ViewId, input::InputMode,
 };
 use crate::{ConsoleWidget, GridWidget};
 
@@ -78,7 +78,8 @@ impl StatefulWidget for AppWidget {
             .push_title(file_title)
             .push_title(edit_title);
 
-        Pane::new(vec![ViewId::Grid], app.context.clone())
+        let grid_views = vec![(ViewId::Grid, GralifferAction::FocusGrid.into())];
+        Pane::new(grid_views, &app.context)
             .add_menu_line(MenuLine::from_group(main_menu_bar))
             .render(grid_area, buf);
 
@@ -95,7 +96,8 @@ impl StatefulWidget for AppWidget {
         .bottom()
         .right();
 
-        Pane::new(vec![ViewId::Console], app.context.clone())
+        let output_views = vec![(ViewId::Console, GralifferAction::FocusConsole.into())];
+        Pane::new(output_views, &app.context)
             // .add_title_menu(app.context)
             .add_menu_line(input_mode)
             .render(output_area, buf);
@@ -106,7 +108,8 @@ impl StatefulWidget for AppWidget {
             &mut app.console_view,
         );
 
-        Pane::new(vec![ViewId::Stack], app.context.clone())
+        let inspect_views = vec![(ViewId::Stack, GralifferAction::FocusStack.into())];
+        Pane::new(inspect_views, &app.context)
             // .add_menu_line(stack_menu_bar)
             .render(inspect_area, buf);
 
