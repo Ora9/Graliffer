@@ -22,14 +22,18 @@ impl StatefulWidget for AppWidget {
         //   utilities like head/stack view, breakpoints ..
         // - Output area: placed at the bottom, where most output are viewed (console, graphics,
         //   audio infos..)
+
         let (grid_area, inspect_area, output_area) = {
+            let output_height = (area.height / 3).min(10);
+            let inspect_width = (area.width / 3).min(30);
+
             let [top_area, output_area] = area.layout(
-                &Layout::vertical(vec![Constraint::Fill(1), Constraint::Percentage(25)])
+                &Layout::vertical(vec![Constraint::Fill(1), Constraint::Length(output_height)])
                     .spacing(Spacing::Overlap(1)),
             );
 
             let [grid_area, inspect_area] = top_area.layout(
-                &Layout::horizontal(vec![Constraint::Fill(1), Constraint::Percentage(20)])
+                &Layout::horizontal(vec![Constraint::Fill(1), Constraint::Length(inspect_width)])
                     .spacing(Spacing::Overlap(1)),
             );
 
@@ -85,6 +89,17 @@ impl StatefulWidget for AppWidget {
 
         GridWidget::new().render(grid_area.inner(Margin::from(1)), buf, &mut app.grid_view);
 
+        let inspect_views = vec![(ViewId::Stack, GralifferAction::FocusStack.into())];
+        Pane::new(inspect_views, &app.context)
+            // .add_menu_line(stack_menu_bar)
+            .render(inspect_area, buf);
+
+        StackWidget::new().render(
+            inspect_area.inner(Margin::from(1)),
+            buf,
+            &mut app.stack_view,
+        );
+
         let input_mode = MenuLine::from_title(MenuTitle::Info {
             highlighted: false,
             title: app.input_mode().to_string().to_ascii_uppercase(),
@@ -106,17 +121,6 @@ impl StatefulWidget for AppWidget {
             output_area.inner(Margin::from(1)),
             buf,
             &mut app.console_view,
-        );
-
-        let inspect_views = vec![(ViewId::Stack, GralifferAction::FocusStack.into())];
-        Pane::new(inspect_views, &app.context)
-            // .add_menu_line(stack_menu_bar)
-            .render(inspect_area, buf);
-
-        StackWidget::new().render(
-            inspect_area.inner(Margin::from(1)),
-            buf,
-            &mut app.stack_view,
         );
 
         if app.focusing(AboutView::view_id()) {
