@@ -21,8 +21,6 @@ pub use context::*;
 pub struct App {
     pub context: Context,
 
-    pub keymap: Keymap,
-
     pub frame: FrameGuard,
 
     pub grid_view: GridView,
@@ -45,19 +43,17 @@ impl AppWidget {
 }
 
 impl App {
-    pub fn new(config: Config) -> Self {
+    pub fn new(config: Config, keymap: Keymap) -> Self {
         let frame = grai::FrameGuard::new(
             grai::Frame::from_example("getting_started").expect("should be a valid example"),
         );
 
         let default_focus = GridView::view_id();
 
-        let context = Context::new(config, default_focus);
+        let context = Context::new(config, keymap, default_focus);
 
         let mut app = Self {
             frame: frame.clone(),
-
-            keymap: Keymap::new(),
 
             context: context.clone(),
 

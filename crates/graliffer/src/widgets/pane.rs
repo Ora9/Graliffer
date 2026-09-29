@@ -42,10 +42,6 @@ impl Pane {
         self.menu_lines.push(menu_line);
         self
     }
-    //
-    //     pub fn add_title_menu(self, context: Context) -> Self {
-    //         self.add_menu_line(menu_line)
-    //     }
 }
 
 impl Widget for Pane {

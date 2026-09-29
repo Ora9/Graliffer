@@ -25,8 +25,11 @@ pub mod config;
 
 use config::Config;
 
+use crate::input::Keymap;
+
 fn main() -> Result<()> {
     let config = Config::default();
+    let keymap = Keymap::default();
 
     color_eyre::install()?;
 
@@ -53,7 +56,7 @@ fn main() -> Result<()> {
 
     let events = EventHandler::new(250);
 
-    let mut app = App::new(config);
+    let mut app = App::new(config, keymap);
 
     while app.should_run {
         tui.draw(AppWidget::new(), &mut app)?;

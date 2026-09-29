@@ -3,19 +3,23 @@ use std::{cell::RefCell, rc::Rc};
 use crate::{
     ViewId,
     config::Config,
-    input::{InputMode, KeyContext},
-    input::{KeyContextFlag, KeyContextPredicate},
+    input::{InputMode, KeyContext, KeyContextFlag, KeyContextPredicate, Keymap},
 };
 
 #[derive(Debug)]
 struct ContextInner {
     config: Config,
+    keymap: Keymap,
+
     key_context: KeyContext,
 }
 
 /// Context passed to views
 ///
-/// Contains [`Context`], and state like [`Focus`](ViewId), [`InputMode`] and [`KeyContext`]
+/// It exposes :
+///  - [`KeyContext`], with state like [`Focus`](ViewId), or [`InputMode`]
+///  - [`Config`]
+///  - [`Keymap`]
 ///
 /// Cheaply cloned, clones always refers to the same mutable data (using refcounting internally).
 #[derive(Debug, Clone)]
@@ -23,17 +27,13 @@ pub struct Context(Rc<RefCell<ContextInner>>);
 
 impl Context {
     /// Create a `Context`
-    pub(crate) fn new(config: Config, focus: ViewId) -> Self {
+    pub(crate) fn new(config: Config, keymap: Keymap, focus: ViewId) -> Self {
         Self(Rc::new(RefCell::new(ContextInner {
             config,
+            keymap,
 
             key_context: KeyContext::new(focus, InputMode::default()),
         })))
-    }
-
-    /// Read only access to the config
-    pub fn config<O>(&self, reader: impl FnOnce(&Config) -> O) -> O {
-        reader(&self.0.borrow().config)
     }
 
     /// Read only access to [`ContextInner`]
@@ -47,29 +47,24 @@ impl Context {
     }
 }
 
-/// # Input mode
+/// # Config
 impl Context {
-    /// Current [`InputMode`]
-    pub fn input_mode(&self) -> InputMode {
-        self.read(|ctx| ctx.key_context.input_mode())
-    }
-
-    /// Set the [`InputMode`]
-    pub fn set_input_mode(&mut self, input_mode: InputMode) {
-        self.write(|ctx| ctx.key_context.set_input_mode(input_mode));
+    /// Read only access to the [config](Config)
+    pub fn config<O>(&self, reader: impl FnOnce(&Config) -> O) -> O {
+        self.read(|ctx| reader(&ctx.config))
     }
 }
 
-/// # Focus
+/// # Keymap
 impl Context {
-    /// Currently focused [`ViewId`]
-    pub fn focus(&self) -> ViewId {
-        self.read(|ctx| ctx.key_context.focus())
+    /// Read only access to the [keymap](Keymap)
+    pub fn keymap<O>(&self, reader: impl FnOnce(&Keymap) -> O) -> O {
+        self.read(|ctx| reader(&ctx.keymap))
     }
 
-    /// Set the focused [`ViewId`]
-    pub fn set_focus(&mut self, focus: impl Into<ViewId>) {
-        self.write(|ctx| ctx.key_context.set_focus(focus.into()));
+    /// Read only access to both the [keymap](Keymap) and the [key context](KeyContext)
+    pub fn keys<O>(&self, reader: impl FnOnce(&Keymap, &KeyContext) -> O) -> O {
+        self.read(|ctx| reader(&ctx.keymap, &ctx.key_context))
     }
 }
 
@@ -105,5 +100,31 @@ impl Context {
     /// Does the current key context contains the given `flag`
     pub fn has_flag(&self, flag: impl Into<KeyContextFlag>) -> bool {
         self.key_context(|key_context| key_context.has(&flag.into()))
+    }
+}
+
+/// # Input mode
+impl Context {
+    /// Current [`InputMode`]
+    pub fn input_mode(&self) -> InputMode {
+        self.read(|ctx| ctx.key_context.input_mode())
+    }
+
+    /// Set the [`InputMode`]
+    pub fn set_input_mode(&mut self, input_mode: InputMode) {
+        self.write(|ctx| ctx.key_context.set_input_mode(input_mode));
+    }
+}
+
+/// # Focus
+impl Context {
+    /// Currently focused [`ViewId`]
+    pub fn focus(&self) -> ViewId {
+        self.read(|ctx| ctx.key_context.focus())
+    }
+
+    /// Set the focused [`ViewId`]
+    pub fn set_focus(&mut self, focus: impl Into<ViewId>) {
+        self.write(|ctx| ctx.key_context.set_focus(focus.into()));
     }
 }

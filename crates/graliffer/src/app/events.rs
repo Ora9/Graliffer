@@ -12,7 +12,7 @@ impl App {
         if let Ok(keystroke) = Keystroke::try_from(key_event) {
             if let Some(action) = self
                 .context
-                .key_context(|key_context| self.keymap.find_action(keystroke, key_context))
+                .keys(|keymap, key_context| keymap.find_action(keystroke, key_context))
             {
                 let _ = self.act(action);
             } else if let Key::Char(char) = keystroke.key
