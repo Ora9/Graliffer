@@ -78,7 +78,7 @@ impl StatefulWidget for AppWidget {
             .push_title(file_title)
             .push_title(edit_title);
 
-        Pane::new(ViewId::Grid, app.context.clone())
+        Pane::new(vec![ViewId::Grid], app.context.clone())
             .add_menu_line(MenuLine::from_group(main_menu_bar))
             .render(grid_area, buf);
 
@@ -95,7 +95,7 @@ impl StatefulWidget for AppWidget {
         .bottom()
         .right();
 
-        Pane::new(ViewId::Console, app.context.clone())
+        Pane::new(vec![ViewId::Console], app.context.clone())
             // .add_title_menu(app.context)
             .add_menu_line(input_mode)
             .render(output_area, buf);
@@ -106,7 +106,7 @@ impl StatefulWidget for AppWidget {
             &mut app.console_view,
         );
 
-        Pane::new(ViewId::Stack, app.context.clone())
+        Pane::new(vec![ViewId::Stack], app.context.clone())
             // .add_menu_line(stack_menu_bar)
             .render(inspect_area, buf);
 

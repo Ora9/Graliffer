@@ -14,24 +14,27 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Pane {
-    view_id: ViewId,
+    titles: MenuLine,
     menu_lines: Vec<MenuLine>,
 }
 
 impl Pane {
-    pub fn new(view_id: ViewId, context: Context) -> Self {
-        // TODO: determine numberprefix based on keymap
+    pub fn new(view_ids: Vec<ViewId>, context: Context) -> Self {
+        let mut titles = MenuLine::default().right();
 
-        let menu_line = MenuLine::from_title(MenuTitle::NumberPrefix {
-            title: view_id.to_string(),
-            style: Style::new(),
-            prefix: NumberPrefix::Num2,
-            highlighted: context.focus() == view_id,
-        });
+        for view_id in view_ids {
+            // TODO: determine numberprefix based on keymap
+            titles = titles.push_title(MenuTitle::NumberPrefix {
+                title: view_id.to_string(),
+                style: Style::new(),
+                prefix: NumberPrefix::Num2,
+                highlighted: context.focus() == view_id,
+            });
+        }
 
         Pane {
-            view_id,
-            menu_lines: vec![menu_line],
+            titles,
+            menu_lines: Vec::new(),
         }
     }
 
@@ -51,6 +54,9 @@ impl Widget for Pane {
             .border_type(BorderType::Rounded)
             .merge_borders(MergeStrategy::Fuzzy);
 
+        // ignore MenuLinePosition and MenuLineAlignement
+        block = block.title_top(self.titles.as_border());
+
         for menu_line in &self.menu_lines {
             let mut line = Line::from(menu_line.as_border());
 
@@ -60,6 +66,8 @@ impl Widget for Pane {
                 MenuLineAlignement::Right => line = line.right_aligned(),
             };
 
+            // Block titles with the same alignement and position are rendered in order, following
+            // each other with a space (or border char) in between them
             match menu_line.position {
                 MenuLinePosition::Top => block = block.title_top(line),
                 MenuLinePosition::Bottom => block = block.title_bottom(line),
