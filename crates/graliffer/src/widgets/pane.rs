@@ -13,20 +13,21 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Pane {
-    titles: MenuLine,
+    view_titles: MenuLine,
     menu_lines: Vec<MenuLine>,
 }
 
 impl Pane {
     pub fn new(views: Vec<(ViewId, AppAction)>, context: &Context) -> Self {
-        let mut titles = MenuLine::default();
+        let mut view_titles = MenuLine::default();
 
         for view in views {
-            titles = titles.push_title(MenuTitle::from_pane_title(view.0, view.1, context))
+            view_titles =
+                view_titles.push_title(MenuTitle::from_pane_title(view.0, view.1, context))
         }
 
         Pane {
-            titles,
+            view_titles,
             menu_lines: Vec::new(),
         }
     }
@@ -44,7 +45,7 @@ impl Widget for Pane {
             .merge_borders(MergeStrategy::Fuzzy);
 
         // ignore MenuLinePosition and MenuLineAlignement
-        block = block.title_top(self.titles.as_border());
+        block = block.title_top(self.view_titles.as_border());
 
         for menu_line in &self.menu_lines {
             let mut line = Line::from(menu_line.as_border());
