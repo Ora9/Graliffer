@@ -188,6 +188,7 @@ impl State for App {
                     }
                     ToggleCommandPicker => {
                         self.toggle_popup(PickerView::view_id());
+                        self.set_input_mode(InputMode::Insert);
                     }
 
                     ClosePopup => {
