@@ -3,11 +3,13 @@
 #[test]
 fn derive_unit_enum() {
     #[derive(Debug, Clone, act::Action)]
-    enum Unit {
+    enum Foo {
         A,
         B,
         C,
     }
+
+    // test that Foo is Action
 }
 
 #[test]
@@ -29,13 +31,24 @@ fn derive_parametered_enum() {
 
 #[test]
 fn derive_action_name() {
-    #[derive(Debug, Clone, act::Action, act::ActionDisplay)]
-    enum Foo {
-        #[act(action(human_name = "human a", machine_name = "MachineA"))]
-        A,
-        B,
-        C,
+    use act::{Action, ActionDisplay};
+
+    #[derive(Debug, Clone, Action, ActionDisplay)]
+    enum DuckAction {
+        #[act(action(human_name = "fly away", machine_name = "FlyAway"))]
+        Fly,
+        Walk,
+        Swim,
+        QuackQuack,
     }
+
+    assert_eq!(DuckAction::Fly.human_name(), "fly away");
+    assert_eq!(DuckAction::Fly.machine_name(), "FlyAway");
+
+    assert_eq!(DuckAction::Walk.human_name(), "walk");
+    assert_eq!(DuckAction::Walk.machine_name(), "Walk");
+
+    assert_eq!(DuckAction::QuackQuack.human_name(), "quackquack")
 }
 
 // #[test]
