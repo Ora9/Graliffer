@@ -70,4 +70,4 @@ pub use state::State;
 pub mod timeline;
 
 #[cfg(feature = "derive")]
-pub use act_macros::ActionDisplay;
+pub use act_macros::{Action, ActionDisplay};

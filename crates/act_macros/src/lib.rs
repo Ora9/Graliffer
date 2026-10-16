@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use proc_macro2::Span;
 use syn::{DeriveInput, parse_macro_input};
 
@@ -8,7 +10,7 @@ mod attributes;
 
 use crate::{action::derive_action, display::derive_action_display};
 
-#[proc_macro_derive(Action)]
+#[proc_macro_derive(Action, attributes(act))]
 pub fn action_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
 
@@ -36,19 +38,19 @@ pub fn action_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
 ///  - attribute `human_name`
 ///  - machine name (in lowercase)
 ///
-///     ```
-///     #[derive(act::ActionDisplay)]
-///     enum PondAction {
-///         #[act(human_name = "say hi")]
-///         SayHi,
-///
-///         #[act(human_name = "set camp fire")]
-///         SetCampFire,
-///
-///         #[act(human_name = "swim")]
-///         Swim,
-///     }
-///     ```
+/// //    ```rust
+/// //     #[derive(act::ActionDisplay)]
+/// //     enum PondAction {
+/// //         #[act(action(human_name = "say hi"))]
+/// //         SayHi,
+/// //
+/// //         #[act(action(human_name = "set camp fire"))]
+/// //         SetCampFire,
+/// //
+/// //         #[act(action(human_name = "swim"))]
+/// //         Swim,
+/// //     }
+/// //     ```
 #[proc_macro_derive(ActionDisplay, attributes(act))]
 pub fn action_display(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
