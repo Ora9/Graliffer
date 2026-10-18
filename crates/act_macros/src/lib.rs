@@ -19,24 +19,35 @@ pub fn action_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
         .into()
 }
 
-/// Convert actions to string
+/// Convert [`Actions`] to strings
 ///
 /// Currently only derivable on enums
 ///
-/// As a convention, actions have multiples serialisation/deserialisation format :
-///  - "machine" name, used by and for machines
-///  - "human" name, only used as a
+/// `ActionDisplay` exposes two display format :
+///  - "machine" name, used by and for machines (e.g. in a config/keymap file)
+///  - "human" name, primarly used to display to the user (e.g. in a command picker ..)
 ///
-/// See trait [`act::ActionDisplay`] for more infos on differents serialisation, but in short :
-///  - "human" name, used only as
+/// # Action naming convention
 ///
-/// machine name priority : (UpperCamelCase convention)
-///  - attribute `name`
-///  - variant identifier
+/// Human format should be :
+/// - **short / concise**, use surrounding words to clarify meaning (eg. `InsertMode` could be expressed as `switch to insert mode`, or `Quit` as `Quit application`)
+/// - **in all lowercase, with spaces as word boudaries**,
 ///
-/// human name priority : (lower case with spaces)
-///  - attribute `human_name`
-///  - machine name (in lowercase)
+/// Machine format should be :
+/// - **close to the variant identifier**, should only be set if there would be dilemma between
+///   enum variant identifier and
+///
+/// # Fallbacks
+/// Default values are given to each variant when no specific name is given (e.g. with no
+/// `#[act(action(human_name = "some_name"))]`) using the following logic :
+///
+/// machine name is set to :
+///  - helper attribute `machine_name`
+///  - enum variant identifier
+///
+/// human name is set to :
+///  - helper attribute `human_name`
+///  - machine name (transformed to lowercase, with spaces between word boudaries)
 ///
 /// //    ```rust
 /// //     #[derive(act::ActionDisplay)]
