@@ -1,0 +1,33 @@
+error[E0277]: `FrogAction` doesn't implement `Debug`
+ --> tests/ui/fail/missing_clone_and_debug.rs:2:6
+  |
+2 | enum FrogAction {
+  |      ^^^^^^^^^^ the trait `Debug` is not implemented for `FrogAction`
+  |
+note: required by a bound in `Action`
+ --> $WORKSPACE/crates/act/src/action.rs
+  |
+  | pub trait Action: Clone + Debug {}
+  |                           ^^^^^ required by this bound in `Action`
+help: consider annotating `FrogAction` with `#[derive(Debug)]`
+  |
+2 + #[derive(Debug)]
+3 | enum FrogAction {
+  |
+
+error[E0277]: the trait bound `FrogAction: Clone` is not satisfied
+ --> tests/ui/fail/missing_clone_and_debug.rs:2:6
+  |
+2 | enum FrogAction {
+  |      ^^^^^^^^^^ the trait `Clone` is not implemented for `FrogAction`
+  |
+note: required by a bound in `Action`
+ --> $WORKSPACE/crates/act/src/action.rs
+  |
+  | pub trait Action: Clone + Debug {}
+  |                   ^^^^^ required by this bound in `Action`
+help: consider annotating `FrogAction` with `#[derive(Clone)]`
+  |
+2 + #[derive(Clone)]
+3 | enum FrogAction {
+  |

@@ -17,6 +17,7 @@ syn = "3.0"
 
 [dev-dependencies]
 act = { path = "../act/", features = ["derive", "timeline"]}
+trybuild = "1.0"
 
 
 [lints]
