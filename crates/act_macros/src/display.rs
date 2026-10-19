@@ -28,8 +28,6 @@ pub fn derive_action_display(ast: DeriveInput) -> syn::Result<proc_macro2::Token
 
         let variant_attr = VariantAttr::from_attrs(&variant.attrs)?;
 
-        dbg!(&variant_attr);
-
         let (machine_arm, human_arm) = match variant_attr {
             VariantAttr::Action(action_variant_attr) => {
                 let machine_name = action_variant_attr.machine_name.unwrap_or(variant_name);
@@ -61,9 +59,6 @@ pub fn derive_action_display(ast: DeriveInput) -> syn::Result<proc_macro2::Token
             }
         };
 
-        dbg!(&machine_arm);
-        dbg!(&human_arm);
-
         machine_arms.push(machine_arm);
         human_arms.push(human_arm);
     }
@@ -71,10 +66,6 @@ pub fn derive_action_display(ast: DeriveInput) -> syn::Result<proc_macro2::Token
     let expanded = quote! {
         #[automatically_derived]
         impl #impl_generics ::act::ActionDisplay for #item_ident #ty_generics #where_clause {
-            // fn namespace() -> &'static str {
-            //     #namespace
-            // }
-
             fn machine_name(&self) -> &'static str {
                 match *self {
                     #(#machine_arms),*
