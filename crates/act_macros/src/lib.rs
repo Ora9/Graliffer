@@ -10,7 +10,7 @@ mod attributes;
 
 use crate::{action::derive_action, display::derive_action_display};
 
-#[proc_macro_derive(Action, attributes(act))]
+#[proc_macro_derive(Action)]
 pub fn action_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
 
