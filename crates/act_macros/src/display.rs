@@ -53,7 +53,17 @@ pub fn derive_action_display(ast: DeriveInput) -> syn::Result<proc_macro2::Token
                     }
                 }?
             }
-            VariantAttr::Nested(_) => {
+            VariantAttr::Nested(nested_variant_attr) => {
+                match variant.fields {
+                    Fields::Unnamed(ref field) => {
+                        unimplemented!()
+                    }
+                    _ => Err(syn::Error::new_spanned(
+                        variant,
+                        "nested action can only be defined with a tuple like variant (eg. `Variant(NestedAction)`)",
+                    )),
+                }?;
+
                 unimplemented!()
             }
             VariantAttr::Skip => {

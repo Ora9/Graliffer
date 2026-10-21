@@ -1,0 +1,13 @@
+error: nested action can only be defined with a tuple like variant (eg. `Variant(NestedAction)`)
+ --> tests/ui/fail/nested_non_tuple.rs:3:5
+  |
+3 | /     #[act(nested)]
+4 | |     Unit,
+  | |________^
+
+error: nested action can only be defined with a tuple like variant (eg. `Variant(NestedAction)`)
+  --> tests/ui/fail/nested_non_tuple.rs:9:5
+   |
+ 9 | /     #[act(nested)]
+10 | |     Struct { a: usize, b: bool },
+   | |________________________________^

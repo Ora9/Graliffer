@@ -15,6 +15,7 @@ use syn::{
     parenthesized,
     parse::{self, Parse, ParseStream},
     punctuated::Punctuated,
+    token,
 };
 
 pub enum VariantAttr {
@@ -53,19 +54,25 @@ impl VariantAttr {
                         Ok(())
                     })
                 } else if meta.path.is_ident("nested") {
-                    meta.parse_nested_meta(|meta| {
-                        if meta.path.is_ident("transparent") {
-                            this = Self::Nested(NestedVariantAttr::Transparent);
-                            Ok(())
-                        } else if meta.path.is_ident("namespace") {
-                            let namespace: LitStr = meta.value()?.parse()?;
-                            this = Self::Nested(NestedVariantAttr::Namespace(Some(namespace)));
+                    if meta.input.peek(token::Paren) {
+                        meta.parse_nested_meta(|meta| {
+                            if meta.path.is_ident("transparent") {
+                                this = Self::Nested(NestedVariantAttr::Transparent);
+                                Ok(())
+                            } else if meta.path.is_ident("namespace") {
+                                let namespace: LitStr = meta.value()?.parse()?;
+                                this = Self::Nested(NestedVariantAttr::Namespace(Some(namespace)));
 
-                            Ok(())
-                        } else {
-                            Err(meta.error("unsupported action nesting attribute, expected either `namespace` or `transparent`"))
-                        }
-                    })
+                                Ok(())
+                            } else {
+                                Err(meta.error("unsupported action nesting attribute, expected either `namespace` or `transparent`"))
+                            }
+                        })
+                    } else {
+                        this = Self::Nested(NestedVariantAttr::Namespace(None));
+                        Ok(())
+                    }
+
                 } else if meta.path.is_ident("skip") {
                     this = Self::Skip;
                     Ok(())
