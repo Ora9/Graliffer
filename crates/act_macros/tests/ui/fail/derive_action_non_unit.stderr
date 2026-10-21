@@ -1,0 +1,5 @@
+error: non unit variants cannot be constructed or displayed, you might want to use `skip` or `namespace` attributes
+ --> tests/ui/fail/derive_action_non_unit.rs:3:5
+  |
+3 |     Pouet(usize),
+  |     ^^^^^^^^^^^^

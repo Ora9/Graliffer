@@ -48,12 +48,15 @@ pub fn derive_action_display(ast: DeriveInput) -> syn::Result<proc_macro2::Token
                         // TODO: point to #[act(skip)]
                         Err(syn::Error::new_spanned(
                             variant,
-                            "non unit variants cannot be constructed or displayed",
+                            "non unit variants cannot be constructed or displayed, you might want to use `skip` or `namespace` attributes",
                         ))
                     }
                 }?
             }
             VariantAttr::Nested(_) => {
+                unimplemented!()
+            }
+            VariantAttr::Skip => {
                 unimplemented!()
             }
         };

@@ -20,6 +20,7 @@ use syn::{
 pub enum VariantAttr {
     Action(ActionVariantAttr),
     Nested(NestedVariantAttr),
+    Skip,
 }
 
 impl VariantAttr {
@@ -65,6 +66,9 @@ impl VariantAttr {
                             Err(meta.error("unsupported action nesting attribute, expected either `namespace` or `transparent`"))
                         }
                     })
+                } else if meta.path.is_ident("skip") {
+                    this = Self::Skip;
+                    Ok(())
                 } else {
                     Err(meta.error("unsupported act attribute, expected either `action` or `nested`"))
                 }
