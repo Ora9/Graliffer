@@ -48,7 +48,7 @@ fn derive_action_name() {
     assert_eq!(DuckAction::Walk.human_name(), "walk");
     assert_eq!(DuckAction::Walk.machine_name(), "Walk");
 
-    assert_eq!(DuckAction::QuackQuack.human_name(), "quackquack")
+    assert_eq!(DuckAction::QuackQuack.human_name(), "quack quack")
 }
 
 // #[test]

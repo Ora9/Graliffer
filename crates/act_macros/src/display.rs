@@ -1,3 +1,4 @@
+use convert_case::{Case, Casing};
 use proc_macro2::Span;
 use quote::quote;
 use syn::LitStr;
@@ -32,9 +33,7 @@ pub fn derive_action_display(ast: DeriveInput) -> syn::Result<proc_macro2::Token
             VariantAttr::Action(action_variant_attr) => {
                 let machine_name = action_variant_attr.machine_name.unwrap_or(variant_name);
                 let human_name = action_variant_attr.human_name.unwrap_or(LitStr::new(
-                    // TODO: use a better to_lowercase, currently `TwoWords` results in `twowords`
-                    // we should insert space at each word boudaries, see crate heck
-                    &machine_name.value().to_lowercase(),
+                    &machine_name.value().to_case(Case::Lower),
                     machine_name.span(),
                 ));
 
