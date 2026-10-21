@@ -1,0 +1,36 @@
+error: unsupported act attribute, expected either `action` or `nested`
+  --> tests/ui/fail/derive_action_unexpected_attribute.rs:13:11
+   |
+13 |     #[act(pouet)]
+   |           ^^^^^
+
+error: unsupported action name format, expected either `human_name` or `machine_name`
+  --> tests/ui/fail/derive_action_unexpected_attribute.rs:22:18
+   |
+22 |     #[act(action(unknown = "oui"))]
+   |                  ^^^^^^^
+
+error: expected string literal
+  --> tests/ui/fail/derive_action_unexpected_attribute.rs:31:31
+   |
+31 |     #[act(action(human_name = 5))]
+   |                               ^
+
+error: expected `=`
+  --> tests/ui/fail/derive_action_unexpected_attribute.rs:38:28
+   |
+38 |     #[act(action(human_name))]
+   |                            ^
+
+error: cannot find attribute `act` in this scope
+ --> tests/ui/fail/derive_action_unexpected_attribute.rs:5:7
+  |
+5 |     #[act(action(human_name = "jump"))]
+  |       ^^^
+  |
+  = note: `act` is in scope, but it is a crate, not an attribute
+help: `act` is an attribute that can be used by the derive macro `ActionDisplay`, you might be missing a `derive` attribute
+  |
+4 + #[derive(ActionDisplay)]
+5 | enum FrogAction {
+  |
