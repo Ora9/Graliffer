@@ -1,0 +1,11 @@
+error: unexpected end of input, expected parentheses
+ --> tests/ui/fail/nested_unexpected.rs:9:17
+  |
+9 |     #[act(nested)]
+  |                 ^
+
+error: expected parentheses
+  --> tests/ui/fail/nested_unexpected.rs:15:18
+   |
+15 |     #[act(nested = "a")]
+   |                  ^

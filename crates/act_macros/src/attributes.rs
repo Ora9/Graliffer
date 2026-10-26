@@ -10,7 +10,7 @@
 use std::fmt::{Debug, write};
 
 use syn::{
-    Attribute, ExprAssign, Ident, LitStr, Token,
+    Attribute, ExprAssign, Ident, LitStr, Meta, Token,
     ext::IdentExt,
     parenthesized,
     parse::{self, Parse, ParseStream},
@@ -18,10 +18,17 @@ use syn::{
     token,
 };
 
+#[derive(Debug)]
 pub enum VariantAttr {
     Action(ActionVariantAttr),
     Nested(NestedVariantAttr),
     Skip,
+}
+
+impl Default for VariantAttr {
+    fn default() -> Self {
+        Self::Action(ActionVariantAttr::default())
+    }
 }
 
 impl VariantAttr {
@@ -33,7 +40,9 @@ impl VariantAttr {
                 continue;
             }
 
+            // dbg!(&attr);
             attr.parse_nested_meta(|meta| {
+
                 if meta.path.is_ident("action") {
                     let mut action_names = ActionVariantAttr::default();
                     meta.parse_nested_meta(|meta| {
@@ -54,24 +63,22 @@ impl VariantAttr {
                         Ok(())
                     })
                 } else if meta.path.is_ident("nested") {
-                    if meta.input.peek(token::Paren) {
-                        meta.parse_nested_meta(|meta| {
-                            if meta.path.is_ident("transparent") {
-                                this = Self::Nested(NestedVariantAttr::Transparent);
-                                Ok(())
-                            } else if meta.path.is_ident("namespace") {
-                                let namespace: LitStr = meta.value()?.parse()?;
-                                this = Self::Nested(NestedVariantAttr::Namespace(Some(namespace)));
+                    // dbg!(&meta.input);
+                    // let no_followup = !meta.input.peek(token::Paren);
+                    meta.parse_nested_meta(|meta| {
+                        let nested = if meta.path.is_ident("namespace") {
+                            let namespace: LitStr = meta.value()?.parse()?;
+                            Ok(NestedVariantAttr::Namespace(Some(namespace)))
+                        } else if meta.path.is_ident("transparent") {
+                            Ok(NestedVariantAttr::Transparent)
+                        } else {
+                            Err(meta.error("unsupported action nesting attribute, expected either `namespace` or `transparent`"))
+                        }?;
 
-                                Ok(())
-                            } else {
-                                Err(meta.error("unsupported action nesting attribute, expected either `namespace` or `transparent`"))
-                            }
-                        })
-                    } else {
-                        this = Self::Nested(NestedVariantAttr::Namespace(None));
+                        this = Self::Nested(nested);
+
                         Ok(())
-                    }
+                    })
 
                 } else if meta.path.is_ident("skip") {
                     this = Self::Skip;
@@ -82,22 +89,19 @@ impl VariantAttr {
             })?;
         }
 
+        // dbg!(&this);
+
         Ok(this)
     }
 }
 
-impl Default for VariantAttr {
-    fn default() -> Self {
-        Self::Action(ActionVariantAttr::default())
-    }
-}
-
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct ActionVariantAttr {
     pub human_name: Option<LitStr>,
     pub machine_name: Option<LitStr>,
 }
 
+#[derive(Debug)]
 pub enum NestedVariantAttr {
     Transparent,
     Namespace(Option<LitStr>),

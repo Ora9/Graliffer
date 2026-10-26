@@ -13,8 +13,8 @@ pub fn derive_action_display(ast: DeriveInput) -> syn::Result<proc_macro2::Token
     let generics = ast.generics;
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
-    let variants = match &ast.data {
-        Data::Enum(data) => &data.variants,
+    let variants = match ast.data {
+        Data::Enum(data) => data.variants,
         _ => return Err(non_enum_error()),
     };
 
@@ -28,6 +28,8 @@ pub fn derive_action_display(ast: DeriveInput) -> syn::Result<proc_macro2::Token
             syn::LitStr::new(variant_ident.to_string().as_str(), variant_ident.span());
 
         let variant_attr = VariantAttr::from_attrs(&variant.attrs)?;
+
+        // dbg!(&variant_attr);
 
         let (machine_arm, human_arm) = match variant_attr {
             VariantAttr::Action(action_variant_attr) => {
@@ -52,8 +54,25 @@ pub fn derive_action_display(ast: DeriveInput) -> syn::Result<proc_macro2::Token
             }
             VariantAttr::Nested(nested_variant_attr) => {
                 match variant.fields {
-                    Fields::Unnamed(ref field) => {
-                        unimplemented!()
+                    Fields::Unnamed(ref fields) => {
+                        let mut fields_iter = fields.unnamed.iter();
+                        let Some(first_field) = fields_iter.next() else {
+                            return Err(syn::Error::new_spanned(
+                                fields,
+                                "nested action can only be defined by a one-sized tuple variant",
+                            ));
+                        };
+
+                        if let Some(excess_field) = fields_iter.next() {
+                            return Err(syn::Error::new_spanned(
+                                excess_field,
+                                "nested action cannot contain more than one value in a tuple variant",
+                            ));
+                        }
+
+                        dbg!(first_field);
+
+                        Ok(())
                     }
                     _ => Err(syn::Error::new_spanned(
                         variant,

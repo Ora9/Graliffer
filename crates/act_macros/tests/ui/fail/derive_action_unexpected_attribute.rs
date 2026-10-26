@@ -47,4 +47,11 @@ enum WaterAction {
     MakeBubbles,
 }
 
+#[derive(Debug, Clone, ActionDisplay)]
+enum BubbleAction {
+    #[act(action = "pouet")]
+    Float,
+    Pop,
+}
+
 fn main() {}

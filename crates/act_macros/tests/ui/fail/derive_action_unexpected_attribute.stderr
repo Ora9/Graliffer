@@ -22,6 +22,12 @@ error: expected `=`
 38 |     #[act(action(human_name))]
    |                            ^
 
+error: expected parentheses
+  --> tests/ui/fail/derive_action_unexpected_attribute.rs:52:18
+   |
+52 |     #[act(action = "pouet")]
+   |                  ^
+
 error: cannot find attribute `act` in this scope
  --> tests/ui/fail/derive_action_unexpected_attribute.rs:5:7
   |

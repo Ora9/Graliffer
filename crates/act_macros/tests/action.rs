@@ -65,9 +65,9 @@ fn derive_action_name() {
 //         B,
 //     }
 //
-//     #[derive(Debug, Clone, act::Action)]
+//     #[derive(Debug, Clone, act::Action, act::ActionDisplay)]
 //     enum Foo {
-//         #[act(nested(namespace = "bar", transparent))]
+//         #[act(nested(namespace = "bar"))]
 //         Bar(Bar),
 //         Baz(Baz),
 //     }
